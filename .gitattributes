@@ -1,0 +1,14 @@
+# 强制所有文本文件使用 LF 换行符，避免 Win/Mac 差异
+* text=auto eol=lf
+
+# 二进制文件不做换行符转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.db binary
