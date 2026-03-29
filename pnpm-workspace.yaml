@@ -1,0 +1,9 @@
+packages:
+  - 'packages/*'
+allowBuilds:
+  '@parcel/watcher': true
+  better-sqlite3: false
+  esbuild: true
+  simple-git-hooks: true
+  unrs-resolver: true
+  vue-demi: true

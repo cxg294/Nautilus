@@ -6,8 +6,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 加载环境变量
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// 项目根目录（server/config → 上两级）
+const rootDir = path.resolve(__dirname, '../../');
+
+// 加载项目根目录的 .env
+dotenv.config({ path: path.resolve(rootDir, '.env') });
 
 export default {
   // 服务端口
@@ -21,9 +24,13 @@ export default {
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 
-  // 数据库路径
-  dbPath: path.resolve(__dirname, process.env.DB_PATH || './db/nautilus.db'),
+  // 数据库路径（相对于 server/ 目录）
+  dbPath: path.resolve(__dirname, '../db/nautilus.db'),
+
+  // migration 目录
+  migrationsDir: path.resolve(__dirname, '../db/migrations'),
 
   // 运行环境
   isDev: process.env.NODE_ENV !== 'production',
 };
+

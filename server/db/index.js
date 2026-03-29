@@ -20,7 +20,7 @@ db.pragma('journal_mode = WAL');
  * 自动执行 migrations 目录下的所有 SQL 文件
  */
 export function runMigrations() {
-  const migrationsDir = path.resolve(path.dirname(config.dbPath), 'migrations');
+  const migrationsDir = config.migrationsDir;
 
   // 创建 migration 记录表
   db.exec(`

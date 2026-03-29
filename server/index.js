@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config/env.js';
 import db, { runMigrations } from './db/index.js';
+import authRoutes from './routes/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,15 +25,15 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     name: 'Nautilus',
-    version: '0.1.0',
+    version: '0.2.0',
     timestamp: new Date().toISOString(),
   });
 });
 
-// TODO: Phase 1 - 认证路由
-// app.use('/api/auth', authRoutes);
+// 认证路由
+app.use('/auth', authRoutes);
 
-// TODO: Phase 1 - 用户管理路由
+// TODO: Phase 2 - 用户管理路由
 // app.use('/api/users', userRoutes);
 
 // === 生产模式：提供前端静态文件 ===

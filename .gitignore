@@ -2,12 +2,15 @@
 node_modules/
 
 # === 构建产物 ===
+dist/
 client/dist/
 
 # === 环境变量 ===
 .env
 .env.local
 .env.*.local
+.env.prod
+.env.test
 
 # === 数据库 ===
 *.db
