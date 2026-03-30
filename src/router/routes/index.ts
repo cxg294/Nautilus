@@ -2,6 +2,7 @@ import type { CustomRoute, ElegantConstRoute, ElegantRoute } from '@elegant-rout
 import { generatedRoutes } from '../elegant/routes';
 import { layouts, views } from '../elegant/imports';
 import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
+import { getPluginRoutes } from '../plugin-scanner';
 
 /**
  * custom routes
@@ -16,7 +17,9 @@ export function createStaticRoutes() {
 
   const authRoutes: ElegantRoute[] = [];
 
-  [...customRoutes, ...generatedRoutes].forEach(item => {
+  // 合并内置路由 + 插件路由
+  const pluginRoutes = getPluginRoutes();
+  [...customRoutes, ...generatedRoutes, ...pluginRoutes].forEach(item => {
     if (item.meta?.constant) {
       constantRoutes.push(item);
     } else {

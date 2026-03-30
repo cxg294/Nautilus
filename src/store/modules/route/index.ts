@@ -301,7 +301,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
    *
    * @param routePath Route path
    */
-  async function getIsAuthRouteExist(routePath: RouteMap[RouteKey]) {
+  async function getIsAuthRouteExist(routePath: string) {
     const routeName = getRouteName(routePath);
 
     if (!routeName) {

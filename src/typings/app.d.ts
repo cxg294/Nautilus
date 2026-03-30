@@ -260,7 +260,7 @@ declare namespace App {
       /** The tab route key */
       routeKey: LastLevelRouteKey;
       /** The tab route path */
-      routePath: RouteMap[LastLevelRouteKey];
+      routePath: string;
       /** The tab route full path */
       fullPath: string;
       /** The tab fixed index */
@@ -479,7 +479,7 @@ declare namespace App {
           resetSuccessMsg: string;
         };
       };
-      route: Record<I18nRouteKey, string>;
+      route: Record<I18nRouteKey, string> & Record<string, string>;
       page: {
         login: {
           common: {
@@ -528,32 +528,44 @@ declare namespace App {
           };
         };
         home: {
-          branchDesc: string;
           greeting: string;
-          weatherDesc: string;
-          projectCount: string;
-          todo: string;
-          message: string;
-          downloadCount: string;
-          registerCount: string;
-          schedule: string;
-          study: string;
-          work: string;
-          rest: string;
-          entertainment: string;
-          visitCount: string;
-          turnover: string;
-          dealCount: string;
-          projectNews: {
+          announcement: {
             title: string;
-            moreNews: string;
-            desc1: string;
-            desc2: string;
-            desc3: string;
-            desc4: string;
-            desc5: string;
+            content: string;
           };
-          creativity: string;
+          weather: {
+            title: string;
+            alertMsg: string;
+            today: string;
+            tomorrow: string;
+            weekdays: {
+              mon: string;
+              tue: string;
+              wed: string;
+              thu: string;
+              fri: string;
+              sat: string;
+              sun: string;
+            };
+          };
+          shortcuts: {
+            title: string;
+          };
+          changelog: {
+            title: string;
+            tags: {
+              feature: string;
+              fix: string;
+              optimize: string;
+              milestone: string;
+            };
+          };
+          aiNews: {
+            title: string;
+            hoursAgo: string;
+            minutesAgo: string;
+            noNews: string;
+          };
         };
         sb3Studio: {
           openFile: string;
@@ -603,6 +615,216 @@ declare namespace App {
           preview: string;
           prevFrame: string;
           nextFrame: string;
+        };
+        effectsGenerator: {
+          pageTitle: string;
+          presetList: string;
+          preview: string;
+          params: string;
+          particleCount: string;
+          speed: string;
+          size: string;
+          opacity: string;
+          color: string;
+          direction: string;
+          gravity: string;
+          play: string;
+          stop: string;
+          reset: string;
+          copyConfig: string;
+          exportHtml: string;
+          copySuccess: string;
+          exportSuccess: string;
+          uploadImage: string;
+          customParticle: string;
+          fullscreen: string;
+          exitFullscreen: string;
+          background: string;
+          categoryBurst: string;
+          categoryAmbient: string;
+          clickHint: string;
+          presets: {
+            'star-burst': string;
+            'confetti-pop': string;
+            'heart-burst': string;
+            'sparkle-flash': string;
+            'firework-click': string;
+            'lightning-spark': string;
+            'rainbow-burst': string;
+            'gold-coins': string;
+            'deep-space': string;
+            aurora: string;
+            'neon-matrix': string;
+            'cyber-bubbles': string;
+            'fire-rise': string;
+            fountain: string;
+          };
+          styleParams: string;
+          softness: string;
+          lifeCurve: string;
+          sizeMode: string;
+          colorGradient: string;
+          curves: {
+            easeOut: string;
+            easeIn: string;
+            linear: string;
+            easeInOut: string;
+            pulse: string;
+          };
+          sizeModes: {
+            shrink: string;
+            grow: string;
+            constant: string;
+            pop: string;
+          };
+          recording: {
+            title: string;
+            fps: string;
+            duration: string;
+            quality: string;
+            qualityHigh: string;
+            qualityMedium: string;
+            qualityLow: string;
+            selectRegion: string;
+            noRegion: string;
+            start: string;
+            stop: string;
+            cancel: string;
+            download: string;
+            reRecord: string;
+            fileSize: string;
+            stateIdle: string;
+            stateSelecting: string;
+            stateReady: string;
+            stateRecording: string;
+            stateEncoding: string;
+            stateDone: string;
+          };
+        };
+        imageCompressor: {
+          uploadTitle: string;
+          uploadDesc: string;
+          tabImages: string;
+          tabSb3: string;
+          settings: string;
+          maxWidth: string;
+          maxHeight: string;
+          quality: string;
+          outputFormat: string;
+          keepOriginal: string;
+          compressAll: string;
+          uploadImages: string;
+          downloadAll: string;
+          downloadZip: string;
+          clearAll: string;
+          originalSize: string;
+          compressedSize: string;
+          compressionRate: string;
+          status: {
+            pending: string;
+            compressing: string;
+            done: string;
+            error: string;
+          };
+          compare: string;
+          compareTitle: string;
+          original: string;
+          compressed: string;
+          sb3: {
+            uploadSb3: string;
+            fileName: string;
+            fileSize: string;
+            imageCount: string;
+            compressQuality: string;
+            startCompress: string;
+            exporting: string;
+            exportSb3: string;
+            selectAll: string;
+            deselectAll: string;
+            skipSvg: string;
+            totalSaved: string;
+            compressProgress: string;
+          };
+          noImages: string;
+          noSb3: string;
+          dragDrop: string;
+        };
+        timestampConverter: {
+          currentTimestamp: string;
+          currentTimestampMs: string;
+          currentDate: string;
+          tsToDate: string;
+          dateToTs: string;
+          enterTimestamp: string;
+          enterDate: string;
+          now: string;
+          localTime: string;
+          relativeTime: string;
+          invalidInput: string;
+          copied: string;
+          timestampSeconds: string;
+          timestampMs: string;
+          dateHint: string;
+          batchConvert: string;
+          batchHint: string;
+          batchPlaceholder: string;
+          seconds: string;
+          minutes: string;
+          hours: string;
+          days: string;
+          months: string;
+          ago: string;
+          later: string;
+        };
+        base64Converter: {
+          converter: string;
+          textMode: string;
+          fileMode: string;
+          plainText: string;
+          enterText: string;
+          encode: string;
+          decode: string;
+          clear: string;
+          urlSafe: string;
+          autoSync: string;
+          encodeFailed: string;
+          decodeFailed: string;
+          copied: string;
+          dropFile: string;
+          dropHint: string;
+          output: string;
+          copyBase64: string;
+          copyDataUrl: string;
+          download: string;
+        };
+        qrcodeGenerator: {
+          content: string;
+          enterText: string;
+          enterUrl: string;
+          wifiSSID: string;
+          wifiPassword: string;
+          wifiHidden: string;
+          emailTo: string;
+          emailSubject: string;
+          emailBody: string;
+          style: string;
+          size: string;
+          margin: string;
+          errorLevel: string;
+          fgColor: string;
+          bgColor: string;
+          addLogo: string;
+          uploadLogo: string;
+          logoHint: string;
+          preview: string;
+          emptyHint: string;
+          copyImage: string;
+          copied: string;
+          copyFailed: string;
+          generateFailed: string;
+          batchGenerate: string;
+          batchPlaceholder: string;
+          generateAll: string;
         };
       };
       form: {

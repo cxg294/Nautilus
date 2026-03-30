@@ -137,7 +137,7 @@ function getGlobalMenuByBaseRoute(route: RouteLocationNormalizedLoaded | Elegant
     label,
     i18nKey,
     routeKey: name as RouteKey,
-    routePath: path as RouteMap[RouteKey],
+    routePath: path as string,
     icon: SvgIconVNode({ icon, localIcon, fontSize: iconFontSize || 20 })
   };
 

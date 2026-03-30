@@ -73,7 +73,7 @@ export function getTabByRoute(route: App.Global.TabRoute) {
     id: getTabIdByRoute(route),
     label,
     routeKey: name as LastLevelRouteKey,
-    routePath: path as RouteMap[LastLevelRouteKey],
+    routePath: path as string,
     fullPath,
     fixedIndex: fixedIndexInTab,
     icon,
