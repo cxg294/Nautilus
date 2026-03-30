@@ -39,7 +39,7 @@ const { isFullscreen, toggle } = useFullscreen();
     </div>
     <div class="h-full flex-y-center justify-end">
       <GlobalSearch v-if="themeStore.header.globalSearch.visible" />
-      <FullScreen v-if="!appStore.isMobile" :full="isFullscreen" @click="toggle" />
+      <FullScreen v-if="!appStore.isMobile" :full="isFullscreen" @click="() => toggle()" />
       <LangSwitch
         v-if="themeStore.header.multilingual.visible"
         :lang="appStore.locale"

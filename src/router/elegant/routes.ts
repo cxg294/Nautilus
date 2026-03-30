@@ -47,7 +47,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'home',
       i18nKey: 'route.home',
       icon: 'mdi:monitor-dashboard',
-      order: 1
+      order: 1,
+      guestAccessible: true
     }
   },
   {
@@ -76,6 +77,19 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'sb3-studio',
+    path: '/sb3-studio',
+    component: 'layout.base$view.sb3-studio',
+    meta: {
+      title: 'sb3-studio',
+      i18nKey: 'route.sb3-studio',
+      icon: 'mdi:puzzle-outline',
+      order: 3,
+      guestAccessible: true,
+      constant: true
+    }
+  },
+  {
     name: 'video-frame-extractor',
     path: '/video-frame-extractor',
     component: 'layout.base$view.video-frame-extractor',
@@ -83,7 +97,8 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'video-frame-extractor',
       i18nKey: 'route.video-frame-extractor',
       icon: 'mdi:filmstrip',
-      order: 2
+      order: 2,
+      guestAccessible: true
     }
   }
 ];

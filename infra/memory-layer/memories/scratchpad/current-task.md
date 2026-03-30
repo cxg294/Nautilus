@@ -13,18 +13,20 @@
 - Phase 1 认证系统 ✅
 - 第一个业务模块（视频抽帧工具）✅
 - 知识沉淀（/new-module 工作流 + L2 记忆）✅
+- 飞书 CLI 基础设施 ✅
 
 ## 最近完成
-- 视频抽帧工具：完整 UI + 核心逻辑（Canvas 抽帧 + JSZip 导出）
-- 修复 loadVideo 时序 bug（改用临时 video 元素）
-- 更新 /new-module 工作流（适配 Elegant Router）
-- 更新 L2 项目记忆（技术栈、项目结构、进度）
-- 清理 client-legacy/ 旧代码
+- 安装 Lark CLI v1.0.0（`@larksuite/cli`）
+- 配置 Bot 身份（应用 `cli_a993f6f82838dcb4`，feishu 品牌）
+- 安装 19 个 AI Skills 到 `.agents/skills/lark-*`
+- 记录应用权限清单到 `.agents/lark-cli-scopes.json`
+- 更新 L2 记忆（全局 + 项目）
 
 ## 下一步
-- 前端全局错误日志/埋点系统设计
+- 认知卸载 MVP 验证（macOS Vision OCR 效果测试）
 - Phase 2a 记忆层 API
+- Phase 2b 飞书桥接（Lark CLI 已就绪）
 - 或开始下一个业务模块
 
 ## 阻塞项
-- 无
+- 飞书用户身份登录：需 `offline_access` scope 审批，用户暂时放弃

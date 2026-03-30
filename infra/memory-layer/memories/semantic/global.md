@@ -11,7 +11,8 @@
 - 前端: Vue 3（Composition API + `<script setup>`）
 - 后端: Node.js + Express
 - 数据库: SQLite（轻量部署）/ PostgreSQL（生产环境）
-- 包管理: npm
+- 包管理: pnpm（Workspace）
+- 飞书集成: Lark CLI v1.0.0（`@larksuite/cli`，Bot 身份可用，用户身份未登录）
 - 代码注释: 简体中文
 - 页面文案: 根据多语言设置使用相应语言
 - 命名风格: kebab-case（文件）、camelCase（变量）、PascalCase（组件）

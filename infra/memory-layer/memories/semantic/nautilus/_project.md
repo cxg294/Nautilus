@@ -73,12 +73,33 @@ nautilus/
 - 四层记忆系统协议与目录结构
 - 新模块创建工作流 `/new-module`（已更新到 Soybean Admin 版本）
 - 第一个业务模块：视频抽帧工具
+- 第二个业务模块：SB3 积木分析工作台（V6，含 8 项分析功能 + 跨面板导航）
+- 首页及公开工具支持游客免登录访问
+- 飞书 CLI 集成基础设施（Lark CLI v1.0.0 安装 + 19 个 AI Skills 安装 + Bot 身份配置）
+
+### 进行中
+- 认知卸载机制设计（`认知卸载机制设计方案.md`，方案阶段，待验证）
+  - 三路数据采集：截屏+元数据、Webhook 灵感捕捉、多维表格会议记录
+  - 处理链路：本地 OCR → 三路合流 → Gemini 生成日报/周报
+  - Limitless (Rewind) 已否决（2026-03-30），全面转向完全自研
 
 ### 待推进
 - Phase 2a: 记忆层 API（将 Markdown 记忆暴露为 CRUD API）
-- Phase 2b: 飞书 Webhook 桥接
+- Phase 2b: 飞书桥接（Lark CLI Bot 身份已就绪，可对接消息通知、多维表格等）
+- 认知卸载 MVP：macOS Vision OCR 验证 → 截屏守护进程 → SQLite 日志存储 → AI 分析管道
 - 部署配置（Docker / PM2）
 - 单元测试框架（Vitest）
+
+---
+
+## 飞书 CLI 集成
+
+- **工具**: `@larksuite/cli` v1.0.0（2026-03-28 发布）
+- **应用 ID**: `cli_a993f6f82838dcb4`
+- **身份**: Bot（tenant）身份可用，用户身份未登录
+- **AI Skills**: 19 个已安装到 `.agents/skills/lark-*`
+- **权限清单**: 详见 `.agents/lark-cli-scopes.json`
+- **Bot 可用能力**: 多维表格 CRUD、日历管理、通讯录读取、文档读写、消息收发、电子表格操作、任务管理、知识库管理、会议/录制查询
 
 ---
 
@@ -87,9 +108,33 @@ nautilus/
 | 模块 | 状态 |
 |:---|:---|
 | 🎬 视频抽帧工具 | ✅ 已完成 |
-| 🎮 SB3 批处理工作台 | 待开发 |
-| 🧠 认知卸载 | 待开发 |
+| 🧩 SB3 积木分析工作台 | ✅ 已完成（V6，2026-03-30） |
+| 🧠 认知卸载 | 📐 方案设计中 |
 | 🎨 素材生成器 | 待开发 |
 | 📊 课程数据处理 | 待开发 |
 | 🐕 柴犬集合站 | 待开发 |
 | 📝 逐字稿审查器 | 待开发 |
+
+---
+
+## SB3 积木分析工作台
+
+- **路径**: `src/views/sb3-studio/`
+- **前身**: sb3-batch-studio（开发者视角的批处理工具），现重构为场景化分析平台
+- **对标项目**: cubetest（已废弃，cxg294.github.io/cubetest/dist/）
+- **四 Tab 布局**: 项目总览 / 素材管理 / 变量与广播 / 逻辑分析
+- **核心架构**:
+  - `composables/use-sb3-project.ts` — 全局状态 + 跨面板导航（navigationTarget）
+  - `core/sb3Parser.js` — SB3 zip 解包 + assets Map
+  - `core/analyzer.js` — 变量/广播统计
+  - `core/blockConverter.js` — 积木→文本转换 + extractOrphans + extractReferencedResources
+- **已实现功能**:
+  1. 深度搜索（文本/Opcode 双模式 + 角色过滤 + 高亮）
+  2. 引用资源分析（变量 R/W 计数 + 广播收发链路）
+  3. 孤立积木检测（橙色警告展示）
+  4. 脚本变量/广播过滤器
+  5. 变量管理（重命名 + 删除无效变量 + 广播改名）
+  6. 积木行号 + 分类 Badge（颜色对应 Scratch 积木类别）
+  7. 素材预览（造型图片缩略图、声音真实播放）+ 替换（内存级文件上传）
+  8. 广播→脚本跨面板跳转（DataPanel 点击 → index.vue Tab 切换 → SpritePanel 角色选择+过滤）
+- **MermaidRenderer**: 流程图渲染组件，已添加 `suppressErrorRendering: true`

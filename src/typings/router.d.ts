@@ -31,6 +31,12 @@ declare module 'vue-router' {
      */
     constant?: boolean | null;
     /**
+     * Whether the route is accessible to guests (unauthenticated users)
+     *
+     * When true, the route can be accessed without login, but features requiring backend services may prompt login
+     */
+    guestAccessible?: boolean | null;
+    /**
      * Iconify icon
      *
      * It can be used in the menu or breadcrumb

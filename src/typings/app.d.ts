@@ -555,6 +555,29 @@ declare namespace App {
           };
           creativity: string;
         };
+        sb3Studio: {
+          openFile: string;
+          loadSample: string;
+          saveSB3: string;
+          saveJSON: string;
+          versionDiff: string;
+          tabOverview: string;
+          tabAssets: string;
+          tabData: string;
+          tabLogic: string;
+          emptyTitle: string;
+          emptyDesc: string;
+          stats: {
+            sprites: string;
+            blocks: string;
+            scripts: string;
+            costumes: string;
+            sounds: string;
+            variables: string;
+            lists: string;
+            broadcasts: string;
+          };
+        };
         videoFrameExtractor: {
           uploadTitle: string;
           uploadDesc: string;

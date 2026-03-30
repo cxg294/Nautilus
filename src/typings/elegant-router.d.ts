@@ -23,6 +23,7 @@ declare module "@elegant-router/types" {
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
+    "sb3-studio": "/sb3-studio";
     "video-frame-extractor": "/video-frame-extractor";
   };
 
@@ -61,6 +62,7 @@ declare module "@elegant-router/types" {
     | "home"
     | "iframe-page"
     | "login"
+    | "sb3-studio"
     | "video-frame-extractor"
   >;
 
@@ -84,6 +86,7 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "home"
+    | "sb3-studio"
     | "video-frame-extractor"
   >;
 

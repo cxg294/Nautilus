@@ -190,6 +190,16 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     tabStore.initHomeTab();
   }
 
+  /** Init guest-accessible routes (for unauthenticated users) */
+  function initGuestRoutes() {
+    const { authRoutes: staticAuthRoutes } = createStaticRoutes();
+    const guestRoutes = staticAuthRoutes.filter(route => route.meta?.guestAccessible);
+
+    addAuthRoutes(guestRoutes);
+    handleConstantAndAuthRoutes();
+    setIsInitAuthRoute(true);
+  }
+
   /** Init static auth route */
   function initStaticAuthRoute() {
     const { authRoutes: staticAuthRoutes } = createStaticRoutes();
@@ -340,6 +350,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     initAuthRoute,
     isInitAuthRoute,
     setIsInitAuthRoute,
+    initGuestRoutes,
     getIsAuthRouteExist,
     getSelectedMenuKeyPath,
     onRouteSwitchWhenLoggedIn,

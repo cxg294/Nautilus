@@ -226,7 +226,8 @@ const local: App.I18n.Schema = {
     500: '服务器错误',
     'iframe-page': '外链页面',
     home: '首页',
-    'video-frame-extractor': '视频抽帧'
+    'video-frame-extractor': '视频抽帧',
+    'sb3-studio': 'SB3 积木分析'
   },
   page: {
     login: {
@@ -303,6 +304,29 @@ const local: App.I18n.Schema = {
         desc5: 'Nautilus 飞书通信桥接方案调研完毕！'
       },
       creativity: '创意'
+    },
+    sb3Studio: {
+      openFile: '打开文件',
+      loadSample: '加载示例',
+      saveSB3: '导出 .sb3',
+      saveJSON: '导出 project.json',
+      versionDiff: '版本对比',
+      tabOverview: '项目总览',
+      tabAssets: '素材管理',
+      tabData: '变量与广播',
+      tabLogic: '逻辑分析',
+      emptyTitle: '开始分析 SB3 项目',
+      emptyDesc: '上传一个 .sb3 文件或加载示例数据来开始',
+      stats: {
+        sprites: '角色数',
+        blocks: '积木数',
+        scripts: '脚本数',
+        costumes: '造型数',
+        sounds: '声音数',
+        variables: '变量数',
+        lists: '列表数',
+        broadcasts: '广播数'
+      }
     },
     videoFrameExtractor: {
       uploadTitle: '拖拽视频到此处，或点击选择文件',

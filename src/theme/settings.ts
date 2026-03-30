@@ -22,7 +22,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
     animateMode: 'fade-slide'
   },
   header: {
-    height: 56,
+    height: 48,
     breadcrumb: {
       visible: true,
       showIcon: true
@@ -37,7 +37,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
   tab: {
     visible: true,
     cache: true,
-    height: 44,
+    height: 38,
     mode: 'chrome',
     closeTabByMiddleClick: false
   },
@@ -52,7 +52,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
     autoSelectFirstMenu: false
   },
   footer: {
-    visible: true,
+    visible: false,
     fixed: false,
     height: 48,
     right: true

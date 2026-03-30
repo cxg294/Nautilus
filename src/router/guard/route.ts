@@ -25,7 +25,7 @@ export function createRouteGuard(router: Router) {
     const noAuthorizationRoute: RouteKey = '403';
 
     const isLogin = Boolean(localStg.get('token'));
-    const needLogin = !to.meta.constant;
+    const needLogin = !to.meta.constant && !to.meta.guestAccessible;
     const routeRoles = to.meta.roles || [];
 
     const hasRole = authStore.userInfo.roles.some(role => routeRoles.includes(role));
@@ -87,8 +87,27 @@ async function initRoute(to: RouteLocationNormalized): Promise<RouteLocationRaw 
   const isLogin = Boolean(localStg.get('token'));
 
   if (!isLogin) {
-    // if the user is not logged in and the route is a constant route but not the "not-found" route, then it is allowed to access.
-    if (to.meta.constant && !isNotFoundRoute) {
+    // Initialize guest-accessible routes if not yet done
+    if (!routeStore.isInitAuthRoute) {
+      await routeStore.initGuestRoutes();
+
+      // After initializing guest routes, the route captured by "not-found" needs to be re-resolved
+      if (isNotFoundRoute) {
+        const path = to.fullPath;
+        const location: RouteLocationRaw = {
+          path,
+          replace: true,
+          query: to.query,
+          hash: to.hash
+        };
+
+        return location;
+      }
+    }
+
+    // if the user is not logged in and the route is a constant or guestAccessible route
+    // but not the "not-found" route, then it is allowed to access.
+    if ((to.meta.constant || to.meta.guestAccessible) && !isNotFoundRoute) {
       routeStore.onRouteSwitchWhenNotLoggedIn();
 
       return null;
