@@ -1,0 +1,21 @@
+{
+  "name": "video-frame-extractor",
+  "category": "image-tools",
+  "icon": "mdi:filmstrip",
+  "order": 2,
+  "categoryOrder": 2,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "视频抽帧",
+      "category": "图片工具",
+      "categoryIcon": "mdi:image-multiple"
+    },
+    "en-US": {
+      "route": "Frame Extractor",
+      "category": "Image Tools",
+      "categoryIcon": "mdi:image-multiple"
+    }
+  }
+}

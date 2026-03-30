@@ -1,0 +1,21 @@
+{
+  "name": "image-compressor",
+  "category": "image-tools",
+  "icon": "mdi:image-size-select-large",
+  "order": 1,
+  "categoryOrder": 2,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "图片压缩",
+      "category": "图片工具",
+      "categoryIcon": "mdi:image-multiple"
+    },
+    "en-US": {
+      "route": "Image Compressor",
+      "category": "Image Tools",
+      "categoryIcon": "mdi:image-multiple"
+    }
+  }
+}

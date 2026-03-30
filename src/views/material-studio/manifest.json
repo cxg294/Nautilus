@@ -1,0 +1,21 @@
+{
+  "name": "material-studio",
+  "category": "image-tools",
+  "icon": "mdi:palette-swatch-variant",
+  "order": 4,
+  "categoryOrder": 2,
+  "access": "guest",
+  "locked": true,
+  "i18n": {
+    "zh-CN": {
+      "route": "素材生成工作台",
+      "category": "图片工具",
+      "categoryIcon": "mdi:image-multiple"
+    },
+    "en-US": {
+      "route": "Material Studio",
+      "category": "Image Tools",
+      "categoryIcon": "mdi:image-multiple"
+    }
+  }
+}

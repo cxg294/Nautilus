@@ -1,0 +1,21 @@
+{
+  "name": "sb3-compressor",
+  "category": "sb3-graphical",
+  "icon": "mdi:archive-arrow-down",
+  "order": 2,
+  "categoryOrder": 3,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "SB3 压缩",
+      "category": "SB3 图形化",
+      "categoryIcon": "mdi:puzzle"
+    },
+    "en-US": {
+      "route": "SB3 Compressor",
+      "category": "SB3 Graphical",
+      "categoryIcon": "mdi:puzzle"
+    }
+  }
+}

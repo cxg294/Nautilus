@@ -1,0 +1,21 @@
+{
+  "name": "sb3-studio",
+  "category": "sb3-graphical",
+  "icon": "mdi:puzzle-outline",
+  "order": 1,
+  "categoryOrder": 3,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "SB3 积木分析",
+      "category": "SB3 图形化",
+      "categoryIcon": "mdi:puzzle"
+    },
+    "en-US": {
+      "route": "SB3 Studio",
+      "category": "SB3 Graphical",
+      "categoryIcon": "mdi:puzzle"
+    }
+  }
+}
