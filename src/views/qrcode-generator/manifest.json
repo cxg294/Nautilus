@@ -1,0 +1,21 @@
+{
+  "name": "qrcode-generator",
+  "category": "misc-shop",
+  "icon": "mdi:qrcode",
+  "order": 3,
+  "categoryOrder": 4,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "二维码生成",
+      "category": "杂货铺",
+      "categoryIcon": "mdi:toolbox-outline"
+    },
+    "en-US": {
+      "route": "QR Code",
+      "category": "Misc Shop",
+      "categoryIcon": "mdi:toolbox-outline"
+    }
+  }
+}

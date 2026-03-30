@@ -1,0 +1,21 @@
+{
+  "name": "base64-converter",
+  "category": "misc-shop",
+  "icon": "mdi:code-braces",
+  "order": 2,
+  "categoryOrder": 4,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "Base64 转换",
+      "category": "杂货铺",
+      "categoryIcon": "mdi:toolbox-outline"
+    },
+    "en-US": {
+      "route": "Base64",
+      "category": "Misc Shop",
+      "categoryIcon": "mdi:toolbox-outline"
+    }
+  }
+}

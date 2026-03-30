@@ -1,0 +1,21 @@
+{
+  "name": "timestamp-converter",
+  "category": "misc-shop",
+  "icon": "mdi:clock-digital",
+  "order": 1,
+  "categoryOrder": 4,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "时间戳转换",
+      "category": "杂货铺",
+      "categoryIcon": "mdi:toolbox-outline"
+    },
+    "en-US": {
+      "route": "Timestamp",
+      "category": "Misc Shop",
+      "categoryIcon": "mdi:toolbox-outline"
+    }
+  }
+}
