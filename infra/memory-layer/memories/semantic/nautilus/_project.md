@@ -54,13 +54,17 @@ nautilus/
 └── build/                # 构建配置
 ```
 
-### Elegant Router 注册要点
+### 插件化模块注册（2026-03-31 改造完成）
 
-新增页面需同时修改 3 类文件，详见 `.agents/workflows/new-module.md`：
-1. **类型声明** `src/typings/elegant-router.d.ts` — RouteMap + FirstLevelRouteKey + LastLevelRouteKey
-2. **路由表** `src/router/elegant/routes.ts` — 路由对象
-3. **视图导入** `src/router/elegant/imports.ts` — 懒加载 import
-4. **i18n 类型** `src/typings/app.d.ts` — Schema.page 中添加字段
+新增工具**只需在自己目录内创建 2 个文件**，无需修改任何共享文件：
+1. `src/views/<工具名>/manifest.json` — 声明路由、图标、分类、i18n
+2. `src/views/<工具名>/index.vue` — 页面组件
+
+核心机制：`src/router/plugin-scanner.ts` 利用 Vite 的 `import.meta.glob()` 在编译时扫描所有 `manifest.json`，自动生成路由配置、视图导入映射和 i18n 数据。
+
+详见 `.agents/workflows/new-module.md`
+
+> ⚠️ 工具内部的 page 翻译（如 `page.imageCompressor.xxx`）仍在全局 locale 文件中，后续 Phase 2 迁移
 
 ---
 
@@ -76,6 +80,11 @@ nautilus/
 - 第二个业务模块：SB3 积木分析工作台（V6，含 8 项分析功能 + 跨面板导航）
 - 首页及公开工具支持游客免登录访问
 - 飞书 CLI 集成基础设施（Lark CLI v1.0.0 安装 + 19 个 AI Skills 安装 + Bot 身份配置）
+- 插件化架构改造（2026-03-31）：manifest.json 自注册 + plugin-scanner.ts 编译时扫描，新增工具零共享文件修改
+- 导航重构：图片工具(4) / SB3 图形化(2) / 杂货铺(3) / 数据看板(2) / 文案创意(3) 五大分类
+- 图片压缩工具、特效生成器（含 GIF 录制）、SB3 压缩、时间戳转换、Base64 转换、二维码生成
+- 6 个锁定占位工具（素材生成工作台、BTC 课程流转、BTC 课中数据、逐字稿审查、逐字稿生成、案例设计）
+- 首页重构：动态 Dashboard（天气预报 + 快捷入口 + AI 新闻 + 更新日志）
 
 ### 进行中
 - 认知卸载机制设计（`认知卸载机制设计方案.md`，方案阶段，待验证）
@@ -84,6 +93,8 @@ nautilus/
   - Limitless (Rewind) 已否决（2026-03-30），全面转向完全自研
 
 ### 待推进
+- 插件化 Phase 2：将工具内部 page 翻译迁移到工具目录内
+- CI/CD：manifest.json schema 校验 + pre-commit hook
 - Phase 2a: 记忆层 API（将 Markdown 记忆暴露为 CRUD API）
 - Phase 2b: 飞书桥接（Lark CLI Bot 身份已就绪，可对接消息通知、多维表格等）
 - 认知卸载 MVP：macOS Vision OCR 验证 → 截屏守护进程 → SQLite 日志存储 → AI 分析管道
@@ -100,20 +111,52 @@ nautilus/
 - **AI Skills**: 19 个已安装到 `.agents/skills/lark-*`
 - **权限清单**: 详见 `.agents/lark-cli-scopes.json`
 - **Bot 可用能力**: 多维表格 CRUD、日历管理、通讯录读取、文档读写、消息收发、电子表格操作、任务管理、知识库管理、会议/录制查询
+- **多设备**: Windows + Mac 均已配置（`lark-cli config init --app-id ... --brand feishu`）
+- **测试群**: `教研助手测试群` chat_id = `oc_c649c785ed30ccac6ce3c20f494329f7`
+
+### Windows 平台调用注意事项
+
+> ⚠️ **PowerShell JSON 转义坑**: 在 PowerShell 中直接传含嵌套双引号的 JSON 给 lark-cli 会导致参数被拆分（`Error: accepts 2 arg(s), received 14`）。
+
+**解决方案**: 使用 Node.js `execFileSync` + 参数数组，直接调用 lark-cli 的 `run.js` 入口，完全绕过 shell 解析：
+
+```javascript
+const { execFileSync } = require('child_process');
+const runJs = 'C:\\Users\\20342\\AppData\\Roaming\\npm\\node_modules\\@larksuite\\cli\\scripts\\run.js';
+const result = execFileSync(process.execPath, [
+  runJs, 'api', 'POST', '/open-apis/im/v1/messages',
+  '--params', JSON.stringify({ receive_id_type: 'chat_id' }),
+  '--data', JSON.stringify({ receive_id: 'oc_xxx', msg_type: 'text', content: '...' }),
+  '--as', 'bot'
+], { encoding: 'utf-8', timeout: 15000 });
+```
+
+- **关键**: 用 `process.execPath`（node）执行 `run.js`，不用 `.cmd` wrapper（`.cmd` 在 `execFileSync` 中会 `EINVAL`）
+- **lark-cli 全局路径**: `C:\Users\20342\AppData\Roaming\npm\lark-cli.cmd`
+- **run.js 入口**: `C:\Users\20342\AppData\Roaming\npm\node_modules\@larksuite\cli\scripts\run.js`
+- **简单查询命令**（如 `lark-cli config show`、`lark-cli doctor`）在 PowerShell 中可直接运行，只有传复杂 JSON 时需要绕过
 
 ---
 
 ## 业务模块规划
 
-| 模块 | 状态 |
-|:---|:---|
-| 🎬 视频抽帧工具 | ✅ 已完成 |
-| 🧩 SB3 积木分析工作台 | ✅ 已完成（V6，2026-03-30） |
-| 🧠 认知卸载 | 📐 方案设计中 |
-| 🎨 素材生成器 | 待开发 |
-| 📊 课程数据处理 | 待开发 |
-| 🐕 柴犬集合站 | 待开发 |
-| 📝 逐字稿审查器 | 待开发 |
+| 模块 | 分类 | 状态 |
+|:---|:---|:---|
+| 🖼️ 图片压缩 | image-tools | ✅ 已完成 |
+| 🎬 视频抽帧 | image-tools | ✅ 已完成 |
+| ✨ 特效生成器 | image-tools | ✅ 已完成（含 GIF 录制） |
+| 🎨 素材生成工作台 | image-tools | 🔒 锁定占位 |
+| 🧩 SB3 积木分析 | sb3-graphical | ✅ 已完成（V6） |
+| 📦 SB3 压缩 | sb3-graphical | ✅ 已完成 |
+| ⏱️ 时间戳转换 | misc-shop | ✅ 已完成 |
+| 🔤 Base64 转换 | misc-shop | ✅ 已完成 |
+| 📱 二维码生成 | misc-shop | ✅ 已完成 |
+| 📊 BTC 课程流转数据 | data-dashboard | 🔒 锁定占位 |
+| 📈 BTC 课中数据 | data-dashboard | 🔒 锁定占位 |
+| 📝 逐字稿审查 | copywriting | 🔒 锁定占位 |
+| 📝 逐字稿生成 | copywriting | 🔒 锁定占位 |
+| 💡 案例设计 | copywriting | 🔒 锁定占位 |
+| 🧠 认知卸载 | — | 📐 方案设计中 |
 
 ---
 

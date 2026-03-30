@@ -1,0 +1,21 @@
+{
+  "name": "btc-in-class",
+  "category": "data-dashboard",
+  "icon": "mdi:school-outline",
+  "order": 2,
+  "categoryOrder": 5,
+  "access": "guest",
+  "locked": true,
+  "i18n": {
+    "zh-CN": {
+      "route": "BTC 课中数据",
+      "category": "数据看板",
+      "categoryIcon": "mdi:chart-areaspline"
+    },
+    "en-US": {
+      "route": "BTC In-Class Data",
+      "category": "Data Dashboard",
+      "categoryIcon": "mdi:chart-areaspline"
+    }
+  }
+}

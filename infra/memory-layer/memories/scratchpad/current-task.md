@@ -11,22 +11,25 @@
 - Phase 0 脚手架 ✅
 - Phase 0.5 Soybean Admin 迁移 ✅
 - Phase 1 认证系统 ✅
-- 第一个业务模块（视频抽帧工具）✅
-- 知识沉淀（/new-module 工作流 + L2 记忆）✅
+- 业务模块开发（9 个已上线 + 6 个锁定占位）✅
 - 飞书 CLI 基础设施 ✅
+- 插件化架构改造 ✅
 
-## 最近完成
-- 安装 Lark CLI v1.0.0（`@larksuite/cli`）
-- 配置 Bot 身份（应用 `cli_a993f6f82838dcb4`，feishu 品牌）
-- 安装 19 个 AI Skills 到 `.agents/skills/lark-*`
-- 记录应用权限清单到 `.agents/lark-cli-scopes.json`
-- 更新 L2 记忆（全局 + 项目）
+## 最近完成（2026-03-31）
+- 插件化架构改造：manifest.json 自注册 + plugin-scanner.ts 编译时扫描
+- 为所有 14 个工具创建 manifest.json
+- 路由/i18n/类型系统全面改造，新增工具零共享文件修改
+- `/new-module` 工作流更新为插件化流程
+- 导航重构为五大分类
 
 ## 下一步
-- 认知卸载 MVP 验证（macOS Vision OCR 效果测试）
+- 插件化 Phase 2：工具内部 page 翻译迁移到工具目录
+- CI/CD：manifest.json schema 校验 + pre-commit hook
 - Phase 2a 记忆层 API
 - Phase 2b 飞书桥接（Lark CLI 已就绪）
-- 或开始下一个业务模块
+- 认知卸载 MVP 验证
+- 或开始开发锁定工具（解锁占位模块）
 
 ## 阻塞项
-- 飞书用户身份登录：需 `offline_access` scope 审批，用户暂时放弃
+- 飞书用户身份登录：需 `offline_access` scope 审批，暂时搁置
+- sb3-studio / effects-generator 有预先存在的 TypeScript 类型错误

@@ -1,0 +1,21 @@
+{
+  "name": "btc-course-flow",
+  "category": "data-dashboard",
+  "icon": "mdi:swap-horizontal-bold",
+  "order": 1,
+  "categoryOrder": 5,
+  "access": "guest",
+  "locked": true,
+  "i18n": {
+    "zh-CN": {
+      "route": "BTC 课程流转数据",
+      "category": "数据看板",
+      "categoryIcon": "mdi:chart-areaspline"
+    },
+    "en-US": {
+      "route": "BTC Course Flow",
+      "category": "Data Dashboard",
+      "categoryIcon": "mdi:chart-areaspline"
+    }
+  }
+}

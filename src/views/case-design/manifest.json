@@ -1,0 +1,21 @@
+{
+  "name": "case-design",
+  "category": "copywriting",
+  "icon": "mdi:lightbulb-on-outline",
+  "order": 3,
+  "categoryOrder": 6,
+  "access": "guest",
+  "locked": true,
+  "i18n": {
+    "zh-CN": {
+      "route": "案例设计",
+      "category": "文案创意",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    },
+    "en-US": {
+      "route": "Case Design",
+      "category": "Copywriting",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    }
+  }
+}

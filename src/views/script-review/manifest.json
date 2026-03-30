@@ -1,0 +1,21 @@
+{
+  "name": "script-review",
+  "category": "copywriting",
+  "icon": "mdi:file-find-outline",
+  "order": 1,
+  "categoryOrder": 6,
+  "access": "guest",
+  "locked": true,
+  "i18n": {
+    "zh-CN": {
+      "route": "逐字稿审查",
+      "category": "文案创意",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    },
+    "en-US": {
+      "route": "Script Review",
+      "category": "Copywriting",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    }
+  }
+}
