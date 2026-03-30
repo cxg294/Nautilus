@@ -1,0 +1,21 @@
+{
+  "name": "effects-generator",
+  "category": "image-tools",
+  "icon": "mdi:sparkles",
+  "order": 3,
+  "categoryOrder": 2,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "特效生成器",
+      "category": "图片工具",
+      "categoryIcon": "mdi:image-multiple"
+    },
+    "en-US": {
+      "route": "Effects Generator",
+      "category": "Image Tools",
+      "categoryIcon": "mdi:image-multiple"
+    }
+  }
+}
