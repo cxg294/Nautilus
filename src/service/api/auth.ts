@@ -38,6 +38,32 @@ export function fetchRefreshToken(refreshToken: string) {
 }
 
 /**
+ * Register (submit registration application)
+ *
+ * @param params Registration parameters
+ */
+export function fetchRegister(params: Api.Auth.RegisterParams) {
+  return request<Api.Auth.RegisterResult>({
+    url: '/auth/register',
+    method: 'post',
+    data: params
+  });
+}
+
+/**
+ * Change password
+ *
+ * @param params Change password parameters
+ */
+export function fetchChangePassword(params: Api.Auth.ChangePasswordParams) {
+  return request({
+    url: '/auth/changePassword',
+    method: 'post',
+    data: params
+  });
+}
+
+/**
  * return custom backend error
  *
  * @param code error code

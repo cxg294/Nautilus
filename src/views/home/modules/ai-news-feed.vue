@@ -1,89 +1,108 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
 import { $t } from '@/locales';
+import { fetchAINews } from '@/service/api/news';
+import type { NewsItem } from '@/service/api/news';
 
 defineOptions({ name: 'AINewsFeed' });
 
-// 新闻数据类型
-interface NewsItem {
-  id: number;
-  title: string;
-  summary: string;
-  source: string;
-  timeAgo: string;
-  url?: string;
-}
+const newsList = ref<NewsItem[]>([]);
+const loading = ref(false);
+const error = ref('');
 
-// Mock 新闻数据
-// TODO: 后续替换为 fetchAINews() API 调用，接入 24h 内 AI 领域新闻源
-const mockNews: NewsItem[] = [
-  {
-    id: 1,
-    title: 'OpenAI 发布 GPT-5 Turbo，推理速度提升 3 倍',
-    summary: '新模型在复杂推理任务上表现显著提升，同时 API 调用成本降低 40%。开发者可立即通过 API 接入测试。',
-    source: 'The Verge',
-    timeAgo: '2h'
-  },
-  {
-    id: 2,
-    title: 'Google DeepMind 开源 Gemma 3 系列模型',
-    summary: 'Gemma 3 涵盖 2B 到 27B 参数规模，支持多模态输入，在多项基准测试中超越同量级竞品。',
-    source: 'Google AI Blog',
-    timeAgo: '5h'
-  },
-  {
-    id: 3,
-    title: 'Anthropic 推出 Claude 编程助手企业版',
-    summary: '新版本支持整个代码仓库的上下文理解，集成 CI/CD 流水线，面向企业级软件开发团队。',
-    source: 'TechCrunch',
-    timeAgo: '8h'
-  },
-  {
-    id: 4,
-    title: 'Meta 发布视频生成模型 MovieGen 2.0',
-    summary: '支持 4K 分辨率、最长 2 分钟的高质量视频生成，内置音频自动匹配功能。',
-    source: 'Ars Technica',
-    timeAgo: '12h'
-  },
-  {
-    id: 5,
-    title: 'Stability AI 推出实时图像编辑工具 Stable Edit',
-    summary: '基于自然语言指令对图像进行精确编辑，延迟低于 500ms，适用于设计师和创作者日常工作流。',
-    source: 'Wired',
-    timeAgo: '18h'
-  }
-];
-
-// 格式化时间显示
+/**
+ * 格式化相对时间：将 'm' / 'h' / 'd' 后缀转为本地化文案
+ */
 function formatTimeAgo(timeAgo: string): string {
   const num = parseInt(timeAgo);
+  if (Number.isNaN(num)) return timeAgo;
+  if (timeAgo.endsWith('d')) {
+    return `${num}天前`;
+  }
   if (timeAgo.endsWith('m')) {
     return $t('page.home.aiNews.minutesAgo', { n: num });
   }
   return $t('page.home.aiNews.hoursAgo', { n: num });
 }
+
+/**
+ * 从后端获取 AI 新闻
+ */
+async function loadNews() {
+  loading.value = true;
+  error.value = '';
+  try {
+    const { data } = await fetchAINews();
+    if (data) {
+      newsList.value = data;
+    }
+  } catch (e: any) {
+    error.value = e?.message || '获取新闻失败';
+    console.error('[AINewsFeed] 加载失败:', e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+/**
+ * 点击新闻跳转链接
+ */
+function openNews(item: NewsItem) {
+  if (item.url) {
+    window.open(item.url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+onMounted(() => {
+  loadNews();
+});
 </script>
 
 <template>
   <NCard :title="$t('page.home.aiNews.title')" :bordered="false" size="small" segmented class="card-wrapper">
-    <div v-if="mockNews.length === 0" class="empty-state">
-      {{ $t('page.home.aiNews.noNews') }}
-    </div>
-    <div v-else class="news-list">
-      <div
-        v-for="item in mockNews"
-        :key="item.id"
-        class="news-item"
-      >
-        <div class="news-header">
-          <h4 class="news-title">{{ item.title }}</h4>
-        </div>
-        <p class="news-summary">{{ item.summary }}</p>
-        <div class="news-meta">
-          <NTag size="tiny" :bordered="false" type="info">{{ item.source }}</NTag>
-          <span class="news-time">{{ formatTimeAgo(item.timeAgo) }}</span>
+    <!-- 加载中 -->
+    <template v-if="loading && newsList.length === 0">
+      <div class="loading-state">
+        <NSpin size="small" />
+        <span class="loading-text">加载中...</span>
+      </div>
+    </template>
+
+    <!-- 空状态 -->
+    <template v-else-if="newsList.length === 0">
+      <div class="empty-state">
+        {{ error || $t('page.home.aiNews.noNews') }}
+      </div>
+    </template>
+
+    <!-- 新闻列表 -->
+    <template v-else>
+      <div class="news-list">
+        <div
+          v-for="item in newsList"
+          :key="item.id"
+          class="news-item"
+          :class="{ clickable: !!item.url }"
+          @click="openNews(item)"
+        >
+          <div class="news-header">
+            <h4 class="news-title">{{ item.title }}</h4>
+          </div>
+          <p class="news-summary">{{ item.summary }}</p>
+          <div class="news-meta">
+            <NTag size="tiny" :bordered="false" type="info">{{ item.source }}</NTag>
+            <span class="news-time">{{ formatTimeAgo(item.timeAgo) }}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </template>
+
+    <!-- 数据来源标注 -->
+    <template #header-extra>
+      <NTag size="tiny" :bordered="false" type="default" class="source-tag">
+        飞书 · AI每日资讯
+      </NTag>
+    </template>
   </NCard>
 </template>
 
@@ -99,6 +118,10 @@ function formatTimeAgo(timeAgo: string): string {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   transition: background-color 0.2s ease;
   border-radius: 6px;
+}
+
+.news-item.clickable {
+  cursor: pointer;
 }
 
 .news-item:last-child {
@@ -145,10 +168,27 @@ function formatTimeAgo(timeAgo: string): string {
   color: var(--text-color-3, #bbb);
 }
 
-.empty-state {
+.empty-state,
+.loading-state {
   text-align: center;
   padding: 40px 0;
   color: var(--text-color-3, #999);
   font-size: 14px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-text {
+  color: var(--text-color-3, #999);
+}
+
+.source-tag {
+  font-size: 11px;
+  opacity: 0.7;
 }
 </style>

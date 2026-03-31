@@ -5,7 +5,7 @@
   "order": 4,
   "categoryOrder": 2,
   "access": "guest",
-  "locked": true,
+  "locked": false,
   "i18n": {
     "zh-CN": {
       "route": "素材生成工作台",

@@ -141,6 +141,14 @@ export function getPluginRoutes(): any[] {
   for (const category of categories) {
     const children = category.tools.map(tool => {
       const routeKey = `${category.name}_${tool.name}`;
+
+      // 将 access 级别映射为前端 roles
+      const accessRolesMap: Record<string, string[]> = {
+        guest: [], // 空数组 = 无角色限制
+        user: ['R_USER', 'R_ADMIN', 'R_SUPER'],
+        admin: ['R_ADMIN', 'R_SUPER']
+      };
+
       return {
         name: routeKey,
         path: `/${category.name}/${tool.name}`,
@@ -150,7 +158,8 @@ export function getPluginRoutes(): any[] {
           i18nKey: `route.${routeKey}`,
           icon: tool.icon,
           order: tool.order,
-          guestAccessible: tool.access === 'guest'
+          guestAccessible: tool.access === 'guest',
+          roles: accessRolesMap[tool.access] || []
         }
       };
     });

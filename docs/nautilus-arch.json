@@ -1,0 +1,131 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "type": "frame",
+      "id": "root",
+      "x": 0, "y": 0,
+      "width": 1200,
+      "height": 700,
+      "layout": "none",
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "title",
+          "x": 0, "y": 0,
+          "width": 1152,
+          "height": "fit-content",
+          "text": "Nautilus 架构：用户 · 平台 · AI Agent",
+          "fontSize": 24,
+          "textColor": "#1F2329",
+          "textAlign": "center",
+          "verticalAlign": "middle"
+        },
+        {
+          "type": "frame", "id": "user-island",
+          "x": 380, "y": 55,
+          "width": 400, "height": "fit-content",
+          "layout": "vertical", "gap": 12, "padding": 20,
+          "fillColor": "#DFF5E5", "borderColor": "#509863", "borderWidth": 2, "borderRadius": 8,
+          "children": [
+            { "type": "text", "id": "user-title", "width": "fill-container", "height": "fit-content",
+              "text": "用户（教研人员）", "fontSize": 18, "textColor": "#1F2329", "textAlign": "center", "verticalAlign": "middle" },
+            { "type": "rect", "id": "user-gui", "width": "fill-container", "height": "fit-content",
+              "text": "通过浏览器界面直接操作工具",
+              "fillColor": "#FFFFFF", "borderColor": "#509863", "borderWidth": 2, "borderRadius": 8,
+              "fontSize": 14, "textColor": "#1F2329", "textAlign": "center", "verticalAlign": "middle" },
+            { "type": "rect", "id": "user-nlp", "width": "fill-container", "height": "fit-content",
+              "text": "通过自然语言向 AI Agent 下达指令",
+              "fillColor": "#FFFFFF", "borderColor": "#509863", "borderWidth": 2, "borderRadius": 8,
+              "fontSize": 14, "textColor": "#1F2329", "textAlign": "center", "verticalAlign": "middle" }
+          ]
+        },
+        {
+          "type": "frame", "id": "platform-island",
+          "x": 40, "y": 295,
+          "width": 500, "height": "fit-content",
+          "layout": "vertical", "gap": 12, "padding": 20,
+          "fillColor": "#F0F4FC", "borderColor": "#5178C6", "borderWidth": 2, "borderRadius": 8,
+          "children": [
+            { "type": "text", "id": "platform-title", "width": "fill-container", "height": "fit-content",
+              "text": "Nautilus 平台", "fontSize": 18, "textColor": "#1F2329", "textAlign": "center", "verticalAlign": "middle" },
+            { "type": "frame", "id": "tools-row", "width": "fill-container", "height": "fit-content",
+              "layout": "horizontal", "gap": 8, "padding": 0,
+              "children": [
+                { "type": "rect", "id": "t1", "width": "fill-container", "height": "fit-content", "text": "SB3 分析",
+                  "fillColor": "#FFFFFF", "borderColor": "#5178C6", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "rect", "id": "t2", "width": "fill-container", "height": "fit-content", "text": "逐字稿",
+                  "fillColor": "#FFFFFF", "borderColor": "#5178C6", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "rect", "id": "t3", "width": "fill-container", "height": "fit-content", "text": "素材工作室",
+                  "fillColor": "#FFFFFF", "borderColor": "#5178C6", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "rect", "id": "t4", "width": "fill-container", "height": "fit-content", "text": "TTS / 更多",
+                  "fillColor": "#FFFFFF", "borderColor": "#5178C6", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" }
+              ]
+            },
+            { "type": "text", "id": "gui-hint", "width": "fill-container", "height": "fit-content",
+              "text": "GUI 界面（人操作）", "fontSize": 13, "textColor": "#646A73", "textAlign": "center" },
+            { "type": "frame", "id": "api-layer",
+              "width": "fill-container", "height": "fit-content",
+              "layout": "vertical", "gap": 6, "padding": 16,
+              "fillColor": "#E8EDF3", "borderColor": "#5178C6", "borderWidth": 2, "borderRadius": 8, "borderDash": "dashed",
+              "children": [
+                { "type": "text", "id": "api-title", "width": "fill-container", "height": "fit-content",
+                  "text": "API / Skill 接口层（黑盒封装）",
+                  "fontSize": 15, "textColor": "#1F2329", "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "text", "id": "api-desc", "width": "fill-container", "height": "fit-content",
+                  "text": "外部只能调用接口，内部逻辑对外不可见",
+                  "fontSize": 13, "textColor": "#646A73", "textAlign": "center" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame", "id": "agent-island",
+          "x": 620, "y": 295,
+          "width": 500, "height": "fit-content",
+          "layout": "vertical", "gap": 12, "padding": 20,
+          "fillColor": "#EAE2FE", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8,
+          "children": [
+            { "type": "text", "id": "agent-title", "width": "fill-container", "height": "fit-content",
+              "text": "AI Agent（终端）", "fontSize": 18, "textColor": "#1F2329", "textAlign": "center", "verticalAlign": "middle" },
+            { "type": "rect", "id": "a1", "width": "fill-container", "height": "fit-content",
+              "text": "① 接收自然语言指令",
+              "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8,
+              "fontSize": 14, "textColor": "#1F2329", "textAlign": "left", "verticalAlign": "middle" },
+            { "type": "rect", "id": "a2", "width": "fill-container", "height": "fit-content",
+              "text": "② 拆解任务，规划执行步骤",
+              "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8,
+              "fontSize": 14, "textColor": "#1F2329", "textAlign": "left", "verticalAlign": "middle" },
+            { "type": "rect", "id": "a3", "width": "fill-container", "height": "fit-content",
+              "text": "③ 串联调用多个 Skill 执行操作",
+              "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8,
+              "fontSize": 14, "textColor": "#1F2329", "textAlign": "left", "verticalAlign": "middle" },
+            { "type": "rect", "id": "a4", "width": "fill-container", "height": "fit-content",
+              "text": "④ 返回结果给用户",
+              "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8,
+              "fontSize": 14, "textColor": "#1F2329", "textAlign": "left", "verticalAlign": "middle" },
+            { "type": "frame", "id": "skill-row", "width": "fill-container", "height": "fit-content",
+              "layout": "horizontal", "gap": 8, "padding": 0,
+              "children": [
+                { "type": "rect", "id": "sk1", "width": "fill-container", "height": "fit-content", "text": "飞书 IM",
+                  "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "rect", "id": "sk2", "width": "fill-container", "height": "fit-content", "text": "云文档",
+                  "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "rect", "id": "sk3", "width": "fill-container", "height": "fit-content", "text": "SB3",
+                  "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" },
+                { "type": "rect", "id": "sk4", "width": "fill-container", "height": "fit-content", "text": "素材·更多",
+                  "fillColor": "#FFFFFF", "borderColor": "#8569CB", "borderWidth": 2, "borderRadius": 8, "fontSize": 13, "textAlign": "center", "verticalAlign": "middle" }
+              ]
+            },
+            { "type": "text", "id": "skill-hint", "width": "fill-container", "height": "fit-content",
+              "text": "19+ AI Skills（已就绪）", "fontSize": 13, "textColor": "#646A73", "textAlign": "center" }
+          ]
+        }
+      ]
+    },
+    { "type": "connector", "connector": { "from": "user-gui", "to": "platform-title", "fromAnchor": "bottom", "toAnchor": "top", "lineShape": "rightAngle", "lineColor": "#BBBFC4", "lineWidth": 2, "endArrow": "arrow", "label": "GUI 操作" } },
+    { "type": "connector", "connector": { "from": "user-nlp", "to": "agent-title", "fromAnchor": "bottom", "toAnchor": "top", "lineShape": "rightAngle", "lineColor": "#BBBFC4", "lineWidth": 2, "endArrow": "arrow", "label": "自然语言指令" } },
+    { "type": "connector", "connector": { "from": "a3", "to": "api-layer", "fromAnchor": "left", "toAnchor": "right", "lineShape": "straight", "lineColor": "#BBBFC4", "lineWidth": 2, "endArrow": "arrow", "label": "调用 Skill" } }
+  ]
+}

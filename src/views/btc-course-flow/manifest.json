@@ -4,7 +4,7 @@
   "icon": "mdi:swap-horizontal-bold",
   "order": 1,
   "categoryOrder": 5,
-  "access": "guest",
+  "access": "user",
   "locked": true,
   "i18n": {
     "zh-CN": {

@@ -16,5 +16,23 @@ declare namespace Api {
       roles: string[];
       buttons: string[];
     }
+
+    interface RegisterParams {
+      userName: string;
+      password: string;
+      confirmPassword: string;
+      displayName?: string;
+    }
+
+    interface RegisterResult {
+      userId: string;
+      userName: string;
+      status: 'pending' | 'active';
+    }
+
+    interface ChangePasswordParams {
+      oldPassword: string;
+      newPassword: string;
+    }
   }
 }

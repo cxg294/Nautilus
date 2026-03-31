@@ -4,7 +4,7 @@
   "icon": "mdi:lightbulb-on-outline",
   "order": 3,
   "categoryOrder": 6,
-  "access": "guest",
+  "access": "user",
   "locked": true,
   "i18n": {
     "zh-CN": {

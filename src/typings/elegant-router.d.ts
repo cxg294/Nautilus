@@ -20,10 +20,24 @@ declare module "@elegant-router/types" {
     "403": "/403";
     "404": "/404";
     "500": "/500";
+    "base64-converter": "/base64-converter";
+    "effects-generator": "/effects-generator";
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
+    "image-compressor": "/image-compressor";
+    "image-matting": "/image-matting";
+    "level-studio": "/level-studio";
     "locked": "/locked";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
+    "material-studio": "/material-studio";
+    "qrcode-generator": "/qrcode-generator";
+    "role-manager": "/role-manager";
+    "sb3-compressor": "/sb3-compressor";
+    "sb3-studio": "/sb3-studio";
+    "timestamp-converter": "/timestamp-converter";
+    "tts-studio": "/tts-studio";
+    "user-manager": "/user-manager";
+    "video-frame-extractor": "/video-frame-extractor";
   };
 
   /**
@@ -58,10 +72,24 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "base64-converter"
+    | "effects-generator"
     | "home"
     | "iframe-page"
+    | "image-compressor"
+    | "image-matting"
+    | "level-studio"
     | "locked"
     | "login"
+    | "material-studio"
+    | "qrcode-generator"
+    | "role-manager"
+    | "sb3-compressor"
+    | "sb3-studio"
+    | "timestamp-converter"
+    | "tts-studio"
+    | "user-manager"
+    | "video-frame-extractor"
   >;
 
   /**
@@ -84,7 +112,21 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "locked"
     | "login"
+    | "base64-converter"
+    | "effects-generator"
     | "home"
+    | "image-compressor"
+    | "image-matting"
+    | "level-studio"
+    | "material-studio"
+    | "qrcode-generator"
+    | "role-manager"
+    | "sb3-compressor"
+    | "sb3-studio"
+    | "timestamp-converter"
+    | "tts-studio"
+    | "user-manager"
+    | "video-frame-extractor"
   >;
 
   /**

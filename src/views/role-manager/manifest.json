@@ -1,0 +1,21 @@
+{
+  "name": "role-manager",
+  "category": "system",
+  "icon": "mdi:shield-key-outline",
+  "order": 2,
+  "categoryOrder": 99,
+  "access": "admin",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "权限管理",
+      "category": "系统管理",
+      "categoryIcon": "mdi:cog-outline"
+    },
+    "en-US": {
+      "route": "Role Manager",
+      "category": "System",
+      "categoryIcon": "mdi:cog-outline"
+    }
+  }
+}

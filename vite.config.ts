@@ -39,7 +39,20 @@ export default defineConfig(configEnv => {
         // Nautilus Express 后端 API 代理
         '/api': {
           target: 'http://localhost:3000',
-          changeOrigin: true
+          changeOrigin: true,
+        },
+        // Qwen3 TTS Gradio 服务代理（剥离 iframe 限制头）
+        '/tts-proxy': {
+          target: 'http://10.64.128.6:8000',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/tts-proxy/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyRes', (proxyRes) => {
+              // 删除阻止 iframe 嵌入的响应头
+              delete proxyRes.headers['x-frame-options'];
+              delete proxyRes.headers['content-security-policy'];
+            });
+          }
         },
         // Soybean Admin 原有代理（Mock / 其他服务）
         ...(createViteProxy(viteEnv, enableProxy) || {})

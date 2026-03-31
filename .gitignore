@@ -35,3 +35,4 @@ npm-debug.log*
 
 # === 临时文件 ===
 *.sb3
+output.png

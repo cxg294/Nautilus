@@ -21,7 +21,11 @@
     "start": "NODE_ENV=production node server/index.js"
   },
   "dependencies": {
+    "@alicloud/imageseg20191230": "^4.0.1",
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/tea-util": "^1.4.11",
     "@better-scroll/core": "2.5.1",
+    "@google/genai": "^1.47.0",
     "@iconify/vue": "5.0.0",
     "@jsquash/jpeg": "^1.6.0",
     "@jsquash/oxipng": "^2.3.0",
@@ -58,10 +62,12 @@
     "jszip": "^3.10.1",
     "mermaid": "^11.13.0",
     "modern-gif": "^2.0.4",
+    "multer": "^2.1.1",
     "naive-ui": "2.44.1",
     "nprogress": "0.2.0",
     "pinia": "3.0.4",
     "qrcode": "^1.5.4",
+    "sharp": "^0.34.5",
     "tailwind-merge": "3.5.0",
     "vue": "3.5.29",
     "vue-draggable-plus": "0.6.1",
@@ -112,7 +118,10 @@
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@tsparticles/engine",
+      "better-sqlite3",
       "esbuild",
+      "protobufjs",
+      "sharp",
       "simple-git-hooks",
       "unrs-resolver",
       "vue-demi"

@@ -1,0 +1,21 @@
+{
+  "name": "tts-studio",
+  "category": "ai-tools",
+  "icon": "mdi:microphone-message",
+  "order": 1,
+  "categoryOrder": 3,
+  "access": "user",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "语音合成",
+      "category": "AI 工具",
+      "categoryIcon": "mdi:robot-outline"
+    },
+    "en-US": {
+      "route": "TTS Studio",
+      "category": "AI Tools",
+      "categoryIcon": "mdi:robot-outline"
+    }
+  }
+}

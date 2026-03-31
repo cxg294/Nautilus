@@ -32,5 +32,24 @@ export default {
 
   // 运行环境
   isDev: process.env.NODE_ENV !== 'production',
+
+  // Gemini API
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+
+  // Level Studio 输出目录
+  levelStudioOutput: path.resolve(__dirname, '../level-studio-output'),
+
+  // Material Studio 输出目录
+  materialStudioOutput: path.resolve(__dirname, '../material-studio-output'),
+
+  // 工具 API Key（AI Agent 调用鉴权）
+  apiKey: process.env.NAUTILUS_API_KEY || 'naut-dev-key-change-me',
+
+  // 阿里云视觉智能（分割抠图）
+  aliyun: {
+    accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID || '',
+    accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET || '',
+    endpoint: 'imageseg.cn-shanghai.aliyuncs.com', // 视觉智能服务端点
+  },
 };
 

@@ -1,6 +1,6 @@
 /**
  * 认证路由
- * 提供登录、获取用户信息、刷新 Token 三个端点
+ * 提供登录、注册、获取用户信息、刷新 Token、修改密码
  * 对齐前端 src/service/api/auth.ts 的调用
  */
 import { Router } from 'express';
@@ -12,11 +12,15 @@ import { requireAuth } from '../middleware/auth.js';
 import {
   findByUsername,
   findById,
+  usernameExists,
+  createUser,
+  updatePassword,
   mapRolesToFrontend,
   getRolePermissions,
   createRefreshToken,
   findValidRefreshToken,
   revokeRefreshToken,
+  revokeAllUserTokens,
 } from '../services/user.js';
 
 const router = Router();
@@ -41,7 +45,11 @@ router.post('/login', (req, res) => {
   }
 
   // 检查账号状态
-  if (!user.is_active) {
+  const status = user.status || (user.is_active ? 'active' : 'disabled');
+  if (status === 'pending') {
+    return res.json(fail(CODE.USER_DISABLED, '账号正在审批中，请等待管理员审批'));
+  }
+  if (status === 'disabled') {
     return res.json(fail(CODE.USER_DISABLED, '账号已被禁用'));
   }
 
@@ -64,6 +72,57 @@ router.post('/login', (req, res) => {
 });
 
 /**
+ * POST /auth/register
+ * 请求体: { userName, password, confirmPassword, displayName? }
+ * 用户注册申请（需管理员审批后才能使用）
+ */
+router.post('/register', (req, res) => {
+  const { userName, password, confirmPassword, displayName } = req.body;
+
+  // 参数校验
+  if (!userName || !password || !confirmPassword) {
+    return res.json(fail(CODE.VALIDATION, '用户名、密码和确认密码不能为空'));
+  }
+
+  if (password !== confirmPassword) {
+    return res.json(fail(CODE.VALIDATION, '两次输入的密码不一致'));
+  }
+
+  if (password.length < 6) {
+    return res.json(fail(CODE.VALIDATION, '密码长度不能少于 6 位'));
+  }
+
+  if (userName.length < 2 || userName.length > 32) {
+    return res.json(fail(CODE.VALIDATION, '用户名长度需在 2-32 位之间'));
+  }
+
+  // 用户名格式校验：只允许字母、数字、下划线、短横线
+  if (!/^[a-zA-Z0-9_-]+$/.test(userName)) {
+    return res.json(fail(CODE.VALIDATION, '用户名只能包含字母、数字、下划线和短横线'));
+  }
+
+  // 检查用户名是否已存在
+  if (usernameExists(userName)) {
+    return res.json(fail(CODE.VALIDATION, '用户名已被占用'));
+  }
+
+  // 创建用户（status=pending，需管理员审批）
+  const user = createUser({
+    username: userName,
+    password,
+    displayName: displayName || userName,
+    role: 'user',
+    status: 'pending',
+  });
+
+  res.json(success({
+    userId: String(user.id),
+    userName: user.username,
+    status: 'pending',
+  }, '注册申请已提交，请等待管理员审批'));
+});
+
+/**
  * GET /auth/getUserInfo
  * 需要 Bearer Token
  * 响应: { userId, userName, roles, buttons }
@@ -75,8 +134,9 @@ router.get('/getUserInfo', requireAuth, (req, res) => {
     return res.json(fail(CODE.FORCE_LOGOUT, '用户不存在'));
   }
 
-  if (!user.is_active) {
-    return res.json(fail(CODE.FORCE_LOGOUT, '账号已被禁用'));
+  const status = user.status || (user.is_active ? 'active' : 'disabled');
+  if (status !== 'active') {
+    return res.json(fail(CODE.FORCE_LOGOUT, '账号状态异常'));
   }
 
   // 获取前端角色标识
@@ -113,8 +173,9 @@ router.post('/refreshToken', (req, res) => {
 
   // 查找用户
   const user = findById(savedToken.user_id);
-  if (!user || !user.is_active) {
-    return res.json(fail(CODE.FORCE_LOGOUT, '用户不存在或已被禁用'));
+  const status = user ? (user.status || (user.is_active ? 'active' : 'disabled')) : null;
+  if (!user || status !== 'active') {
+    return res.json(fail(CODE.FORCE_LOGOUT, '用户不存在或状态异常'));
   }
 
   // 吊销旧 Refresh Token（一次性使用）
@@ -128,6 +189,41 @@ router.post('/refreshToken', (req, res) => {
   const newRefreshToken = createRefreshToken(user.id);
 
   res.json(success({ token: newToken, refreshToken: newRefreshToken }));
+});
+
+/**
+ * POST /auth/changePassword
+ * 需要 Bearer Token
+ * 请求体: { oldPassword, newPassword }
+ */
+router.post('/changePassword', requireAuth, (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return res.json(fail(CODE.VALIDATION, '旧密码和新密码不能为空'));
+  }
+
+  if (newPassword.length < 6) {
+    return res.json(fail(CODE.VALIDATION, '新密码长度不能少于 6 位'));
+  }
+
+  const user = findById(req.user.id);
+  if (!user) {
+    return res.json(fail(CODE.FORCE_LOGOUT, '用户不存在'));
+  }
+
+  // 验证旧密码
+  if (!bcrypt.compareSync(oldPassword, user.password_hash)) {
+    return res.json(fail(CODE.VALIDATION, '旧密码错误'));
+  }
+
+  // 更新密码
+  updatePassword(user.id, newPassword);
+
+  // 吊销所有 refresh token（强制重新登录）
+  revokeAllUserTokens(user.id);
+
+  res.json(success(null, '密码修改成功，请重新登录'));
 });
 
 /**

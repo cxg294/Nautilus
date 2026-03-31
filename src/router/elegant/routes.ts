@@ -40,6 +40,24 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'base64-converter',
+    path: '/base64-converter',
+    component: 'layout.base$view.base64-converter',
+    meta: {
+      title: 'base64-converter',
+      i18nKey: 'route.base64-converter'
+    }
+  },
+  {
+    name: 'effects-generator',
+    path: '/effects-generator',
+    component: 'layout.base$view.effects-generator',
+    meta: {
+      title: 'effects-generator',
+      i18nKey: 'route.effects-generator'
+    }
+  },
+  {
     name: 'home',
     path: '/home',
     component: 'layout.base$view.home',
@@ -65,6 +83,33 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'image-compressor',
+    path: '/image-compressor',
+    component: 'layout.base$view.image-compressor',
+    meta: {
+      title: 'image-compressor',
+      i18nKey: 'route.image-compressor'
+    }
+  },
+  {
+    name: 'image-matting',
+    path: '/image-matting',
+    component: 'layout.base$view.image-matting',
+    meta: {
+      title: 'image-matting',
+      i18nKey: 'route.image-matting'
+    }
+  },
+  {
+    name: 'level-studio',
+    path: '/level-studio',
+    component: 'layout.base$view.level-studio',
+    meta: {
+      title: 'level-studio',
+      i18nKey: 'route.level-studio'
+    }
+  },
+  {
     name: 'locked',
     path: '/locked',
     component: 'layout.base$view.locked',
@@ -83,6 +128,87 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.login',
       constant: true,
       hideInMenu: true
+    }
+  },
+  {
+    name: 'material-studio',
+    path: '/material-studio',
+    component: 'layout.base$view.material-studio',
+    meta: {
+      title: 'material-studio',
+      i18nKey: 'route.material-studio'
+    }
+  },
+  {
+    name: 'qrcode-generator',
+    path: '/qrcode-generator',
+    component: 'layout.base$view.qrcode-generator',
+    meta: {
+      title: 'qrcode-generator',
+      i18nKey: 'route.qrcode-generator'
+    }
+  },
+  {
+    name: 'role-manager',
+    path: '/role-manager',
+    component: 'layout.base$view.role-manager',
+    meta: {
+      title: 'role-manager',
+      i18nKey: 'route.role-manager'
+    }
+  },
+  {
+    name: 'sb3-compressor',
+    path: '/sb3-compressor',
+    component: 'layout.base$view.sb3-compressor',
+    meta: {
+      title: 'sb3-compressor',
+      i18nKey: 'route.sb3-compressor'
+    }
+  },
+  {
+    name: 'sb3-studio',
+    path: '/sb3-studio',
+    component: 'layout.base$view.sb3-studio',
+    meta: {
+      title: 'sb3-studio',
+      i18nKey: 'route.sb3-studio'
+    }
+  },
+  {
+    name: 'timestamp-converter',
+    path: '/timestamp-converter',
+    component: 'layout.base$view.timestamp-converter',
+    meta: {
+      title: 'timestamp-converter',
+      i18nKey: 'route.timestamp-converter'
+    }
+  },
+  {
+    name: 'tts-studio',
+    path: '/tts-studio',
+    component: 'layout.base$view.tts-studio',
+    meta: {
+      title: 'tts-studio',
+      i18nKey: 'route.tts-studio'
+    }
+  },
+  {
+    name: 'user-manager',
+    path: '/user-manager',
+    component: 'layout.base$view.user-manager',
+    meta: {
+      title: 'user-manager',
+      i18nKey: 'route.user-manager'
+    }
+  },
+  {
+    name: 'video-frame-extractor',
+    path: '/video-frame-extractor',
+    component: 'layout.base$view.video-frame-extractor',
+    meta: {
+      title: 'video-frame-extractor',
+      i18nKey: 'route.video-frame-extractor'
     }
   }
 ];

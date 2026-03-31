@@ -1,0 +1,21 @@
+{
+  "name": "user-manager",
+  "category": "system",
+  "icon": "mdi:account-cog-outline",
+  "order": 1,
+  "categoryOrder": 99,
+  "access": "admin",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "用户管理",
+      "category": "系统管理",
+      "categoryIcon": "mdi:cog-outline"
+    },
+    "en-US": {
+      "route": "User Manager",
+      "category": "System",
+      "categoryIcon": "mdi:cog-outline"
+    }
+  }
+}

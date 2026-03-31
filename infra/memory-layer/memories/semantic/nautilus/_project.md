@@ -83,7 +83,9 @@ nautilus/
 - 插件化架构改造（2026-03-31）：manifest.json 自注册 + plugin-scanner.ts 编译时扫描，新增工具零共享文件修改
 - 导航重构：图片工具(4) / SB3 图形化(2) / 杂货铺(3) / 数据看板(2) / 文案创意(3) 五大分类
 - 图片压缩工具、特效生成器（含 GIF 录制）、SB3 压缩、时间戳转换、Base64 转换、二维码生成
-- 6 个锁定占位工具（素材生成工作台、BTC 课程流转、BTC 课中数据、逐字稿审查、逐字稿生成、案例设计）
+- 5 个锁定占位工具（BTC 课程流转、BTC 课中数据、逐字稿审查、逐字稿生成、素材工作室）
+- TTS Studio（语音合成工作台，已接入 Qwen3 TTS）
+- 用户管理与角色管理后台
 - 首页重构：动态 Dashboard（天气预报 + 快捷入口 + AI 新闻 + 更新日志）
 
 ### 进行中
@@ -100,6 +102,48 @@ nautilus/
 - 认知卸载 MVP：macOS Vision OCR 验证 → 截屏守护进程 → SQLite 日志存储 → AI 分析管道
 - 部署配置（Docker / PM2）
 - 单元测试框架（Vitest）
+- **AI 集成（远期）**: 双轨架构，详见下方「AI 集成架构决策」章节
+
+---
+
+## AI 集成架构决策（2026-03-31 确定）
+
+> Nautilus 能力最终要暴露给 AI Agent 调用。此章节记录架构层面的设计决策。
+
+### 核心决策：双轨制
+
+| 轨道 | 适用场景 | 协议 | 状态管理 |
+|:---|:---|:---|:---|
+| **REST API / MCP** | 轻量工具 + CRUD 操作 | HTTP 无状态 | 无状态（传参→拿结果） |
+| **独立 Agent Skill** | 重交互/本地文件操作（如 SB3） | 本地脚本 | Agent 自行管理 |
+
+### 轨道 1：无状态 API（所有轻量能力）
+
+适用模块：图片压缩、视频抽帧、特效生成、Base64 转换、QR码生成、时间戳转换、TTS 语音合成、素材工作室 CRUD、脚本审核、用户/角色管理
+
+- 每个操作一个 endpoint / MCP tool
+- 完全无状态：输入 → 处理 → 输出，无需 session
+- 复合工作流（素材工作室、脚本审核）也拆为原子操作，AI 自行编排调用顺序
+- REST API 是底座，MCP 是 AI 友好的包装层
+
+### 轨道 2：本地 Agent Skill（重交互模块）
+
+适用模块：SB3 积木分析/编辑（文件大、多步操作、需要项目上下文）
+
+- 以 `.agents/skills/sb3-studio/` 形式提供，类似现有 `lark-*` skills
+- Agent 直接在本地文件系统操作，不走网络
+- 包含解析、分析、修改、导出等脚本
+
+### 排除决策
+
+- SB3 相关操作 **不走 API**：文件大、操作链长、天然适合本地处理
+- **不做 Session 模式**：排除 SB3 后，剩余操作均为单次请求可完成，无需会话状态
+
+### 待定事项
+
+- 认证：AI 调用时用专用 bot 用户还是代替当前用户（影响权限和审计）
+- 文件传递：二进制文件用临时 URL 引用还是 Base64 内联（倾向 URL 引用）
+- MCP 包装层的具体实现时机
 
 ---
 
@@ -107,12 +151,13 @@ nautilus/
 
 - **工具**: `@larksuite/cli` v1.0.0（2026-03-28 发布）
 - **应用 ID**: `cli_a993f6f82838dcb4`
-- **身份**: Bot（tenant）身份可用，用户身份未登录
+- **身份**: ⚠️ **始终使用 Bot（tenant）身份**（`--as bot`），不使用 user 身份
 - **AI Skills**: 19 个已安装到 `.agents/skills/lark-*`
 - **权限清单**: 详见 `.agents/lark-cli-scopes.json`
 - **Bot 可用能力**: 多维表格 CRUD、日历管理、通讯录读取、文档读写、消息收发、电子表格操作、任务管理、知识库管理、会议/录制查询
 - **多设备**: Windows + Mac 均已配置（`lark-cli config init --app-id ... --brand feishu`）
 - **测试群**: `教研助手测试群` chat_id = `oc_c649c785ed30ccac6ce3c20f494329f7`
+- **知识库 Nautilus 节点**: `https://wrpnn3mat2.feishu.cn/wiki/TTs4wvu6SiR4TGkZkluco4ZBn7c`（wiki_node = `TTs4wvu6SiR4TGkZkluco4ZBn7c`）
 
 ### Windows 平台调用注意事项
 
@@ -145,17 +190,17 @@ const result = execFileSync(process.execPath, [
 | 🖼️ 图片压缩 | image-tools | ✅ 已完成 |
 | 🎬 视频抽帧 | image-tools | ✅ 已完成 |
 | ✨ 特效生成器 | image-tools | ✅ 已完成（含 GIF 录制） |
-| 🎨 素材生成工作台 | image-tools | 🔒 锁定占位 |
+| 🎨 素材工作室 | image-tools | 🔒 锁定占位（原名「案例设计」，已更名） |
 | 🧩 SB3 积木分析 | sb3-graphical | ✅ 已完成（V6） |
 | 📦 SB3 压缩 | sb3-graphical | ✅ 已完成 |
 | ⏱️ 时间戳转换 | misc-shop | ✅ 已完成 |
 | 🔤 Base64 转换 | misc-shop | ✅ 已完成 |
 | 📱 二维码生成 | misc-shop | ✅ 已完成 |
+| 🗣️ TTS Studio | misc-shop | ✅ 已接入 Qwen3 TTS |
 | 📊 BTC 课程流转数据 | data-dashboard | 🔒 锁定占位 |
 | 📈 BTC 课中数据 | data-dashboard | 🔒 锁定占位 |
 | 📝 逐字稿审查 | copywriting | 🔒 锁定占位 |
 | 📝 逐字稿生成 | copywriting | 🔒 锁定占位 |
-| 💡 案例设计 | copywriting | 🔒 锁定占位 |
 | 🧠 认知卸载 | — | 📐 方案设计中 |
 
 ---
