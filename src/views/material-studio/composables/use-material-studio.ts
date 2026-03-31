@@ -52,30 +52,7 @@ export type Phase =
   | 'extracting'    // 素材提取中
   | 'exported';     // 导出完成
 
-// ===========================
-// 预设风格库
-// ===========================
-
-export interface StyleOption {
-  id: string;
-  name: string;
-  nameEn: string;
-  icon: string;
-  description: string;
-}
-
-export const STYLE_LIBRARY: StyleOption[] = [
-  { id: 'flat-cartoon', name: '扁平卡通', nameEn: 'Flat Cartoon', icon: '🎨', description: '简洁明快，适合教育类和儿童向' },
-  { id: 'cyberpunk', name: '赛博朋克', nameEn: 'Cyberpunk', icon: '🌆', description: '霓虹灯光、暗色调、科技感强烈' },
-  { id: 'pixel-retro', name: '像素复古', nameEn: 'Pixel Retro', icon: '👾', description: '8bit 像素风格，复古游戏感' },
-  { id: 'watercolor', name: '水彩手绘', nameEn: 'Watercolor', icon: '🖌️', description: '柔和温暖，艺术气息浓郁' },
-  { id: 'realistic-3d', name: '写实3D', nameEn: 'Realistic 3D', icon: '🏔️', description: '高品质渲染，立体感强' },
-  { id: 'anime', name: '日系动漫', nameEn: 'Anime', icon: '✨', description: '日漫画风，色彩明亮' },
-  { id: 'minimalist', name: '极简主义', nameEn: 'Minimalist', icon: '⬜', description: '大量留白，线条简洁' },
-  { id: 'sci-fi', name: '科幻史诗', nameEn: 'Sci-Fi Epic', icon: '🚀', description: '宏大场景，太空科幻感' },
-  { id: 'low-poly', name: '低多边形', nameEn: 'Low Poly', icon: '💎', description: '几何棱角，现代时尚' },
-  { id: 'comic', name: '美漫风格', nameEn: 'Comic Style', icon: '💥', description: '漫画分格感，色彩饱和' },
-];
+import { STYLE_LIBRARY, type StyleOption } from '../config/styles';
 
 // ===========================
 // 全局状态
@@ -120,9 +97,12 @@ const state = reactive({
 
   // -- 加载状态 --
   chatLoading: false,
+  chatProgress: '',
   generateLoading: false,
   analyzeLoading: false,
+  analyzeProgress: '',
   extractLoading: false,
+  extractProgress: '',
 
   // -- 生成进度文案 --
   generatingStep: '',
@@ -179,7 +159,18 @@ function setRefImage(file: File | null) {
 async function sendMessage(message: string) {
   if (!message.trim()) return;
   error.value = '';
+  // 1. 设置初始状态
   state.chatLoading = true;
+  state.chatProgress = '正在发送请求...';
+
+  // 2. 立即提前切换界面，给左侧卡片区占位，以便看到 loading
+  if (state.phase === 'welcome') {
+    state.phase = 'clarifying';
+  }
+
+  // 3. 模拟请求进度的定时器
+  const t1 = setTimeout(() => state.chatLoading && (state.chatProgress = 'AI 正在处理中...'), 1000);
+  const t2 = setTimeout(() => state.chatLoading && (state.chatProgress = '解析中...'), 4000);
 
   try {
     const formData = new FormData();
@@ -212,18 +203,21 @@ async function sendMessage(message: string) {
     state.styleHints = data.styleHints || [];
     state.apiContext = data.context;
 
-    // 切换阶段
-    if (state.phase === 'welcome') {
-      state.phase = 'clarifying';
-    }
-
+    // 切换进入下一步
     if (data.action === 'select_style') {
       state.phase = 'styling';
+    } else if (data.action === 'auto_generate') {
+      // 捕获到明确风格要求，直接跳过选择界面的步骤！
+      state.selectedStyle = data.autoDetectStyle;
+      selectStyleAndGenerate(data.autoDetectStyle);
     }
   } catch (e: any) {
     error.value = e.message;
   } finally {
+    clearTimeout(t1);
+    clearTimeout(t2);
     state.chatLoading = false;
+    state.chatProgress = '';
   }
 }
 
@@ -244,9 +238,11 @@ async function selectStyleAndGenerate(styleId: string) {
   state.generateLoading = true;
   error.value = '';
 
-  try {
-    state.generatingStep = '正在增强描述...';
+  state.generatingStep = '正在准备生成参数...';
+  const t1 = setTimeout(() => state.generateLoading && (state.generatingStep = '发送给 AI 绘画服务...'), 1000);
+  const t2 = setTimeout(() => state.generateLoading && (state.generatingStep = 'AI 正在绘制中 (可能需要10~30秒)...'), 2500);
 
+  try {
     const formData = new FormData();
     formData.append('conclusions', JSON.stringify(state.conclusions));
     formData.append('style', styleId);
@@ -255,8 +251,6 @@ async function selectStyleAndGenerate(styleId: string) {
     if (state.refImage) {
       formData.append('reference', state.refImage);
     }
-
-    state.generatingStep = '正在生成图片...';
 
     const data = await apiPostForm('/generate', formData);
 
@@ -269,6 +263,8 @@ async function selectStyleAndGenerate(styleId: string) {
     error.value = e.message;
     state.phase = 'styling'; // 失败回到风格选择
   } finally {
+    clearTimeout(t1);
+    clearTimeout(t2);
     state.generateLoading = false;
     state.generatingStep = '';
   }
@@ -280,9 +276,11 @@ async function regenerate() {
   state.generateLoading = true;
   error.value = '';
 
-  try {
-    state.generatingStep = '正在重新生成...';
+  state.generatingStep = '正在准备重新生成...';
+  const t1 = setTimeout(() => state.generateLoading && (state.generatingStep = '发送给 AI 绘画服务...'), 1000);
+  const t2 = setTimeout(() => state.generateLoading && (state.generatingStep = 'AI 正在绘制中 (可能需要10~30秒)...'), 2500);
 
+  try {
     const formData = new FormData();
     formData.append('conclusions', JSON.stringify(state.conclusions));
     formData.append('style', state.selectedStyle);
@@ -303,6 +301,8 @@ async function regenerate() {
     error.value = e.message;
     state.phase = 'result';
   } finally {
+    clearTimeout(t1);
+    clearTimeout(t2);
     state.generateLoading = false;
     state.generatingStep = '';
   }
@@ -316,7 +316,11 @@ function changeStyle() {
 /** 素材拆解 */
 async function analyzeImage() {
   state.analyzeLoading = true;
+  state.analyzeProgress = '正在发送分析请求...';
   error.value = '';
+
+  const t1 = setTimeout(() => state.analyzeLoading && (state.analyzeProgress = 'AI 正在视觉处理中...'), 1000);
+  const t2 = setTimeout(() => state.analyzeLoading && (state.analyzeProgress = '正在提取图像轮廓...'), 3500);
 
   try {
     const data = await apiPost('/analyze', { taskId: state.taskId });
@@ -329,7 +333,10 @@ async function analyzeImage() {
   } catch (e: any) {
     error.value = e.message;
   } finally {
+    clearTimeout(t1);
+    clearTimeout(t2);
     state.analyzeLoading = false;
+    state.analyzeProgress = '';
   }
 }
 
@@ -350,7 +357,11 @@ async function extractAssets() {
 
   state.phase = 'extracting';
   state.extractLoading = true;
+  state.extractProgress = '正在发送提取指令...';
   error.value = '';
+
+  const t1 = setTimeout(() => state.extractLoading && (state.extractProgress = 'AI 正在执行前景隔离...'), 1500);
+  const t2 = setTimeout(() => state.extractLoading && (state.extractProgress = '正在优化边缘像素...'), 4000);
 
   try {
     const data = await apiPost('/extract', {
@@ -367,7 +378,10 @@ async function extractAssets() {
     error.value = e.message;
     state.phase = 'decomposing';
   } finally {
+    clearTimeout(t1);
+    clearTimeout(t2);
     state.extractLoading = false;
+    state.extractProgress = '';
   }
 }
 

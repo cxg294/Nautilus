@@ -1,0 +1,67 @@
+{
+  "original": "original.png",
+  "background": "background.png",
+  "aspectRatio": "4:3",
+  "elements": [
+    {
+      "name": "数字电路卡",
+      "file": "elements/element_0.png",
+      "bbox": [
+        65,
+        96,
+        126,
+        213
+      ]
+    },
+    {
+      "name": "数字电路卡",
+      "file": "elements/element_1.png",
+      "bbox": [
+        217,
+        96,
+        126,
+        213
+      ]
+    },
+    {
+      "name": "数字电路卡",
+      "file": "elements/element_2.png",
+      "bbox": [
+        367,
+        96,
+        126,
+        213
+      ]
+    },
+    {
+      "name": "数字电路卡",
+      "file": "elements/element_3.png",
+      "bbox": [
+        517,
+        96,
+        126,
+        213
+      ]
+    },
+    {
+      "name": "数字电路卡",
+      "file": "elements/element_4.png",
+      "bbox": [
+        665,
+        96,
+        126,
+        213
+      ]
+    },
+    {
+      "name": "数字电路卡",
+      "file": "elements/element_5.png",
+      "bbox": [
+        814,
+        96,
+        126,
+        213
+      ]
+    }
+  ]
+}

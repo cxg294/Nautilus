@@ -152,6 +152,14 @@ router.get('/', async (req, res) => {
         msg: 'success (cached)',
         data: cachedNews,
       });
+    } else if (error.code === 'ENOENT') {
+      // lark-cli 不存在，优雅降级返回空数据
+      console.warn('[News] lark-cli 未安装，新闻功能不可用');
+      res.json({
+        code: '0000',
+        msg: 'lark-cli not available',
+        data: [],
+      });
     } else {
       res.status(500).json({
         code: '5000',

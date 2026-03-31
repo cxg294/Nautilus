@@ -68,8 +68,8 @@ const dimensions = [
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color-modal);
+  border: 1px solid var(--n-border-color);
   border-radius: 14px;
   overflow-y: auto;
 }
@@ -79,7 +79,7 @@ const dimensions = [
   align-items: center;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--n-border-color);
 }
 
 .panel-icon {
@@ -89,7 +89,7 @@ const dimensions = [
 .panel-title {
   font-size: 14px;
   font-weight: 600;
-  color: #ddd;
+  color: var(--n-text-color);
 }
 
 .dimension-list {
@@ -101,14 +101,14 @@ const dimensions = [
 .dimension-item {
   padding: 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color);
+  border: 1px solid var(--n-border-color);
   transition: all 0.3s;
 }
 
 .dimension-item.done {
   background: rgba(46, 213, 115, 0.04);
-  border-color: rgba(46, 213, 115, 0.15);
+  border-color: rgba(46, 213, 115, 0.2);
 }
 
 .dim-header {
@@ -126,7 +126,7 @@ const dimensions = [
   flex: 1;
   font-size: 13px;
   font-weight: 600;
-  color: #ccc;
+  color: var(--n-text-color-2);
 }
 
 .dim-status {
@@ -143,13 +143,13 @@ const dimensions = [
 
 .dim-desc {
   font-size: 11px;
-  color: #777;
+  color: var(--n-text-color-3);
   margin-bottom: 4px;
 }
 
 .dim-value {
   font-size: 13px;
-  color: #b8a5ff;
+  color: #7c5cfc;
   padding: 6px 10px;
   background: rgba(124, 92, 252, 0.06);
   border-radius: 6px;
@@ -159,7 +159,7 @@ const dimensions = [
 
 .ref-section {
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--n-border-color);
 }
 
 .ref-header {
@@ -167,7 +167,7 @@ const dimensions = [
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #bbb;
+  color: var(--n-text-color-3);
   margin-bottom: 8px;
 }
 
@@ -190,12 +190,12 @@ const dimensions = [
   background: rgba(124, 92, 252, 0.1);
   border-radius: 12px;
   font-size: 12px;
-  color: #b8a5ff;
+  color: #7c5cfc;
   font-weight: 600;
 }
 
 .ratio-text {
   font-size: 12px;
-  color: #777;
+  color: var(--n-text-color-3);
 }
 </style>

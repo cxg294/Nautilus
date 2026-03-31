@@ -26,7 +26,6 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   home: () => import("@/views/home/index.vue"),
   "image-compressor": () => import("@/views/image-compressor/index.vue"),
   "image-matting": () => import("@/views/image-matting/index.vue"),
-  "level-studio": () => import("@/views/level-studio/index.vue"),
   "material-studio": () => import("@/views/material-studio/index.vue"),
   "qrcode-generator": () => import("@/views/qrcode-generator/index.vue"),
   "role-manager": () => import("@/views/role-manager/index.vue"),

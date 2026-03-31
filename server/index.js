@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import config from './config/env.js';
 import db, { runMigrations } from './db/index.js';
 import authRoutes from './routes/auth.js';
-import levelStudioRoutes from './routes/level-studio.js';
+
 import userRoutes from './routes/users.js';
 import roleRoutes from './routes/roles.js';
 import newsRoutes from './routes/news.js';
@@ -50,8 +50,7 @@ app.use('/api/roles', roleRoutes);
 // 新闻路由（公开，无需鉴权）
 app.use('/api/news', newsRoutes);
 
-// Level Studio 关卡素材工作台
-app.use('/api/level-studio', levelStudioRoutes);
+
 
 // 工具 API（AI Agent 调用，API Key 鉴权）
 app.use('/api/tools', requireApiKey, toolsRoutes);

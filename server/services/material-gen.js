@@ -150,6 +150,7 @@ D1（主体内容）> D3（背景约束）> D2（呈现意图）
   "nextAction": "clarify_d1" 或 "clarify_d2" 或 "clarify_d3" 或 "select_style",
   "reply": "给用户的自然语言回复",
   "options": ["选项1", "选项2", "选项3"],
+  "explicitStyle": "【关键能力】：如果历史对话或最新一轮交互中，用户已经确认了某个具体的视觉风格/画风（比如：用户直接选择了你抛出的有审美倾向的选项，或自己输入了水彩、3D渲染、赛博朋克等词汇），请在这里提取该画风！。完全没定风格时返回 null。",
   "styleHints": ["当 allPass 时，根据收集的信息推荐 2-3 个适合的风格关键词"]
 }`;
 
@@ -198,7 +199,7 @@ ${userContext}
 /**
  * 将收集到的完整意图增强为专业 Prompt
  * @param {object} conclusions - 三维度结论
- * @param {string} style - 选定风格
+ * @param {string} style - 选定风格名称/ID
  * @param {string} aspectRatio - 比例
  * @param {string} refImagePath - 参考图路径（可选）
  * @returns {Promise<string>} 增强后的英文 Prompt

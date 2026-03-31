@@ -14,6 +14,8 @@ const { state, sendMessage, selectOption } = useMaterialStudio();
 const expandedCardId = ref('');
 const freeInput = ref('');
 const scrollContainer = ref<HTMLElement | null>(null);
+const freeInputRef = ref<HTMLTextAreaElement | null>(null);
+const isFlashing = ref(false);
 
 // 自动展开最后一张卡片
 watch(
@@ -34,6 +36,23 @@ watch(
 function toggleCard(id: string) {
   expandedCardId.value = expandedCardId.value === id ? '' : id;
 }
+
+function handleCustomInput() {
+  if (freeInputRef.value) {
+    freeInputRef.value.focus();
+    isFlashing.value = true;
+    setTimeout(() => { isFlashing.value = false; }, 1000); // end flash after 1s
+    
+    // Smooth scroll specifically to bottom
+    setTimeout(() => {
+      scrollContainer.value?.scrollTo({
+        top: scrollContainer.value.scrollHeight,
+        behavior: 'smooth',
+      });
+    }, 100);
+  }
+}
+
 
 function handleFreeInput() {
   if (!freeInput.value.trim() || state.chatLoading) return;
@@ -62,6 +81,7 @@ function handleKeydown(e: KeyboardEvent) {
         :is-latest="idx === state.cards.length - 1"
         @toggle="toggleCard"
         @select-option="selectOption"
+        @custom-input="handleCustomInput"
       />
 
       <!-- 加载中指示 -->
@@ -69,15 +89,17 @@ function handleKeydown(e: KeyboardEvent) {
         <span class="loading-dot" />
         <span class="loading-dot" />
         <span class="loading-dot" />
-        <span class="loading-text">AI 正在分析...</span>
+        <span class="loading-text">{{ state.chatProgress || 'AI 正在分析...' }}</span>
       </div>
     </div>
 
     <!-- 底部自由输入框（仅在追问阶段且当前卡片无需选择时显示） -->
     <div v-if="state.phase === 'clarifying'" class="free-input-bar">
       <textarea
+        ref="freeInputRef"
         v-model="freeInput"
         class="free-input"
+        :class="{ 'focus-flash': isFlashing }"
         placeholder="或者直接输入你的描述..."
         rows="1"
         :disabled="state.chatLoading"
@@ -118,7 +140,7 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 .card-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--n-border-color);
   border-radius: 2px;
 }
 
@@ -128,7 +150,7 @@ function handleKeydown(e: KeyboardEvent) {
   align-items: center;
   gap: 6px;
   padding: 12px 16px;
-  color: #888;
+  color: var(--n-text-color-3);
   font-size: 13px;
 }
 
@@ -159,15 +181,15 @@ function handleKeydown(e: KeyboardEvent) {
   align-items: flex-end;
   gap: 6px;
   padding: 8px 4px 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--n-border-color);
 }
 
 .free-input {
   flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--n-border-color);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #ddd;
+  background: var(--n-color-modal);
+  color: var(--n-text-color);
   font-size: 13px;
   padding: 8px 12px;
   resize: none;
@@ -180,6 +202,15 @@ function handleKeydown(e: KeyboardEvent) {
   border-color: rgba(124, 92, 252, 0.3);
 }
 
+.free-input.focus-flash {
+  animation: bg-flash 1s;
+}
+
+@keyframes bg-flash {
+  0% { box-shadow: 0 0 0 2px rgba(124, 92, 252, 0.5); border-color: #7c5cfc; }
+  100% { box-shadow: 0 0 0 0px rgba(124, 92, 252, 0); border-color: rgba(124, 92, 252, 0.3); }
+}
+
 .free-input:disabled {
   opacity: 0.5;
 }
@@ -189,8 +220,8 @@ function handleKeydown(e: KeyboardEvent) {
   height: 34px;
   border-radius: 10px;
   border: none;
-  background: rgba(255, 255, 255, 0.05);
-  color: #666;
+  background: var(--n-color);
+  color: var(--n-text-color-3);
   font-size: 16px;
   font-weight: 700;
   cursor: not-allowed;
@@ -198,6 +229,7 @@ function handleKeydown(e: KeyboardEvent) {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  border: 1px solid var(--n-border-color);
 }
 
 .free-send.active {

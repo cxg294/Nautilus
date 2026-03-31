@@ -26,7 +26,6 @@ declare module "@elegant-router/types" {
     "iframe-page": "/iframe-page/:url";
     "image-compressor": "/image-compressor";
     "image-matting": "/image-matting";
-    "level-studio": "/level-studio";
     "locked": "/locked";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
     "material-studio": "/material-studio";
@@ -78,7 +77,6 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "image-compressor"
     | "image-matting"
-    | "level-studio"
     | "locked"
     | "login"
     | "material-studio"
@@ -117,7 +115,6 @@ declare module "@elegant-router/types" {
     | "home"
     | "image-compressor"
     | "image-matting"
-    | "level-studio"
     | "material-studio"
     | "qrcode-generator"
     | "role-manager"

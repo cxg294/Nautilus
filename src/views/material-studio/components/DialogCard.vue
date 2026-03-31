@@ -15,6 +15,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggle: [id: string];
   selectOption: [cardId: string, option: string];
+  'custom-input': [];
 }>();
 
 function getDimensionLabel(dim: string) {
@@ -67,6 +68,9 @@ function getDimensionLabel(dim: string) {
         >
           {{ opt }}
         </button>
+        <button class="option-btn option-btn-custom" @click="emit('custom-input')">
+          ✏️ 我有别的想法...
+        </button>
       </div>
 
       <!-- 已选择标记 -->
@@ -91,16 +95,16 @@ function getDimensionLabel(dim: string) {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color);
+  border: 1px solid var(--n-border-color);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .card-collapsed:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--n-color-hover, var(--n-color-modal));
+  border-color: var(--n-primary-color, rgba(124, 92, 252, 0.4));
 }
 
 .collapsed-dot {
@@ -114,7 +118,7 @@ function getDimensionLabel(dim: string) {
 .collapsed-summary {
   flex: 1;
   font-size: 13px;
-  color: #999;
+  color: var(--n-text-color-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -137,8 +141,8 @@ function getDimensionLabel(dim: string) {
 /* 展开态 */
 .card-expanded {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--n-color-modal);
+  border: 1px solid var(--n-border-color);
   border-radius: 12px;
 }
 
@@ -159,7 +163,7 @@ function getDimensionLabel(dim: string) {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #888;
+  color: var(--n-text-color-3);
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -176,7 +180,7 @@ function getDimensionLabel(dim: string) {
 }
 
 .user-text {
-  color: #ddd;
+  color: var(--n-text-color);
   padding: 8px 12px;
   background: rgba(124, 92, 252, 0.06);
   border-radius: 8px;
@@ -184,7 +188,7 @@ function getDimensionLabel(dim: string) {
 }
 
 .ai-text {
-  color: #bbb;
+  color: var(--n-text-color-2);
   white-space: pre-line;
 }
 
@@ -198,20 +202,32 @@ function getDimensionLabel(dim: string) {
 
 .option-btn {
   padding: 8px 16px;
-  border: 1px solid rgba(124, 92, 252, 0.2);
+  border: 1px solid rgba(124, 92, 252, 0.3);
   border-radius: 20px;
-  background: rgba(124, 92, 252, 0.06);
-  color: #c4b5fd;
+  background: var(--n-color);
+  color: #7c5cfc;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .option-btn:hover {
-  background: rgba(124, 92, 252, 0.15);
-  border-color: rgba(124, 92, 252, 0.4);
-  color: #e0d5ff;
+  background: rgba(124, 92, 252, 0.08);
+  border-color: #7c5cfc;
   transform: translateY(-1px);
+}
+
+.option-btn-custom {
+  border-style: dashed;
+  background: transparent;
+  color: var(--n-text-color-3);
+  border-color: var(--n-border-color);
+}
+
+.option-btn-custom:hover {
+  background: var(--n-color-hover);
+  border-color: #7c5cfc;
+  color: #7c5cfc;
 }
 
 /* 已选择 */
@@ -224,7 +240,7 @@ function getDimensionLabel(dim: string) {
 }
 
 .chosen-label {
-  color: #888;
+  color: var(--n-text-color-3);
 }
 
 .chosen-value {

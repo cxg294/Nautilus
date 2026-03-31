@@ -45,7 +45,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.base64-converter',
     meta: {
       title: 'base64-converter',
-      i18nKey: 'route.base64-converter'
+      i18nKey: 'route.base64-converter',
+      hideInMenu: true
     }
   },
   {
@@ -54,7 +55,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.effects-generator',
     meta: {
       title: 'effects-generator',
-      i18nKey: 'route.effects-generator'
+      i18nKey: 'route.effects-generator',
+      hideInMenu: true
     }
   },
   {
@@ -88,7 +90,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.image-compressor',
     meta: {
       title: 'image-compressor',
-      i18nKey: 'route.image-compressor'
+      i18nKey: 'route.image-compressor',
+      hideInMenu: true
     }
   },
   {
@@ -97,16 +100,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.image-matting',
     meta: {
       title: 'image-matting',
-      i18nKey: 'route.image-matting'
-    }
-  },
-  {
-    name: 'level-studio',
-    path: '/level-studio',
-    component: 'layout.base$view.level-studio',
-    meta: {
-      title: 'level-studio',
-      i18nKey: 'route.level-studio'
+      i18nKey: 'route.image-matting',
+      hideInMenu: true
     }
   },
   {
@@ -115,7 +110,9 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.locked',
     meta: {
       title: 'locked',
-      i18nKey: 'route.locked'
+      i18nKey: 'route.locked',
+      constant: true,
+      hideInMenu: true
     }
   },
   {
@@ -136,7 +133,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.material-studio',
     meta: {
       title: 'material-studio',
-      i18nKey: 'route.material-studio'
+      i18nKey: 'route.material-studio',
+      hideInMenu: true
     }
   },
   {
@@ -145,7 +143,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.qrcode-generator',
     meta: {
       title: 'qrcode-generator',
-      i18nKey: 'route.qrcode-generator'
+      i18nKey: 'route.qrcode-generator',
+      hideInMenu: true
     }
   },
   {
@@ -154,7 +153,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.role-manager',
     meta: {
       title: 'role-manager',
-      i18nKey: 'route.role-manager'
+      i18nKey: 'route.role-manager',
+      hideInMenu: true
     }
   },
   {
@@ -163,7 +163,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.sb3-compressor',
     meta: {
       title: 'sb3-compressor',
-      i18nKey: 'route.sb3-compressor'
+      i18nKey: 'route.sb3-compressor',
+      hideInMenu: true
     }
   },
   {
@@ -172,7 +173,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.sb3-studio',
     meta: {
       title: 'sb3-studio',
-      i18nKey: 'route.sb3-studio'
+      i18nKey: 'route.sb3-studio',
+      hideInMenu: true
     }
   },
   {
@@ -181,7 +183,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.timestamp-converter',
     meta: {
       title: 'timestamp-converter',
-      i18nKey: 'route.timestamp-converter'
+      i18nKey: 'route.timestamp-converter',
+      hideInMenu: true
     }
   },
   {
@@ -190,7 +193,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.tts-studio',
     meta: {
       title: 'tts-studio',
-      i18nKey: 'route.tts-studio'
+      i18nKey: 'route.tts-studio',
+      hideInMenu: true
     }
   },
   {
@@ -199,7 +203,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.user-manager',
     meta: {
       title: 'user-manager',
-      i18nKey: 'route.user-manager'
+      i18nKey: 'route.user-manager',
+      hideInMenu: true
     }
   },
   {
@@ -208,7 +213,8 @@ export const generatedRoutes: GeneratedRoute[] = [
     component: 'layout.base$view.video-frame-extractor',
     meta: {
       title: 'video-frame-extractor',
-      i18nKey: 'route.video-frame-extractor'
+      i18nKey: 'route.video-frame-extractor',
+      hideInMenu: true
     }
   }
 ];

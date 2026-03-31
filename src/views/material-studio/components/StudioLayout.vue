@@ -43,8 +43,8 @@ const { state } = useMaterialStudio();
 }
 
 .layout-right {
-  width: 320px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 </style>

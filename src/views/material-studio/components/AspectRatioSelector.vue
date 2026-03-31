@@ -45,45 +45,47 @@ const ratios = [
 }
 
 .ratio-label {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: var(--n-text-color-3);
   white-space: nowrap;
 }
 
 .ratio-pills {
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .ratio-pill {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 14px;
+  border: 1px solid var(--n-border-color);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #aaa;
-  font-size: 12px;
+  background: var(--n-color-modal);
+  color: var(--n-text-color-2);
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .ratio-pill:hover {
-  background: rgba(124, 92, 252, 0.08);
-  border-color: rgba(124, 92, 252, 0.2);
-  color: #ccc;
+  background: rgba(124, 92, 252, 0.05);
+  border-color: rgba(124, 92, 252, 0.3);
+  color: var(--n-text-color);
 }
 
 .ratio-pill.active {
-  background: rgba(124, 92, 252, 0.15);
-  border-color: rgba(124, 92, 252, 0.4);
-  color: #b8a5ff;
+  background: rgba(124, 92, 252, 0.1);
+  border-color: #7c5cfc;
+  color: #7c5cfc;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(124, 92, 252, 0.15);
 }
 
 .ratio-icon {
-  font-size: 11px;
+  font-size: 13px;
 }
 </style>

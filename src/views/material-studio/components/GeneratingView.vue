@@ -103,14 +103,14 @@ const { state } = useMaterialStudio();
 .gen-step {
   font-size: 16px;
   font-weight: 600;
-  color: #ddd;
+  color: var(--n-text-color);
   margin: 0 0 6px;
   animation: fadeIn 0.5s ease;
 }
 
 .gen-hint {
   font-size: 13px;
-  color: #888;
+  color: var(--n-text-color-3);
   margin: 0;
 }
 

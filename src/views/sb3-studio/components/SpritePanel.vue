@@ -13,7 +13,7 @@ const message = useMessage();
 const { project, assets, navigationTarget } = useSb3Project();
 
 const selectedIndex = ref(0);
-const targets = computed(() => project.value?.targets || []);
+const targets = computed((): any[] => project.value?.targets || []);
 const current = computed(() => targets.value[selectedIndex.value]);
 
 // Scratch 积木分类颜色
@@ -59,8 +59,8 @@ const rotationOptions = [
   { label: '不旋转', value: "don't rotate" },
 ];
 
-const costumes = computed(() => current.value?.costumes || []);
-const sounds = computed(() => current.value?.sounds || []);
+const costumes = computed((): any[] => current.value?.costumes || []);
+const sounds = computed((): any[] => current.value?.sounds || []);
 const scripts = computed(() => {
   if (!current.value) return [];
   try { return extractScripts(current.value); } catch { return []; }
@@ -406,7 +406,7 @@ function handleSoundReplace(options: any, soundIndex: number) {
                       background: getCatBg(line.opcode),
                     }"
                   >
-                    <span class="line-num">{{ li + 2 }}</span>
+                    <span class="line-num">{{ Number(li) + 2 }}</span>
                     <span class="cat-badge-sm" :style="{ background: getCatColor(line.opcode) }">{{ getCatLabel(line.opcode) }}</span>
                     <span class="bl-text" :style="{ color: getCatColor(line.opcode) }">{{ line.text }}</span>
                   </div>
@@ -432,7 +432,7 @@ function handleSoundReplace(options: any, soundIndex: number) {
                   <span style="font-size:11px; color: var(--n-text-color-2)">{{ orph.blockCount }} 积木</span>
                 </div>
                 <div v-for="(line, li) in orph.lines" :key="li" class="orphan-line" :style="{ color: getCatColor(line.opcode) }">
-                  <span class="line-num">{{ li + 1 }}</span>
+                  <span class="line-num">{{ Number(li) + 1 }}</span>
                   {{ line.text }}
                 </div>
               </div>

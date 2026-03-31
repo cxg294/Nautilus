@@ -117,7 +117,7 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #ccc;
+  color: var(--n-text-color-2);
   margin-bottom: 10px;
 }
 
@@ -128,12 +128,12 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
   position: relative;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--n-border-color);
   transition: all 0.2s;
 }
 
 .asset-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--n-primary-color, #7c5cfc);
 }
 
 .bg-card .asset-thumb {
@@ -183,13 +183,13 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
 
 .card-name {
   font-size: 12px;
-  color: #ccc;
+  color: var(--n-text-color-2);
   font-weight: 500;
 }
 
 .card-bbox {
   font-size: 10px;
-  color: #777;
+  color: var(--n-text-color-3);
   font-family: monospace;
 }
 
@@ -224,8 +224,8 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color-modal);
+  border: 1px solid var(--n-border-color);
   border-radius: 14px;
 }
 
@@ -236,7 +236,7 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
 }
 
 .actions-icon { font-size: 20px; }
-.actions-title { font-size: 16px; font-weight: 600; color: #ddd; }
+.actions-title { font-size: 16px; font-weight: 600; color: var(--n-text-color); }
 
 .stats {
   display: flex;
@@ -247,8 +247,8 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
   flex: 1;
   padding: 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color);
+  border: 1px solid var(--n-border-color);
   text-align: center;
 }
 
@@ -261,7 +261,7 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
 
 .stat-label {
   font-size: 11px;
-  color: #888;
+  color: var(--n-text-color-3);
 }
 
 .download-zip-btn {
@@ -283,37 +283,37 @@ const { state, downloadZip, downloadFile, reset } = useMaterialStudio();
 
 .download-manifest-btn {
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--n-border-color);
   border-radius: 10px;
   background: transparent;
-  color: #bbb;
+  color: var(--n-text-color-2);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .download-manifest-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--n-color);
 }
 
 .action-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--n-border-color);
 }
 
 .new-task-btn {
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--n-border-color);
   border-radius: 10px;
   background: transparent;
-  color: #999;
+  color: var(--n-text-color-3);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .new-task-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: #ddd;
+  background: var(--n-color-hover, rgba(0,0,0,0.03));
+  color: var(--n-text-color);
 }
 </style>

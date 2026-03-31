@@ -50,6 +50,7 @@ router.post('/segment', upload.single('image'), async (req, res) => {
     if (req.file?.path) {
       fs.unlink(req.file.path, () => {});
     }
+    res.status(500).json({ success: false, error: `抠图处理失败: ${error.message}` });
   }
 });
 

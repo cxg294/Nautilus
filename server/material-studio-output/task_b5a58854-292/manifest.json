@@ -1,0 +1,17 @@
+{
+  "original": "original.png",
+  "background": "background.png",
+  "aspectRatio": "4:3",
+  "elements": [
+    {
+      "name": "主角狗",
+      "file": "elements/element_0.png",
+      "bbox": [
+        390,
+        434,
+        180,
+        150
+      ]
+    }
+  ]
+}

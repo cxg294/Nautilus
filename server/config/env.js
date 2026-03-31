@@ -36,8 +36,8 @@ export default {
   // Gemini API
   geminiApiKey: process.env.GEMINI_API_KEY || '',
 
-  // Level Studio 输出目录
-  levelStudioOutput: path.resolve(__dirname, '../level-studio-output'),
+
+
 
   // Material Studio 输出目录
   materialStudioOutput: path.resolve(__dirname, '../material-studio-output'),

@@ -172,7 +172,6 @@ const routeMap: RouteMap = {
   "iframe-page": "/iframe-page/:url",
   "image-compressor": "/image-compressor",
   "image-matting": "/image-matting",
-  "level-studio": "/level-studio",
   "locked": "/locked",
   "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?",
   "material-studio": "/material-studio",

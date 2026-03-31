@@ -35,7 +35,7 @@ const showPrompt = ref(false);
         <button class="action-btn primary" @click="analyzeImage" :disabled="state.analyzeLoading">
           <span class="btn-icon">🔍</span>
           <span class="btn-text">
-            {{ state.analyzeLoading ? '识别中...' : '素材拆解' }}
+            {{ state.analyzeLoading ? (state.analyzeProgress || '识别中...') : '素材拆解' }}
           </span>
           <span class="btn-hint">AI 识别前景元素</span>
         </button>
@@ -114,8 +114,8 @@ const showPrompt = ref(false);
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color-modal);
+  border: 1px solid var(--n-border-color);
   border-radius: 14px;
   overflow-y: auto;
 }
@@ -133,12 +133,12 @@ const showPrompt = ref(false);
 .actions-title {
   font-size: 16px;
   font-weight: 600;
-  color: #ddd;
+  color: var(--n-text-color);
 }
 
 .result-summary {
   font-size: 13px;
-  color: #999;
+  color: var(--n-text-color-3);
   margin: 0;
   line-height: 1.5;
 }
@@ -155,9 +155,9 @@ const showPrompt = ref(false);
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--n-border-color);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--n-color);
   cursor: pointer;
   transition: all 0.2s;
   text-align: left;
@@ -165,8 +165,8 @@ const showPrompt = ref(false);
 }
 
 .action-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--n-color-hover, rgba(0,0,0,0.03));
+  border-color: var(--n-primary-color, rgba(124, 92, 252, 0.3));
   transform: translateX(2px);
 }
 
@@ -194,20 +194,20 @@ const showPrompt = ref(false);
 .btn-text {
   font-size: 13px;
   font-weight: 600;
-  color: #ddd;
+  color: var(--n-text-color);
 }
 
 .btn-hint {
   position: absolute;
   right: 12px;
   font-size: 11px;
-  color: #777;
+  color: var(--n-text-color-3);
 }
 
 /* 生成信息 */
 .prompt-section {
   margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--n-border-color);
   padding-top: 10px;
 }
 
@@ -219,7 +219,7 @@ const showPrompt = ref(false);
   padding: 6px 0;
   border: none;
   background: none;
-  color: #888;
+  color: var(--n-text-color-3);
   font-size: 12px;
   cursor: pointer;
 }
@@ -234,20 +234,21 @@ const showPrompt = ref(false);
 
 .prompt-content {
   padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--n-color);
   border-radius: 8px;
   margin-top: 6px;
+  border: 1px solid var(--n-border-color);
 }
 
 .prompt-label {
   font-size: 11px;
-  color: #777;
+  color: var(--n-text-color-3);
   margin: 0 0 4px;
 }
 
 .prompt-text {
   font-size: 11px;
-  color: #aaa;
+  color: var(--n-text-color-2);
   line-height: 1.5;
   margin: 0;
   word-break: break-word;

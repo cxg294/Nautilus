@@ -233,8 +233,9 @@ export function useGifRecorder() {
         width: gifWidth,
         height: gifHeight,
         maxColors: config.value.maxColors,
+        // modern-gif 类型定义与 TS 5.9 的 ArrayBufferLike 不兼容，运行时无影响
         frames: frameBuffer.map(f => ({
-          data: f.data,
+          data: new Uint8Array(f.data.buffer) as any,
           delay: f.delay
         }))
       });

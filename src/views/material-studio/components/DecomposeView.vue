@@ -70,7 +70,7 @@ const selectedCount = computed(() => state.elements.filter(e => e.selected).leng
         :disabled="selectedCount === 0 || state.extractLoading"
         @click="extractAssets"
       >
-        {{ state.extractLoading ? '正在提取...' : `提取 ${selectedCount} 个元素` }}
+        {{ state.extractLoading ? (state.extractProgress || '正在提取...') : `提取 ${selectedCount} 个元素` }}
       </button>
     </div>
   </div>
@@ -158,8 +158,8 @@ const selectedCount = computed(() => state.elements.filter(e => e.selected).leng
   flex-direction: column;
   gap: 10px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color-modal);
+  border: 1px solid var(--n-border-color);
   border-radius: 14px;
   overflow-y: auto;
 }
@@ -171,12 +171,12 @@ const selectedCount = computed(() => state.elements.filter(e => e.selected).leng
 }
 
 .panel-icon { font-size: 16px; }
-.panel-title { font-size: 14px; font-weight: 600; color: #ddd; flex: 1; }
+.panel-title { font-size: 14px; font-weight: 600; color: var(--n-text-color); flex: 1; }
 .panel-count { font-size: 12px; color: #7c5cfc; }
 
 .panel-hint {
   font-size: 12px;
-  color: #888;
+  color: var(--n-text-color-3);
   margin: 0;
 }
 
@@ -194,19 +194,19 @@ const selectedCount = computed(() => state.elements.filter(e => e.selected).leng
   gap: 8px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--n-color);
+  border: 1px solid var(--n-border-color);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .element-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--n-color-hover, rgba(0,0,0,0.03));
 }
 
 .element-item.checked {
-  background: rgba(46, 213, 115, 0.04);
-  border-color: rgba(46, 213, 115, 0.15);
+  background: rgba(46, 213, 115, 0.08);
+  border-color: rgba(46, 213, 115, 0.3);
 }
 
 .element-item input[type="checkbox"] {
@@ -216,12 +216,12 @@ const selectedCount = computed(() => state.elements.filter(e => e.selected).leng
 .elem-name {
   flex: 1;
   font-size: 13px;
-  color: #ccc;
+  color: var(--n-text-color-2);
 }
 
 .elem-bbox {
   font-size: 10px;
-  color: #777;
+  color: var(--n-text-color-3);
   font-family: monospace;
 }
 

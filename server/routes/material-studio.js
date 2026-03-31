@@ -8,7 +8,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import fetch from 'node-fetch';
+// Node 22+ 内置全局 fetch，无需额外导入
 import config from '../config/env.js';
 import * as materialGen from '../services/material-gen.js';
 import { removeBackground } from '../services/aliyun-imageseg.js';
@@ -58,9 +58,19 @@ router.post('/chat', upload.single('reference'), async (req, res) => {
       d3: result.dimensions.d3.status === 'pass' ? result.dimensions.d3.extracted : null,
     };
 
+    // 构建行动策略
+    let action = result.allPass ? 'select_style' : 'clarify';
+    let autoDetectStyle = null;
+
+    if (result.allPass && result.explicitStyle) {
+      action = 'auto_generate';
+      autoDetectStyle = result.explicitStyle;
+    }
+
     res.json({
       success: true,
-      action: result.allPass ? 'select_style' : 'clarify',
+      action,
+      autoDetectStyle,
       dimension: result.nextAction,
       reply: result.reply,
       options: result.options || [],
@@ -187,8 +197,8 @@ router.post('/extract', async (req, res) => {
         const mattedUrl = await removeBackground(cropPath);
         // 下载抠图结果到本地
         const response = await fetch(mattedUrl);
-        const buffer = await response.buffer();
-        fs.writeFileSync(finalPath, buffer);
+        const arrayBuf = await response.arrayBuffer();
+        fs.writeFileSync(finalPath, Buffer.from(arrayBuf));
       } catch (mattingErr) {
         console.warn(`[Material Studio] 元素 ${elem.name} 抠图失败，使用裁切图:`, mattingErr.message);
         // 抠图失败则直接用裁切图

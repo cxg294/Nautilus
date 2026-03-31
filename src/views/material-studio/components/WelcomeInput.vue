@@ -9,6 +9,7 @@
  */
 import { ref } from 'vue';
 import { useMaterialStudio } from '../composables/use-material-studio';
+import { STYLE_LIBRARY } from '../config/styles';
 import AspectRatioSelector from './AspectRatioSelector.vue';
 
 const { state, setRefImage, sendMessage } = useMaterialStudio();
@@ -43,6 +44,14 @@ function handleKeydown(e: KeyboardEvent) {
     handleSubmit();
   }
 }
+
+function handleGalleryClick(styleName: string) {
+  if (state.inputText.trim()) {
+    state.inputText += `，使用${styleName}风格`;
+  } else {
+    state.inputText = `使用${styleName}风格`;
+  }
+}
 </script>
 
 <template>
@@ -63,48 +72,69 @@ function handleKeydown(e: KeyboardEvent) {
 
       <!-- 参考图预览 -->
       <div v-if="state.refImagePreview" class="ref-preview">
-        <img :src="state.refImagePreview" alt="参考图" class="ref-thumb" />
-        <button class="ref-remove" @click="removeImage">✕</button>
+        <NImage :src="state.refImagePreview" object-fit="cover" class="ref-thumb" preview-disabled />
+        <NButton circle size="tiny" type="error" class="ref-remove" @click="removeImage">
+          ✕
+        </NButton>
         <span class="ref-label">参考图</span>
       </div>
 
       <!-- 输入框区域 -->
-      <div class="input-box">
-        <!-- 上传按钮 -->
-        <button class="upload-btn" title="上传参考图" @click="triggerUpload">
-          <span class="upload-icon">＋</span>
-        </button>
-        <input
-          ref="fileInput"
-          type="file"
-          accept="image/*"
-          style="display: none"
-          @change="handleFileChange"
-        />
-
-        <!-- 文本输入 -->
-        <textarea
-          v-model="state.inputText"
-          class="text-input"
+      <div class="input-container">
+        <NInput
+          v-model:value="state.inputText"
+          type="textarea"
           placeholder="描述你想要的画面内容、氛围和用途..."
-          rows="2"
+          :autosize="{ minRows: 2, maxRows: 6 }"
+          size="large"
+          class="main-input"
           @keydown="handleKeydown"
-        />
-
-        <!-- 发送按钮 -->
-        <button
-          class="send-btn"
-          :class="{ active: state.inputText.trim() }"
-          :disabled="!state.inputText.trim()"
-          @click="handleSubmit"
         >
-          <span class="send-icon">↑</span>
-        </button>
+          <template #prefix>
+            <NButton quaternary circle @click="triggerUpload" title="上传参考图">
+              <span style="font-size: 20px; font-weight: 300; line-height: 1;">＋</span>
+            </NButton>
+             <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleFileChange"
+              />
+          </template>
+          <template #suffix>
+            <div class="flex items-end h-full pb-1">
+              <NButton
+                circle
+                type="primary"
+                :disabled="!state.inputText.trim()"
+                @click="handleSubmit"
+              >
+                <span style="font-weight: 700; font-size: 16px;">↑</span>
+              </NButton>
+            </div>
+          </template>
+        </NInput>
       </div>
 
       <!-- 比例选择 -->
       <div class="options-row">
         <AspectRatioSelector v-model="state.aspectRatio" />
+      </div>
+    </div>
+
+    <!-- 底部灵感画廊 (无限滚动展示 40 种风格) -->
+    <div class="welcome-gallery">
+      <div class="gallery-scroll">
+        <div v-for="style in STYLE_LIBRARY" :key="style.id" class="gallery-item" @click="handleGalleryClick(style.name)">
+          <img :src="`/images/styles/${style.id}.png`" loading="lazy" />
+          <div class="gallery-item-name">{{ style.name }}</div>
+        </div>
+        <!-- 重复一份，实现无缝滚动 -->
+        <div v-for="style in STYLE_LIBRARY" :key="style.id + '-copy'" class="gallery-item" @click="handleGalleryClick(style.name)">
+          <img :src="`/images/styles/${style.id}.png`" loading="lazy" />
+          <div class="gallery-item-name">{{ style.name }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -114,6 +144,7 @@ function handleKeydown(e: KeyboardEvent) {
 .welcome-container {
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
@@ -131,7 +162,7 @@ function handleKeydown(e: KeyboardEvent) {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.15;
+  opacity: 0.1;
 }
 
 .bg-orb-1 {
@@ -172,7 +203,7 @@ function handleKeydown(e: KeyboardEvent) {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 640px;
+  max-width: 680px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -183,13 +214,13 @@ function handleKeydown(e: KeyboardEvent) {
 /* 标题 */
 .welcome-title {
   margin: 0;
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #b8a5ff 0%, #7c5cfc 40%, #36d1dc 100%);
+  background: linear-gradient(135deg, #7c5cfc 0%, #36d1dc 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -197,8 +228,8 @@ function handleKeydown(e: KeyboardEvent) {
 
 .welcome-subtitle {
   margin: -8px 0 0;
-  font-size: 14px;
-  color: #888;
+  font-size: 15px;
+  color: var(--n-text-color-3);
 }
 
 /* 参考图预览 */
@@ -207,136 +238,137 @@ function handleKeydown(e: KeyboardEvent) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--n-color-modal);
+  border: 1px solid var(--n-border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .ref-thumb {
   width: 60px;
   height: 60px;
-  object-fit: cover;
-  border-radius: 8px;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .ref-remove {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff4757;
-  color: #fff;
-  border: none;
-  font-size: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
 }
 
 .ref-label {
-  font-size: 11px;
-  color: #999;
+  font-size: 12px;
+  color: var(--n-text-color-3);
   padding-right: 8px;
 }
 
 /* 输入框 */
-.input-box {
+.input-container {
   width: 100%;
-  display: flex;
-  align-items: flex-end;
-  gap: 0;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--n-color-modal);
   border-radius: 16px;
-  padding: 8px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--n-border-color);
+  transition: box-shadow 0.3s ease;
 }
 
-.input-box:focus-within {
+.input-container:focus-within {
+  box-shadow: 0 8px 30px rgba(124, 92, 252, 0.15);
   border-color: rgba(124, 92, 252, 0.4);
-  box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.08);
 }
 
-.upload-btn {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: 2px dashed rgba(255, 255, 255, 0.15);
-  background: transparent;
-  color: #888;
-  font-size: 22px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+.main-input {
+  background: transparent !important;
+  border: none !important;
 }
 
-.upload-btn:hover {
-  border-color: rgba(124, 92, 252, 0.4);
-  color: #b8a5ff;
-  background: rgba(124, 92, 252, 0.06);
+.main-input :deep(.n-input__border),
+.main-input :deep(.n-input__state-border) {
+  display: none;
 }
 
-.upload-icon {
-  line-height: 1;
+.main-input :deep(.n-input-wrapper) {
+  padding: 12px;
 }
 
-.text-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #e0e0e0;
-  font-size: 15px;
-  line-height: 1.5;
-  padding: 8px 12px;
-  resize: none;
-  outline: none;
-  font-family: inherit;
-}
-
-.text-input::placeholder {
-  color: #666;
-}
-
-.send-btn {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: #666;
-  font-size: 18px;
-  cursor: not-allowed;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.send-btn.active {
-  background: #7c5cfc;
-  color: #fff;
-  cursor: pointer;
-}
-
-.send-btn.active:hover {
-  background: #6a4ae8;
-}
-
-.send-icon {
-  font-weight: 700;
+.main-input :deep(.n-input__textarea-el) {
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 /* 选项行 */
 .options-row {
   display: flex;
   justify-content: center;
+  margin-top: 8px;
+}
+
+/* 底部画廊 */
+.welcome-gallery {
+  position: absolute;
+  bottom: 40px;
+  width: 100vw;
+  overflow: hidden;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+.gallery-scroll {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: scroll-left 90s linear infinite;
+}
+
+.gallery-scroll:hover {
+  animation-play-state: paused;
+}
+
+.gallery-item {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background: var(--n-color-modal);
+  cursor: pointer;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.gallery-item-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 8px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  pointer-events: none;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 </style>
