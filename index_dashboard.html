@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课中数据分析看板</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-card: #111827;
+    --bg-card-hover: #1a2235;
+    --border: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+    --accent-rose: #f43f5e;
+    --accent-violet: #8b5cf6;
+    --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Top Bar: SKU Switcher ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 200;
+    backdrop-filter: blur(24px) saturate(180%);
+    background: rgba(10,14,26,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex; align-items: stretch; gap: 0;
+    height: 52px;
+  }
+  .topbar-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding-right: 28px;
+    border-right: 1px solid var(--border);
+    margin-right: 4px;
+    font-size: 15px; font-weight: 700;
+    background: var(--gradient-blue);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+  }
+  .sku-tab {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 0 18px;
+    background: none; border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sku-tab:hover { color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+  .sku-tab.active { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+  .sku-tab .sku-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .sku-tab:nth-child(2) .sku-dot { background: var(--accent-cyan); }
+  .sku-tab:nth-child(3) .sku-dot { background: var(--accent-amber); }
+  .sku-tab:nth-child(4) .sku-dot { background: var(--accent-emerald); }
+  .sku-tab:nth-child(5) .sku-dot { background: var(--accent-violet); }
+  .topbar-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 16px;
+    font-size: 11px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .compare-btn {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 11px; font-weight: 500;
+    padding: 5px 14px;
+    background: rgba(139,92,246,0.12);
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 6px;
+    color: var(--accent-violet);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .compare-btn:hover { background: rgba(139,92,246,0.2); }
+  .compare-btn.active { background: var(--accent-violet); color: #fff; border-color: var(--accent-violet); }
+
+  /* ── KPI Strip ── */
+  .kpi-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; padding: 24px 40px;
+  }
+  .kpi-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: all 0.3s; cursor: pointer;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .kpi-card:nth-child(1)::before { background: var(--gradient-blue); }
+  .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-emerald), var(--accent-cyan)); }
+  .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-amber), var(--accent-rose)); }
+  .kpi-card:nth-child(4)::before { background: linear-gradient(90deg, var(--accent-violet), var(--accent-blue)); }
+  .kpi-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .kpi-card.active { border-color: var(--accent-blue); box-shadow: 0 0 0 1px var(--accent-blue), var(--shadow-lg); }
+  .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 28px; font-weight: 900; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; }
+  .kpi-sub { font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; }
+  .kpi-sub span { display: flex; align-items: center; gap: 4px; }
+
+  /* ── Tab Nav ── */
+  .tab-nav {
+    display: flex; gap: 4px; padding: 0 40px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 13px; font-weight: 500;
+    padding: 10px 20px; background: transparent;
+    color: var(--text-muted); border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+  }
+  .tab-btn:hover { color: var(--text-secondary); }
+  .tab-btn.active { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+
+  /* ── Main ── */
+  .main { padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 24px; }
+
+  .panel {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px;
+    box-shadow: var(--shadow-lg);
+  }
+  .panel-title {
+    font-size: 15px; font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .panel-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+  .chart-container { width: 100%; height: 440px; }
+  .chart-container-sm { width: 100%; height: 340px; }
+
+  /* ── Insight Cards ── */
+  .insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .insight-card {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px; transition: all 0.2s;
+  }
+  .insight-card:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
+  .insight-card .ic-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .insight-card .ic-value { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .insight-card .ic-note { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* ── Anomaly ── */
+  .anomaly-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .anomaly-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: rgba(244,63,94,0.06); border: 1px solid rgba(244,63,94,0.15);
+    border-radius: 10px; font-size: 13px;
+  }
+  .anomaly-item .badge {
+    font-size: 10px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-rose);
+    background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.25);
+    padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+  }
+  .anomaly-item .a-name { color: var(--text-primary); font-weight: 500; }
+  .anomaly-item .a-cause { color: var(--text-muted); font-size: 12px; }
+
+  /* ── Compare overlay ── */
+  .compare-notice {
+    padding: 16px 24px;
+    background: rgba(139,92,246,0.08);
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: 12px;
+    font-size: 13px; color: var(--text-secondary);
+    text-align: center; line-height: 1.7;
+  }
+
+  .footer {
+    text-align: center; padding: 32px 40px;
+    font-size: 11px; color: var(--text-muted);
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 1024px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .insight-grid { grid-template-columns: 1fr; }
+    .topbar, .kpi-strip, .main, .tab-nav { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar with SKU Switcher -->
+<div class="topbar" id="topbar"></div>
+
+<!-- KPI Strip -->
+<div class="kpi-strip" id="kpiStrip"></div>
+
+<!-- Tab Nav -->
+<div class="tab-nav" id="tabNav"></div>
+
+<!-- Main Content -->
+<div class="main" id="mainContent"></div>
+
+<div class="footer">课中数据分析看板 · 数据产品团队 · 流失率 = (到课−完课) / 到课 · 流失人数 = 到课−完课</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  SKU DATA REGISTRY — 新增数据集只需在此注册
+// ══════════════════════════════════════════════════════════════
+const SKU_REGISTRY = {
+  'spring06_high': {
+    id: 'spring06_high',
+    label: '2026春06期 · 高年级',
+    color: '#06b6d4',
+    lessonNames: { 1: '图灵测试与AI视觉', 2: '语音识别与大模型', 3: 'AI绘画创作', 4: 'AI编程入门' },
+    courses: {
+      1: {
+        courseId: 57125,
+        chapters: [
+          { n: "剧情1", t: "VIDEO", a: 1682, f: 1662 },
+          { n: "图灵测试规则", t: "VIDEO", a: 1662, f: 1648 },
+          { n: "互动问答1", t: "EXAM", a: 1649, f: 1642 },
+          { n: "剧情2", t: "VIDEO", a: 1642, f: 1642 },
+          { n: "图灵测试与人工智能", t: "VIDEO", a: 1642, f: 1636 },
+          { n: "互动问答2", t: "EXAM", a: 1636, f: 1636 },
+          { n: "图像融合技术", t: "VIDEO", a: 1637, f: 1628 },
+          { n: "关卡1-图像融合", t: "PROJECT", a: 1629, f: 1620 },
+          { n: "人工智能的应用", t: "VIDEO", a: 1621, f: 1619 },
+          { n: "剧情3", t: "VIDEO", a: 1620, f: 1615 },
+          { n: "机器的视觉", t: "VIDEO", a: 1616, f: 1616 },
+          { n: "互动问答3", t: "EXAM", a: 1616, f: 1612 },
+          { n: "机器视觉的应用", t: "VIDEO", a: 1612, f: 1612 },
+          { n: "互动问答4", t: "EXAM", a: 1612, f: 1611 },
+          { n: "图像识别原理1", t: "VIDEO", a: 1612, f: 1611 },
+          { n: "互动问答5", t: "EXAM", a: 1611, f: 1611 },
+          { n: "图像识别原理2", t: "VIDEO", a: 1611, f: 1610 },
+          { n: "互动问答6", t: "EXAM", a: 1610, f: 1611 },
+          { n: "图像识别模型训练", t: "VIDEO", a: 1611, f: 1611 },
+          { n: "关卡2-模型测试", t: "PROJECT", a: 1611, f: 1599 },
+          { n: "剧情4", t: "VIDEO", a: 1599, f: 1598 },
+          { n: "模型拓展与应用", t: "VIDEO", a: 1598, f: 1593 },
+          { n: "关卡3-动物识别", t: "PROJECT", a: 1593, f: 1583 },
+          { n: "总结", t: "VIDEO", a: 1582, f: 1571 },
+          { n: "剧情5", t: "VIDEO", a: 1571, f: 1563 },
+        ]
+      },
+      2: {
+        courseId: 57124,
+        chapters: [
+          { n: "剧情1", t: "VIDEO", a: 1526, f: 1514 },
+          { n: "初识语音识别", t: "VIDEO", a: 1514, f: 1509 },
+          { n: "关卡1-语音识别", t: "PROJECT", a: 1511, f: 1485 },
+          { n: "语音识别的原理", t: "VIDEO", a: 1484, f: 1484 },
+          { n: "互动问答1", t: "EXAM", a: 1484, f: 1481 },
+          { n: "上下文理解与应用", t: "VIDEO", a: 1482, f: 1478 },
+          { n: "剧情2", t: "VIDEO", a: 1478, f: 1479 },
+          { n: "语音识别与控制1", t: "VIDEO", a: 1479, f: 1478 },
+          { n: "互动问答2", t: "EXAM", a: 1478, f: 1479 },
+          { n: "语音识别与控制2", t: "VIDEO", a: 1479, f: 1477 },
+          { n: "关卡2-语音控制", t: "PROJECT", a: 1478, f: 1471 },
+          { n: "语音识别的应用", t: "VIDEO", a: 1469, f: 1465 },
+          { n: "剧情3", t: "VIDEO", a: 1465, f: 1467 },
+          { n: "语音合成的原理", t: "VIDEO", a: 1467, f: 1461 },
+          { n: "互动问答3", t: "EXAM", a: 1462, f: 1461 },
+          { n: "语音合成与控制", t: "VIDEO", a: 1461, f: 1458 },
+          { n: "关卡3-语音合成", t: "PROJECT", a: 1460, f: 1456 },
+          { n: "语音合成与AI安全", t: "VIDEO", a: 1455, f: 1449 },
+          { n: "互动问答4", t: "EXAM", a: 1450, f: 1451 },
+          { n: "AI骗局的安全提示", t: "VIDEO", a: 1451, f: 1449 },
+          { n: "剧情4", t: "VIDEO", a: 1449, f: 1447 },
+          { n: "大语言模型", t: "VIDEO", a: 1447, f: 1446 },
+          { n: "互动问答5", t: "EXAM", a: 1446, f: 1447 },
+          { n: "大语言模型与应用", t: "VIDEO", a: 1447, f: 1446 },
+          { n: "互动问答6", t: "EXAM", a: 1446, f: 1445 },
+          { n: "体验大语言模型", t: "VIDEO", a: 1445, f: 1444 },
+          { n: "关卡4-大语言模型", t: "PROJECT", a: 1445, f: 1437 },
+          { n: "总结", t: "VIDEO", a: 1438, f: 1429 },
+          { n: "剧情5", t: "VIDEO", a: 1430, f: 1421 },
+        ]
+      },
+      3: {
+        courseId: 57126,
+        chapters: [
+          { n: "剧情1", t: "VIDEO", a: 1298, f: 1282 },
+          { n: "初识AI绘画", t: "VIDEO", a: 1282, f: 1279 },
+          { n: "关卡1-AI创意绘画", t: "PROJECT", a: 1280, f: 1270 },
+          { n: "神奇的提示词", t: "VIDEO", a: 1269, f: 1264 },
+          { n: "互动问答1", t: "EXAM", a: 1265, f: 1264 },
+          { n: "提示词的妙用", t: "VIDEO", a: 1264, f: 1264 },
+          { n: "剧情2", t: "VIDEO", a: 1264, f: 1264 },
+          { n: "互动问答2", t: "EXAM", a: 1265, f: 1264 },
+          { n: "AI以图生图", t: "VIDEO", a: 1264, f: 1261 },
+          { n: "关卡2-AI形象照", t: "PROJECT", a: 1262, f: 1260 },
+          { n: "剧情3", t: "VIDEO", a: 1260, f: 1261 },
+          { n: "AI绘画风格模型", t: "VIDEO", a: 1261, f: 1256 },
+          { n: "关卡3-AI艺术品", t: "PROJECT", a: 1258, f: 1251 },
+          { n: "剧情4", t: "VIDEO", a: 1252, f: 1250 },
+          { n: "如何制作AI动态贺卡", t: "VIDEO", a: 1251, f: 1247 },
+          { n: "关卡4-AI动态贺卡", t: "PROJECT", a: 1248, f: 1240 },
+          { n: "总结", t: "VIDEO", a: 1239, f: 1233 },
+          { n: "剧情5", t: "VIDEO", a: 1233, f: 1229 },
+        ]
+      },
+      4: {
+        courseId: 57127,
+        chapters: [
+          { n: "剧情1", t: "VIDEO", a: 1049, f: 1043 },
+          { n: "文字的情绪识别", t: "VIDEO", a: 1044, f: 1037 },
+          { n: "互动问答1", t: "EXAM", a: 1039, f: 1037 },
+          { n: "如果那么逻辑", t: "VIDEO", a: 1037, f: 1033 },
+          { n: "互动问答2", t: "EXAM", a: 1034, f: 1035 },
+          { n: "if语句", t: "VIDEO", a: 1035, f: 1033 },
+          { n: "关卡1-会读心的小狗", t: "PROJECT", a: 1034, f: 1027 },
+          { n: "剧情2", t: "VIDEO", a: 1027, f: 1025 },
+          { n: "监督学习&数据", t: "VIDEO", a: 1025, f: 1021 },
+          { n: "互动问答3", t: "EXAM", a: 1022, f: 1022 },
+          { n: "动物语言翻译", t: "VIDEO", a: 1022, f: 1019 },
+          { n: "互动问答4", t: "EXAM", a: 1020, f: 1019 },
+          { n: "翻译代码", t: "VIDEO", a: 1019, f: 1013 },
+          { n: "关卡2-会翻译的小狗", t: "PROJECT", a: 1013, f: 1010 },
+          { n: "剧情3", t: "VIDEO", a: 1011, f: 1009 },
+          { n: "找出错误的代码", t: "VIDEO", a: 1009, f: 1009 },
+          { n: "互动问答5", t: "EXAM", a: 1009, f: 1009 },
+          { n: "设计正确的程序", t: "VIDEO", a: 1009, f: 1008 },
+          { n: "关卡3-多功能小狗", t: "PROJECT", a: 1008, f: 1007 },
+          { n: "剧情4", t: "VIDEO", a: 1007, f: 1007 },
+          { n: "AI与编程", t: "VIDEO", a: 1007, f: 1004 },
+          { n: "总结", t: "VIDEO", a: 1004, f: 999 },
+          { n: "剧情5", t: "VIDEO", a: 999, f: 989 },
+        ]
+      }
+    }
+  },
+  // ── 在此处追加新 SKU，格式同上 ──
+  // 'spring06_low': { id: 'spring06_low', label: '2026春06期 · 低年级', color: '#f59e0b', lessonNames: {...}, courses: {...} },
+};
+
+// ══════════════════════════════════════════════════════════════
+//  ANALYSIS ENGINE
+// ══════════════════════════════════════════════════════════════
+const TYPE_LABELS = { VIDEO: '视频', EXAM: '问答', PROJECT: '关卡' };
+const TYPE_COLORS = { VIDEO: '#3b82f6', EXAM: '#f59e0b', PROJECT: '#f43f5e' };
+
+function normalize(raw) {
+  return raw.map(ch => ({ chapterName: ch.n, contentType: ch.t, arrive: ch.a, finish: ch.f }));
+}
+
+function enrichCourse(rawCourse, lessonKey) {
+  const chapters = normalize(rawCourse.chapters).map((ch, i, arr) => {
+    const loss = ch.arrive - ch.finish;
+    const rate = ch.arrive > 0 ? +((loss / ch.arrive) * 100).toFixed(2) : 0;
+    const cumRet = arr[0].arrive > 0 ? +((ch.finish / arr[0].arrive) * 100).toFixed(2) : 100;
+    // 内容分类：剧情 / 讲解视频 / 练习题 / 关卡 / 总结
+    let category = 'lecture'; // 讲解视频
+    if (ch.chapterName.includes('剧情')) category = 'drama';
+    else if (ch.chapterName === '总结') category = 'summary';
+    else if (ch.contentType === 'EXAM') category = 'quiz';
+    else if (ch.contentType === 'PROJECT') category = 'project';
+    return { ...ch, index: i + 1, lossCount: loss, innerLossRate: rate, cumulativeRetention: cumRet, category };
+  });
+  // 第4课：最后一个关卡之后的视频环节标记为"销售干扰期"，分析时排除
+  if (String(lessonKey) === '4') {
+    let lastProjIdx = -1;
+    chapters.forEach((ch, i) => { if (ch.contentType === 'PROJECT') lastProjIdx = i; });
+    if (lastProjIdx >= 0) {
+      chapters.forEach((ch, i) => { if (i > lastProjIdx) ch.salesImpacted = true; });
+    }
+  }
+  const first = chapters[0].arrive;
+  const last = chapters[chapters.length - 1].finish;
+  // 最高流失环节：排除第4课销售干扰期
+  const validForMax = chapters.filter(ch => !ch.salesImpacted);
+  const maxCh = validForMax.reduce((m, c) => c.innerLossRate > m.innerLossRate ? c : m, validForMax[0]);
+  const projects = chapters.filter(c => c.contentType === 'PROJECT');
+  const avgProjLoss = projects.length ? +(projects.reduce((s, p) => s + p.innerLossRate, 0) / projects.length).toFixed(2) : 0;
+  const typeStats = {};
+  chapters.forEach(ch => {
+    if (!typeStats[ch.contentType]) typeStats[ch.contentType] = { count: 0, totalLoss: 0, totalArrive: 0 };
+    typeStats[ch.contentType].count++;
+    typeStats[ch.contentType].totalLoss += ch.lossCount;
+    typeStats[ch.contentType].totalArrive += ch.arrive;
+  });
+  Object.keys(typeStats).forEach(k => {
+    typeStats[k].avgLossRate = typeStats[k].totalArrive > 0
+      ? +(typeStats[k].totalLoss / typeStats[k].totalArrive * 100).toFixed(2) : 0;
+  });
+  // 内容分类统计（剧情/讲解视频/练习题）
+  const CAT_KEYS = ['drama','lecture','quiz'];
+  const categoryStats = {};
+  CAT_KEYS.forEach(cat => {
+    const items = chapters.filter(ch => ch.category === cat && !ch.salesImpacted);
+    const totalA = items.reduce((s, x) => s + x.arrive, 0);
+    const totalL = items.reduce((s, x) => s + x.lossCount, 0);
+    categoryStats[cat] = { count: items.length, totalLoss: totalL, totalArrive: totalA,
+      avgLossRate: totalA > 0 ? +(totalL / totalA * 100).toFixed(2) : 0 };
+  });
+  return { courseId: rawCourse.courseId, chapters, firstArrive: first, lastFinish: last,
+    overallCompletion: +(last / first * 100).toFixed(2), totalLoss: first - last,
+    maxLossChapter: maxCh, typeStats, categoryStats, projects, avgProjectLoss: avgProjLoss };
+}
+
+function buildSku(skuCfg) {
+  const courses = {};
+  Object.keys(skuCfg.courses).forEach(k => { courses[k] = enrichCourse(skuCfg.courses[k], k); });
+  return { ...skuCfg, courses };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+let activeSku = Object.keys(SKU_REGISTRY)[0];
+let currentTab = 'overview';
+let compareMode = false;
+let charts = {};
+let SKUS = {};
+Object.keys(SKU_REGISTRY).forEach(k => { SKUS[k] = buildSku(SKU_REGISTRY[k]); });
+
+function S() { return SKUS[activeSku]; }
+function C() { return S().courses; }
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════
+function renderTopbar() {
+  const tb = document.getElementById('topbar');
+  const skuKeys = Object.keys(SKUS);
+  let html = '<div class="topbar-brand">课中数据看板</div>';
+  skuKeys.forEach(k => {
+    html += `<button class="sku-tab${activeSku === k ? ' active' : ''}" onclick="switchSku('${k}')">
+      <span class="sku-dot"></span>${SKUS[k].label}</button>`;
+  });
+  html += `<div class="topbar-right">`;
+  if (skuKeys.length > 1) {
+    html += `<button class="compare-btn${compareMode ? ' active' : ''}" onclick="toggleCompare()">
+      ${compareMode ? '✕ 退出对比' : '⇄ SKU 交叉对比'}</button>`;
+  } else {
+    html += `<span style="opacity:0.4">添加更多SKU数据后可开启交叉对比</span>`;
+  }
+  html += `<span>${Object.keys(SKUS).length} 个数据集</span></div>`;
+  tb.innerHTML = html;
+}
+
+function renderKPI() {
+  const strip = document.getElementById('kpiStrip');
+  strip.innerHTML = '';
+  Object.keys(C()).forEach(k => {
+    const c = C()[k];
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.onclick = () => switchTab('lesson' + k);
+    card.innerHTML = `
+      <div class="kpi-label">第${k}课 · ${S().lessonNames[k] || ''}</div>
+      <div class="kpi-value">${c.overallCompletion}%</div>
+      <div class="kpi-sub">
+        <span>到课 ${c.firstArrive}</span>
+        <span>完课 ${c.lastFinish}</span>
+        <span style="color:var(--accent-rose)">流失 ${c.totalLoss}人 (${(100 - c.overallCompletion).toFixed(1)}%)</span>
+      </div>`;
+    strip.appendChild(card);
+  });
+}
+
+function renderTabs() {
+  const nav = document.getElementById('tabNav');
+  const tabs = [
+    { id: 'overview', label: '总览对比' },
+    ...Object.keys(C()).map(k => ({ id: 'lesson' + k, label: '第' + k + '课 详情' })),
+    { id: 'insights', label: '洞察与建议' },
+  ];
+  nav.innerHTML = tabs.map(t =>
+    `<button class="tab-btn${currentTab === t.id ? ' active' : ''}" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+
+function switchSku(skuId) {
+  activeSku = skuId;
+  currentTab = 'overview';
+  compareMode = false;
+  renderAll();
+}
+
+function toggleCompare() {
+  compareMode = !compareMode;
+  renderTopbar();
+  renderContent();
+}
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  renderTabs();
+  renderContent();
+  document.querySelectorAll('.kpi-card').forEach((card, i) => {
+    card.classList.toggle('active', tabId === 'lesson' + (i + 1));
+  });
+}
+
+function renderContent() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '';
+  Object.values(charts).forEach(c => { try { c.dispose(); } catch(e) {} });
+  charts = {};
+
+  if (compareMode) { renderCompare(main); return; }
+  if (currentTab === 'overview') renderOverview(main);
+  else if (currentTab.startsWith('lesson')) renderLesson(main, currentTab.replace('lesson', ''));
+  else if (currentTab === 'insights') renderInsights(main);
+}
+
+function renderAll() {
+  renderTopbar(); renderKPI(); renderTabs(); renderContent();
+}
+
+// ── Overview ──
+function renderOverview(container) {
+  const p1 = mkPanel('四课课内完课率对比', '首环节到课 → 末环节完课', 'var(--accent-blue)');
+  p1.innerHTML += '<div id="chartOvComp" class="chart-container-sm"></div>';
+  container.appendChild(p1);
+
+  const p2 = mkPanel('课间到课人数衰减', '各课首环节到课人数的递减趋势', 'var(--accent-cyan)');
+  p2.innerHTML += '<div id="chartOvDecay" class="chart-container-sm"></div>';
+  container.appendChild(p2);
+
+  const p3 = mkPanel('环节类型流失率对比', '按 VIDEO / EXAM / PROJECT 分课统计', 'var(--accent-amber)');
+  p3.innerHTML += '<div id="chartOvType" class="chart-container-sm"></div>';
+  container.appendChild(p3);
+
+  setTimeout(() => { chartOvComp(); chartOvDecay(); chartOvType(); }, 60);
+}
+
+function chartOvComp() {
+  const el = document.getElementById('chartOvComp'); if (!el) return;
+  const ch = echarts.init(el); charts.ovComp = ch;
+  const keys = Object.keys(C());
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9' },
+      formatter: p => { const k = p[0].dataIndex + 1; const c = C()[k];
+        return `<b>第${k}课</b><br/>完课率: ${c.overallCompletion}%<br/>流失: ${c.totalLoss}人`; }},
+    grid: { left: 60, right: 40, top: 40, bottom: 50 },
+    xAxis: { type: 'category', data: keys.map(k => `第${k}课`), axisLabel: { color: '#94a3b8' }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: { type: 'value', min: 88, max: 96, axisLabel: { color: '#94a3b8', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    series: [{
+      type: 'bar', barWidth: 52,
+      data: keys.map(k => ({ value: C()[k].overallCompletion,
+        itemStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#3b82f6'},{offset:1,color:'#06b6d4'}]), borderRadius: [6,6,0,0] } })),
+      label: { show: true, position: 'top', formatter: p => p.value + '%\n流失' + C()[p.dataIndex+1].totalLoss + '人',
+        color: '#f1f5f9', fontSize: 12, fontWeight: 600, fontFamily: 'JetBrains Mono', lineHeight: 18 },
+    }]
+  }); ch.resize();
+}
+
+function chartOvDecay() {
+  const el = document.getElementById('chartOvDecay'); if (!el) return;
+  const ch = echarts.init(el); charts.ovDecay = ch;
+  const keys = Object.keys(C());
+  // 用较低的min让衰减可视
+  const allVals = keys.flatMap(k => [C()[k].firstArrive, C()[k].lastFinish]);
+  const yMin = Math.floor(Math.min(...allVals) * 0.9 / 50) * 50;
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9' } },
+    legend: { data: ['首环节到课','末环节完课'], textStyle: { color: '#94a3b8' }, top: 4 },
+    grid: { left: 60, right: 40, top: 48, bottom: 50 },
+    xAxis: { type: 'category', data: keys.map(k => `第${k}课`), axisLabel: { color: '#94a3b8' }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: { type: 'value', min: yMin, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    series: [
+      { name: '首环节到课', type: 'bar', data: keys.map(k => C()[k].firstArrive), barWidth: 36,
+        itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
+        label: { show: true, position: 'top', color: '#94a3b8', fontSize: 11, fontFamily: 'JetBrains Mono' } },
+      { name: '末环节完课', type: 'bar', data: keys.map(k => C()[k].lastFinish), barWidth: 36,
+        itemStyle: { color: '#06b6d4', borderRadius: [4,4,0,0] },
+        label: { show: true, position: 'top', color: '#94a3b8', fontSize: 11, fontFamily: 'JetBrains Mono' } },
+    ]
+  }); ch.resize();
+}
+
+function chartOvType() {
+  const el = document.getElementById('chartOvType'); if (!el) return;
+  const ch = echarts.init(el); charts.ovType = ch;
+  const types = ['VIDEO','EXAM','PROJECT'];
+  const keys = Object.keys(C());
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9' }, valueFormatter: v => v + '%' },
+    legend: { data: types.map(t => TYPE_LABELS[t]), textStyle: { color: '#94a3b8' }, top: 4 },
+    grid: { left: 60, right: 40, top: 48, bottom: 50 },
+    xAxis: { type: 'category', data: keys.map(k => `第${k}课`), axisLabel: { color: '#94a3b8' }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: { type: 'value', axisLabel: { color: '#94a3b8', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    series: types.map(t => ({
+      name: TYPE_LABELS[t], type: 'bar', barWidth: 24,
+      data: keys.map(k => C()[k].typeStats[t] ? C()[k].typeStats[t].avgLossRate : 0),
+      itemStyle: { color: TYPE_COLORS[t], borderRadius: [4,4,0,0] },
+    }))
+  }); ch.resize();
+}
+
+// ── Lesson Detail ──
+function renderLesson(container, lk) {
+  const c = C()[lk]; if (!c) return;
+
+  // KPI cards
+  const ig = document.createElement('div'); ig.className = 'insight-grid';
+  ig.innerHTML = `
+    <div class="insight-card">
+      <div class="ic-label">课内完课率</div>
+      <div class="ic-value" style="color:var(--accent-cyan)">${c.overallCompletion}%</div>
+      <div class="ic-note">${c.firstArrive} → ${c.lastFinish}，流失 ${c.totalLoss} 人</div>
+    </div>
+    <div class="insight-card">
+      <div class="ic-label">最高流失环节</div>
+      <div class="ic-value" style="color:var(--accent-rose)">${c.maxLossChapter.innerLossRate}%  ·  ${c.maxLossChapter.lossCount}人</div>
+      <div class="ic-note">#${c.maxLossChapter.index} ${c.maxLossChapter.chapterName}（${TYPE_LABELS[c.maxLossChapter.contentType]}）</div>
+    </div>
+    <div class="insight-card">
+      <div class="ic-label">关卡平均流失率</div>
+      <div class="ic-value" style="color:var(--accent-amber)">${c.avgProjectLoss}%</div>
+      <div class="ic-note">${c.projects.length} 个关卡，共流失 ${c.projects.reduce((s,p) => s+p.lossCount, 0)} 人</div>
+    </div>`;
+  container.appendChild(ig);
+
+  // Main chart
+  const p1 = mkPanel(`第${lk}课 · 环节级留存与流失`, '柱状图=到课/完课人数，折线=流失率%，红色标记=最高流失点', 'var(--accent-blue)');
+  p1.innerHTML += `<div id="chartL${lk}" class="chart-container"></div>`;
+  container.appendChild(p1);
+
+  // Retention curve
+  const p2 = mkPanel(`第${lk}课 · 累计留存率曲线`, '以首环节到课为100%基准的衰减曲线', 'var(--accent-emerald)');
+  p2.innerHTML += `<div id="chartR${lk}" class="chart-container-sm"></div>`;
+  container.appendChild(p2);
+
+  // Anomalies — 排除第4课销售干扰期
+  const anoms = c.chapters.filter(ch => ch.innerLossRate > 0.5 && !ch.salesImpacted).sort((a,b) => b.innerLossRate - a.innerLossRate);
+  if (anoms.length) {
+    const p3 = mkPanel('异常流失节点', '流失率 > 0.5% 的环节（已排除第4课末尾销售干扰期）', 'var(--accent-rose)');
+    let html = '<div class="anomaly-list">';
+    anoms.forEach(a => {
+      html += `<div class="anomaly-item">
+        <span class="badge">${a.innerLossRate}% · ${a.lossCount}人</span>
+        <span class="a-name">#${a.index} ${a.chapterName}</span>
+        <span style="color:${TYPE_COLORS[a.contentType]};font-size:11px;font-weight:500">${TYPE_LABELS[a.contentType]}</span>
+        <span class="a-cause">→ ${guess(a)}</span>
+      </div>`;
+    });
+    html += '</div>';
+    p3.innerHTML += html;
+    container.appendChild(p3);
+  }
+
+  setTimeout(() => { chartLesson(lk); chartRetention(lk); }, 60);
+}
+
+function chartLesson(lk) {
+  const el = document.getElementById('chartL' + lk); if (!el) return;
+  const ch = echarts.init(el); charts['L' + lk] = ch;
+  const c = C()[lk];
+  const names = c.chapters.map(x => x.chapterName);
+  const maxIdx = c.chapters.indexOf(c.maxLossChapter);
+  // y轴范围：让柱状图落差更明显
+  const allVals = c.chapters.flatMap(x => [x.arrive, x.finish]);
+  const yMin = Math.floor(Math.min(...allVals) * 0.97 / 10) * 10;
+
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9', fontSize: 12 },
+      formatter: params => {
+        const idx = params[0].dataIndex; const x = c.chapters[idx];
+        return `<b>#${x.index} ${x.chapterName}</b><br/>类型: ${TYPE_LABELS[x.contentType]}<br/>到课: ${x.arrive}<br/>完课: ${x.finish}<br/>流失: ${x.lossCount}人 (${x.innerLossRate}%)<br/>累计留存: ${x.cumulativeRetention}%`;
+      }},
+    legend: { data: ['到课人数','完课人数','流失率%'], textStyle: { color: '#94a3b8', fontSize: 12 }, top: 0 },
+    grid: { left: 56, right: 56, top: 48, bottom: 80 },
+    dataZoom: [{ type: 'slider', start: 0, end: 100, bottom: 10, height: 20,
+      borderColor: '#334155', fillerColor: 'rgba(59,130,246,0.15)', textStyle: { color: '#94a3b8' } }],
+    xAxis: { type: 'category', data: names, axisLabel: { color: '#94a3b8', fontSize: 10, rotate: 45, interval: 0 }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: [
+      { type: 'value', name: '人数', min: yMin, nameTextStyle: { color: '#64748b', fontSize: 11 }, axisLabel: { color: '#94a3b8', fontSize: 11 }, splitLine: { lineStyle: { color: '#1e293b' } } },
+      { type: 'value', name: '流失率%', nameTextStyle: { color: '#64748b', fontSize: 11 }, axisLabel: { color: '#94a3b8', fontSize: 11, formatter: '{value}%' }, splitLine: { show: false } }
+    ],
+    series: [
+      { name: '到课人数', type: 'bar', barWidth: 14, barGap: '10%',
+        data: c.chapters.map(x => ({ value: x.arrive, itemStyle: { color: TYPE_COLORS[x.contentType], opacity: 0.3, borderRadius: [3,3,0,0] } })) },
+      { name: '完课人数', type: 'bar', barWidth: 14,
+        data: c.chapters.map(x => ({ value: x.finish, itemStyle: { color: TYPE_COLORS[x.contentType], opacity: 0.8, borderRadius: [3,3,0,0] } })) },
+      { name: '流失率%', type: 'line', yAxisIndex: 1,
+        data: c.chapters.map(x => x.innerLossRate),
+        lineStyle: { color: '#f43f5e', width: 2 }, symbol: 'circle',
+        symbolSize: (v, p) => p.dataIndex === maxIdx ? 14 : 5,
+        itemStyle: { color: '#f43f5e' },
+        markPoint: { data: [{ coord: [maxIdx, c.chapters[maxIdx].innerLossRate], symbol: 'pin', symbolSize: 52,
+          itemStyle: { color: '#f43f5e' },
+          label: { formatter: c.chapters[maxIdx].innerLossRate + '%\n' + c.chapters[maxIdx].lossCount + '人',
+            color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 14 } }] },
+        areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(244,63,94,0.15)'},{offset:1,color:'rgba(244,63,94,0)'}]) },
+      }
+    ]
+  }); ch.resize();
+}
+
+function chartRetention(lk) {
+  const el = document.getElementById('chartR' + lk); if (!el) return;
+  const ch = echarts.init(el); charts['R' + lk] = ch;
+  const c = C()[lk];
+  const retMin = Math.floor(Math.min(...c.chapters.map(x => x.cumulativeRetention)) - 2);
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9' },
+      formatter: p => { const x = c.chapters[p[0].dataIndex]; return `#${x.index} ${x.chapterName}<br/>累计留存: ${x.cumulativeRetention}%<br/>相对首环节流失: ${(100 - x.cumulativeRetention).toFixed(2)}% (${c.firstArrive - x.finish}人)`; } },
+    grid: { left: 56, right: 40, top: 30, bottom: 40 },
+    xAxis: { type: 'category', data: c.chapters.map(x => '#' + x.index), axisLabel: { color: '#94a3b8', fontSize: 10 }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: { type: 'value', min: retMin, max: 100, axisLabel: { color: '#94a3b8', fontSize: 11, formatter: '{value}%' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    series: [{ type: 'line', data: c.chapters.map(x => x.cumulativeRetention), smooth: true,
+      lineStyle: { color: '#10b981', width: 2.5 }, symbol: 'circle', symbolSize: 5, itemStyle: { color: '#10b981' },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(16,185,129,0.2)'},{offset:1,color:'rgba(16,185,129,0)'}]) } }]
+  }); ch.resize();
+}
+
+// ── Insights ──
+function renderInsights(container) {
+  // 1. 全局异常点气泡图
+  const p0 = mkPanel('四课异常流失点全景图', '气泡大小=流失人数，纵轴=流失率%，横轴=环节序号，颜色=课序（已排除第4课销售干扰期）', 'var(--accent-rose)');
+  p0.innerHTML += '<div id="chartBubble" class="chart-container"></div>';
+  container.appendChild(p0);
+
+  // 2. 四课关卡流失对比
+  const p1 = mkPanel('四课关卡(PROJECT)流失率对比', '所有关卡的流失率与流失人数对比', 'var(--accent-amber)');
+  p1.innerHTML += '<div id="chartProjComp" class="chart-container-sm"></div>';
+  container.appendChild(p1);
+
+  // 3. 四课内容分类流失率对比（剧情/讲解视频/练习题）
+  const p2 = mkPanel('四课内容分类流失率对比', '剧情、讲解视频、练习题三类内容在各课中的平均流失率（已排除第4课销售干扰期环节）', 'var(--accent-violet)');
+  p2.innerHTML += '<div id="chartCatComp" class="chart-container-sm"></div>';
+  container.appendChild(p2);
+
+  // 4. Findings + suggestions
+  const p3 = mkPanel('核心发现与优化建议', '基于四课数据的综合分析', 'var(--accent-emerald)');
+  p3.innerHTML += `
+    <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+      <div style="padding:18px 20px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:12px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--accent-blue)">📊 核心发现</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:2">
+          1. <b>课间衰减 ≫ 课内流失</b>：1课→4课到课衰减37.6%（633人），课内流失仅5-7%。<br>
+          2. <b>关卡(PROJECT)是课内主要流失源</b>：第2课「关卡1-语音识别」流失1.72%/26人，为全局最高。<br>
+          3. <b>剧情环节流失率普遍高于讲解视频和练习题</b>：开场剧情承担了加载等待的压力，导致流失集中在课程前段。<br>
+          4. <b>练习题(EXAM)流失极低</b>：多数≈0%甚至负值，互动问答设计有效。<br>
+          5. <b>第3课结构最优</b>：仅18环节，完课率94.68%最高，精简结构有助留存。<br>
+          <span style="color:var(--text-muted);font-size:12px">⚠️ 注：第4课最后关卡后的视频/剧情流失受当天电话销售干扰，已从异常分析中排除。</span>
+        </div>
+      </div>
+      <div style="padding:18px 20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:12px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--accent-emerald)">💡 优化建议</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:2">
+          1. 第2课语音识别关卡流失最高，建议增加引导提示或降低通关门槛。<br>
+          2. 开场剧情环节流失偏高，建议缩短加载/动画时间，提升进入速度。<br>
+          3. 参考第3课精简结构，评估其他课是否可以合并低价值VIDEO环节。<br>
+          4. 第4课销售干扰期的流失属于正常业务场景，无需课程层面优化。
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(p3);
+
+  // 5. Global TOP — 排除第4课销售干扰期
+  const allAnoms = [];
+  Object.keys(C()).forEach(k => {
+    C()[k].chapters.filter(x => x.innerLossRate > 0.5 && !x.salesImpacted).forEach(x => allAnoms.push({ lesson: k, ...x }));
+  });
+  allAnoms.sort((a,b) => b.innerLossRate - a.innerLossRate);
+
+  if (allAnoms.length) {
+    const p4 = mkPanel('全局 TOP 流失节点', '跨四课流失率 > 0.5% 的环节（已排除第4课销售干扰期）', 'var(--accent-rose)');
+    let html = '<div class="anomaly-list">';
+    allAnoms.slice(0, 8).forEach((a, i) => {
+      html += `<div class="anomaly-item">
+        <span class="badge">TOP${i+1} · ${a.innerLossRate}% · ${a.lossCount}人</span>
+        <span class="a-name">第${a.lesson}课 #${a.index} ${a.chapterName}</span>
+        <span style="color:${TYPE_COLORS[a.contentType]};font-size:11px;font-weight:500">${TYPE_LABELS[a.contentType]}</span>
+        <span class="a-cause">→ ${guess(a)}</span>
+      </div>`;
+    });
+    html += '</div>';
+    p4.innerHTML += html;
+    container.appendChild(p4);
+  }
+
+  setTimeout(() => { chartBubble(); chartProjComp(); chartCatComp(); }, 60);
+}
+
+function chartBubble() {
+  const el = document.getElementById('chartBubble'); if (!el) return;
+  const ch = echarts.init(el); charts.bubble = ch;
+  const lessonColors = { 1: '#3b82f6', 2: '#06b6d4', 3: '#f59e0b', 4: '#8b5cf6' };
+
+  const seriesData = {};
+  Object.keys(C()).forEach(k => {
+    seriesData[k] = C()[k].chapters.filter(x => x.lossCount > 0 && !x.salesImpacted).map(x => ({
+      value: [x.index, x.innerLossRate, x.lossCount, x.chapterName, TYPE_LABELS[x.contentType]],
+      symbolSize: Math.max(x.lossCount * 0.6, 8),
+    }));
+  });
+
+  ch.setOption({
+    tooltip: { backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9', fontSize: 12 },
+      formatter: p => `<b>第${p.seriesName}课 #${p.value[0]} ${p.value[3]}</b><br/>类型: ${p.value[4]}<br/>流失率: ${p.value[1]}%<br/>流失人数: ${p.value[2]}人` },
+    legend: { data: Object.keys(C()).map(k => '第' + k + '课'), textStyle: { color: '#94a3b8' }, top: 4, selectedMode: 'multiple' },
+    grid: { left: 60, right: 40, top: 48, bottom: 50 },
+    xAxis: { name: '环节序号', type: 'value', min: 0, nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: { name: '流失率%', type: 'value', nameTextStyle: { color: '#64748b' }, axisLabel: { color: '#94a3b8', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    series: Object.keys(C()).map(k => ({
+      name: '第' + k + '课', type: 'scatter',
+      data: seriesData[k],
+      itemStyle: { color: lessonColors[k], opacity: 0.7 },
+    }))
+  }); ch.resize();
+}
+
+function chartProjComp() {
+  const el = document.getElementById('chartProjComp'); if (!el) return;
+  const ch = echarts.init(el); charts.projComp = ch;
+  const allProjects = [];
+  Object.keys(C()).forEach(k => {
+    C()[k].projects.forEach(p => { allProjects.push({ lesson: k, ...p }); });
+  });
+  const labels = allProjects.map(p => `L${p.lesson}-${p.chapterName.replace('关卡','').replace(/^\d+-/,'')}`);
+
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9' },
+      formatter: p => { const x = allProjects[p[0].dataIndex]; return `<b>第${x.lesson}课 ${x.chapterName}</b><br/>流失率: ${x.innerLossRate}%<br/>流失人数: ${x.lossCount}人<br/>到课: ${x.arrive} → 完课: ${x.finish}`; } },
+    grid: { left: 60, right: 56, top: 40, bottom: 80 },
+    xAxis: { type: 'category', data: labels, axisLabel: { color: '#94a3b8', fontSize: 10, rotate: 35 }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: [
+      { type: 'value', name: '流失率%', axisLabel: { color: '#94a3b8', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+      { type: 'value', name: '流失人数', axisLabel: { color: '#94a3b8' }, splitLine: { show: false } }
+    ],
+    series: [
+      { name: '流失率', type: 'bar', barWidth: 28,
+        data: allProjects.map(p => ({ value: p.innerLossRate,
+          itemStyle: { color: p.innerLossRate > 1 ? '#f43f5e' : p.innerLossRate > 0.5 ? '#f59e0b' : '#10b981', borderRadius: [4,4,0,0] } })),
+        label: { show: true, position: 'top', formatter: p => p.value + '%', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono' } },
+      { name: '流失人数', type: 'line', yAxisIndex: 1,
+        data: allProjects.map(p => p.lossCount),
+        lineStyle: { color: '#8b5cf6', width: 2 }, symbol: 'circle', symbolSize: 8, itemStyle: { color: '#8b5cf6' },
+        label: { show: true, position: 'top', formatter: p => p.value + '人', color: '#8b5cf6', fontSize: 10 } }
+    ]
+  }); ch.resize();
+}
+
+function chartCatComp() {
+  const el = document.getElementById('chartCatComp'); if (!el) return;
+  const ch = echarts.init(el); charts.catComp = ch;
+  const keys = Object.keys(C());
+  const CAT_KEYS = ['drama','lecture','quiz'];
+  const CAT_LABELS = { drama: '剧情', lecture: '讲解视频', quiz: '练习题' };
+  const CAT_COLORS = { drama: '#8b5cf6', lecture: '#3b82f6', quiz: '#f59e0b' };
+
+  ch.setOption({
+    tooltip: { trigger: 'axis', backgroundColor: '#1e293b', borderColor: '#334155', textStyle: { color: '#f1f5f9' },
+      formatter: params => {
+        const lessonK = keys[params[0].dataIndex];
+        let html = `<b>第${lessonK}课</b>`;
+        params.forEach(p => {
+          const cat = CAT_KEYS[p.seriesIndex];
+          const cs = C()[lessonK].categoryStats[cat];
+          html += `<br/><span style="color:${CAT_COLORS[cat]}">■</span> ${CAT_LABELS[cat]}: ${p.value}% (${cs.count}个环节, 共流失${cs.totalLoss}人)`;
+        });
+        return html;
+      }},
+    legend: { data: CAT_KEYS.map(k => CAT_LABELS[k]), textStyle: { color: '#94a3b8' }, top: 4 },
+    grid: { left: 60, right: 40, top: 48, bottom: 50 },
+    xAxis: { type: 'category', data: keys.map(k => `第${k}课`), axisLabel: { color: '#94a3b8' }, axisLine: { lineStyle: { color: '#1e293b' } } },
+    yAxis: { type: 'value', axisLabel: { color: '#94a3b8', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+    series: CAT_KEYS.map(cat => ({
+      name: CAT_LABELS[cat], type: 'bar', barWidth: 28,
+      data: keys.map(k => C()[k].categoryStats[cat] ? C()[k].categoryStats[cat].avgLossRate : 0),
+      itemStyle: { color: CAT_COLORS[cat], borderRadius: [4,4,0,0] },
+      label: { show: true, position: 'top', formatter: p => { const cs = C()[keys[p.dataIndex]].categoryStats[cat]; return p.value + '%\n' + cs.totalLoss + '人'; },
+        color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono', lineHeight: 14 },
+    }))
+  }); ch.resize();
+}
+
+// ── Compare Mode ──
+function renderCompare(container) {
+  const skuKeys = Object.keys(SKUS);
+  if (skuKeys.length < 2) {
+    const notice = document.createElement('div');
+    notice.className = 'compare-notice';
+    notice.innerHTML = `当前仅有 <b>1</b> 个数据集（${S().label}）。<br>请在 <code>SKU_REGISTRY</code> 中添加更多SKU数据后即可开启交叉对比分析。<br><br>
+      <span style="color:var(--text-muted)">示例：添加 <code>'spring06_low'</code> 低年级数据后，可对比高低年级的完课率、流失模式差异。</span>`;
+    container.appendChild(notice);
+    return;
+  }
+  // TODO: multi-SKU compare charts
+  const notice = document.createElement('div');
+  notice.className = 'compare-notice';
+  notice.innerHTML = `交叉对比模式已开启，共 ${skuKeys.length} 个数据集可参与对比。<br>此处将展示各SKU的完课率、流失率、关卡难度等维度的横向比较图表。`;
+  container.appendChild(notice);
+}
+
+// ── Helpers ──
+function mkPanel(title, desc, dotColor) {
+  const p = document.createElement('div'); p.className = 'panel';
+  p.innerHTML = `<div class="panel-title"><span class="dot" style="background:${dotColor}"></span>${title}</div><div class="panel-desc">${desc}</div>`;
+  return p;
+}
+
+function guess(ch) {
+  if (ch.salesImpacted) return '第4课销售干扰期，流失属正常业务场景';
+  if (ch.contentType === 'PROJECT' && ch.innerLossRate > 1) return '关卡难度偏高或操作步骤过多，建议增加引导';
+  if (ch.contentType === 'PROJECT') return '关卡环节天然流失，关注是否卡在特定步骤';
+  if (ch.chapterName.includes('剧情') && ch.index <= 2) return '开场剧情流失，可能因加载等待';
+  if (ch.chapterName.includes('剧情')) return '剧情过渡流失，节奏感可能不足';
+  if (ch.chapterName.includes('总结')) return '课末总结流失，学生可能提前离开';
+  if (ch.contentType === 'VIDEO' && ch.innerLossRate > 0.5) return '视频时长或信息密度偏高';
+  return '建议结合行为日志进一步定位';
+}
+
+// ── Init ──
+renderAll();
+window.addEventListener('resize', () => Object.values(charts).forEach(c => { try { c.resize(); } catch(e) {} }));
+</script>
+</body>
+</html>
