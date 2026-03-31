@@ -65,6 +65,15 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'locked',
+    path: '/locked',
+    component: 'layout.base$view.locked',
+    meta: {
+      title: 'locked',
+      i18nKey: 'route.locked'
+    }
+  },
+  {
     name: 'login',
     path: '/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?',
     component: 'layout.blank$view.login',

@@ -2,7 +2,7 @@ import type { CustomRoute, ElegantConstRoute, ElegantRoute } from '@elegant-rout
 import { generatedRoutes } from '../elegant/routes';
 import { layouts, views } from '../elegant/imports';
 import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
-import { getPluginRoutes } from '../plugin-scanner';
+import { getPluginRoutes, getPluginViews } from '../plugin-scanner';
 
 /**
  * custom routes
@@ -13,13 +13,13 @@ const customRoutes: CustomRoute[] = [];
 
 /** create routes when the auth route mode is static */
 export function createStaticRoutes() {
-  const constantRoutes: ElegantRoute[] = [];
+  const constantRoutes: ElegantConstRoute[] = [];
 
-  const authRoutes: ElegantRoute[] = [];
+  const authRoutes: ElegantConstRoute[] = [];
 
   // 合并内置路由 + 插件路由
   const pluginRoutes = getPluginRoutes();
-  [...customRoutes, ...generatedRoutes, ...pluginRoutes].forEach(item => {
+  ([...customRoutes, ...generatedRoutes, ...pluginRoutes] as ElegantConstRoute[]).forEach(item => {
     if (item.meta?.constant) {
       constantRoutes.push(item);
     } else {
@@ -39,5 +39,7 @@ export function createStaticRoutes() {
  * @param routes Elegant routes
  */
 export function getAuthVueRoutes(routes: ElegantConstRoute[]) {
-  return transformElegantRoutesToVueRoutes(routes, layouts, views);
+  // 合并内置视图 + 插件视图，使插件路由能正确解析组件
+  const allViews = { ...views, ...getPluginViews() };
+  return transformElegantRoutesToVueRoutes(routes, layouts, allViews);
 }
