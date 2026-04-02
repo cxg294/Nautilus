@@ -78,11 +78,11 @@ function handleVideoReady(el: HTMLVideoElement) {
 
         <!-- 抽帧控制（紧凑布局，始终可见） -->
         <ExtractControls
+          v-model:output-format="outputFormat"
+          v-model:output-quality="outputQuality"
           :has-video="!!videoInfo"
           :is-extracting="isExtracting"
           :extract-progress="extractProgress"
-          v-model:output-format="outputFormat"
-          v-model:output-quality="outputQuality"
           :video-duration="videoInfo?.duration || 0"
           @extract-by-count="extractByCount"
           @extract-by-interval="extractByInterval"

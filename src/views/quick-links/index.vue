@@ -6,7 +6,7 @@
  */
 import { ref, computed, reactive } from 'vue';
 import { siteGroups, getFaviconUrl } from './data/sites';
-import type { SiteItem, SiteGroup } from './data/sites';
+import type { SiteItem } from './data/sites';
 
 // ──── 分组切换 ────
 const activeGroup = ref('all');
@@ -38,7 +38,7 @@ const filteredGroups = computed(() => {
     .filter((g) => g.sites.length > 0);
 });
 
-const totalVisible = computed(() => filteredGroups.value.reduce((s, g) => s + g.sites.length, 0));
+
 
 // ──── favicon 加载状态 ────
 const faviconErrors = reactive<Record<string, boolean>>({});

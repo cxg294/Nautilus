@@ -93,7 +93,7 @@ export function computeVarStats(targets) {
 
   // Scan all blocks for variable/list usage
   const varWriteOps = new Set(['data_setvariableto', 'data_changevariableby']);
-  // eslint-disable-next-line no-unused-vars
+   
   const _varShowHideOps = new Set(['data_showvariable', 'data_hidevariable']);
 
   for (const target of targets) {

@@ -10,7 +10,6 @@ import {
   fetchRoleList,
   fetchPermissionList,
   fetchCreateRole,
-  fetchUpdateRole,
   fetchDeleteRole,
   fetchSetRolePermissions
 } from '@/service/api/role-management';
@@ -123,7 +122,7 @@ async function savePermissions() {
 }
 
 // === 工具名映射 ===
-function permLabel(key: string): string {
+function _permLabel(key: string): string {
   const p = allPermissions.value.find(x => x.key === key);
   return p?.description || key;
 }

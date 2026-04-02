@@ -4,7 +4,7 @@
  * 分为「点击特效」和「背景特效」两大类
  */
 import { useI18n } from 'vue-i18n';
-import type { EffectPreset } from '../composables/use-effects';
+import type { EffectPreset as _EffectPreset } from '../composables/use-effects';
 import { BURST_PRESETS, AMBIENT_PRESETS } from '../composables/use-effects';
 
 defineProps<{
@@ -32,7 +32,7 @@ const { t } = useI18n();
         <button
           v-for="preset in BURST_PRESETS"
           :key="preset.key"
-          :class="['preset-card', { 'preset-card--active': activeKey === preset.key }]"
+          class="preset-card" :class="[{ 'preset-card--active': activeKey === preset.key }]"
           :title="t(preset.i18nKey)"
           @click="emit('select', preset.key)"
         >
@@ -53,7 +53,7 @@ const { t } = useI18n();
         <button
           v-for="preset in AMBIENT_PRESETS"
           :key="preset.key"
-          :class="['preset-card', 'preset-card--ambient', { 'preset-card--active': activeKey === preset.key }]"
+          class="preset-card preset-card--ambient" :class="[{ 'preset-card--active': activeKey === preset.key }]"
           :title="t(preset.i18nKey)"
           @click="emit('select', preset.key)"
         >

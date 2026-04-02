@@ -53,7 +53,7 @@ onMounted(() => {
 
 <template>
   <div ref="containerRef" class="mermaid-container">
-    <div v-if="svgContent" v-html="svgContent" class="mermaid-svg" />
+    <div v-if="svgContent" class="mermaid-svg" v-html="svgContent" />
     <NAlert v-else-if="error" type="warning" title="图表渲染失败">
       {{ error }}
     </NAlert>

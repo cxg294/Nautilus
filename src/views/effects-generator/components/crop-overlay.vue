@@ -113,8 +113,8 @@ function onMouseMove(e: MouseEvent) {
   const pos = getRelativePos(e);
 
   if (isDragging.value) {
-    let x = Math.min(dragStart.value.x, pos.x);
-    let y = Math.min(dragStart.value.y, pos.y);
+    const x = Math.min(dragStart.value.x, pos.x);
+    const y = Math.min(dragStart.value.y, pos.y);
     let w = Math.abs(pos.x - dragStart.value.x);
     let h = Math.abs(pos.y - dragStart.value.y);
 
@@ -304,7 +304,7 @@ onUnmounted(() => {
           <button
             v-for="opt in ratioOptions"
             :key="opt.key"
-            :class="['ratio-btn', { 'ratio-btn--active': aspectRatio === opt.key }]"
+            class="ratio-btn" :class="[{ 'ratio-btn--active': aspectRatio === opt.key }]"
             @click.stop="aspectRatio = opt.key"
           >
             {{ opt.label }}

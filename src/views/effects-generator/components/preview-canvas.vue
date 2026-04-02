@@ -196,8 +196,8 @@ defineExpose({
 
     <!-- Burst 模式：自研 Canvas 渲染 -->
     <canvas
-      ref="burstCanvasRef"
       v-show="isBurstMode"
+      ref="burstCanvasRef"
       class="preview-canvas__burst"
     />
 

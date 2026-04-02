@@ -20,7 +20,6 @@ const message = useMessage();
 
 const {
   activePresetKey,
-  activePreset,
   isBurstMode,
   isPlaying,
   params,

@@ -8,7 +8,7 @@
 import { ref, computed, h } from 'vue';
 import { NTag, NText } from 'naive-ui';
 import { useSb3Project } from '../composables/use-sb3-project';
-import { blockToText, getOpcodeLabel } from '../core/blockConverter';
+import { blockToText } from '../core/blockConverter';
 import { buildExecutionFlow } from '../core/flowAnalyzer';
 import MermaidRenderer from './MermaidRenderer.vue';
 

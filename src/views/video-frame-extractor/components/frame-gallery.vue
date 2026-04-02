@@ -48,7 +48,7 @@ const previewUrl = ref('');
 const previewIndex = ref(0);
 
 /** 预览图片列表（用于图片组导航） */
-const previewList = computed(() => props.frames.map(f => f.dataUrl));
+const _previewList = computed(() => props.frames.map(f => f.dataUrl));
 
 /** 打开大图预览 */
 function openPreview(index: number) {
@@ -132,7 +132,7 @@ function formatTime(seconds: number): string {
           <div class="frame-overlay">
             <NIcon size="24">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z"/>
+                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14z" />
               </svg>
             </NIcon>
           </div>
@@ -150,7 +150,7 @@ function formatTime(seconds: number): string {
             <template #icon>
               <NIcon>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"/>
+                  <path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z" />
                 </svg>
               </NIcon>
             </template>
@@ -159,7 +159,7 @@ function formatTime(seconds: number): string {
             <template #icon>
               <NIcon>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/>
+                  <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z" />
                 </svg>
               </NIcon>
             </template>

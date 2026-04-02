@@ -9,7 +9,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSb3Project } from '../composables/use-sb3-project';
 
-const { t } = useI18n();
+const _t = useI18n();
 const { analysis, project } = useSb3Project();
 
 const stats = computed(() => analysis.value?.stats || {});
@@ -65,7 +65,7 @@ function getDiagType(type: string) {
     <!-- 下方内容区域 -->
     <div class="content-row">
       <!-- 角色概览表格 -->
-      <NCard size="small" :bordered="false" class="content-card" v-if="targets.length > 0">
+      <NCard v-if="targets.length > 0" size="small" :bordered="false" class="content-card">
         <template #header>
           <span style="font-size: 14px; font-weight: 600">🎭 角色概览</span>
         </template>
@@ -85,7 +85,7 @@ function getDiagType(type: string) {
       </NCard>
 
       <!-- 诊断问题 -->
-      <NCard size="small" :bordered="false" class="content-card" v-if="diagnostics.length > 0">
+      <NCard v-if="diagnostics.length > 0" size="small" :bordered="false" class="content-card">
         <template #header>
           <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600">
             ⚠️ 诊断 <NTag type="warning" size="tiny" round>{{ diagnostics.length }}</NTag>

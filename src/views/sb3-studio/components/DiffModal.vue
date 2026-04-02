@@ -4,12 +4,12 @@
  *
  * 上传第二个 SB3 文件与当前项目对比
  */
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useSb3Project } from '../composables/use-sb3-project';
 import { parseSB3 } from '../core/sb3Parser';
 import { diffProjects } from '../core/diffEngine';
 
-const props = defineProps<{
+defineProps<{
   visible: boolean;
 }>();
 
@@ -84,12 +84,12 @@ function close() {
 <template>
   <NModal
     :show="visible"
-    @update:show="close"
     preset="card"
     title="⚡ 版本对比"
     style="width: 900px; max-width: 90vw"
     :bordered="false"
     size="huge"
+    @update:show="close"
   >
     <!-- 上传对比文件 -->
     <div v-if="!diffResult" style="text-align: center; padding: 40px 0">

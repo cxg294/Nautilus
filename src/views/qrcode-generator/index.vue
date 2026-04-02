@@ -9,7 +9,7 @@
  * - 导出为 PNG/SVG
  * - 批量生成
  */
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import QRCode from 'qrcode';
 
@@ -43,7 +43,6 @@ const logoEnabled = ref(false);
 const logoDataUrl = ref('');
 
 // ──── 输出 ────
-const canvasRef = ref<HTMLCanvasElement | null>(null);
 const qrDataUrl = ref('');
 
 /** 根据内容类型生成最终文本 */
@@ -351,12 +350,12 @@ const contentTypeOptions = [
             <div class="color-row">
               <div class="color-item">
                 <span class="style-label">{{ t('page.qrcodeGenerator.fgColor') }}</span>
-                <input type="color" v-model="fgColor" class="color-picker" />
+                <input v-model="fgColor" type="color" class="color-picker" />
                 <span class="color-value mono">{{ fgColor }}</span>
               </div>
               <div class="color-item">
                 <span class="style-label">{{ t('page.qrcodeGenerator.bgColor') }}</span>
-                <input type="color" v-model="bgColor" class="color-picker" />
+                <input v-model="bgColor" type="color" class="color-picker" />
                 <span class="color-value mono">{{ bgColor }}</span>
               </div>
             </div>

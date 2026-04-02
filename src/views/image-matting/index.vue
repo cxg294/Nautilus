@@ -116,7 +116,7 @@ const startAll = async () => {
 };
 
 // 辅助检测图片尺寸是否超出限制
-const needsResizing = (file: File): Promise<boolean> => {
+function needsResizing(file: File): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = URL.createObjectURL(file);
@@ -126,7 +126,7 @@ const needsResizing = (file: File): Promise<boolean> => {
     };
     img.onerror = () => resolve(false);
   });
-};
+}
 
 const handleDownloadSingle = (task: MattingTask) => {
   if (!task.resultUrl) return;
@@ -151,7 +151,7 @@ const handleDownloadZip = async () => {
     const folder = zip.folder('matting_results');
     
     // Batch fetch over proxy to avoid CORS
-    const fetchPromises = successTasks.map(async (task, index) => {
+    const fetchPromises = successTasks.map(async (task, _index) => {
       const proxyUrl = `/api/image-matting/proxy-image?url=${encodeURIComponent(task.resultUrl)}`;
       const res = await axios.get(proxyUrl, { responseType: 'blob' });
       // 生成安全的文件名
@@ -193,7 +193,6 @@ const openCompareModal = (task: MattingTask) => {
     </div>
     
     <div class="content flex-1 flex flex-col gap-6">
-      
       <!-- 统一的上传入口 -->
       <div 
         class="upload-zone transition-all duration-300" 
@@ -211,7 +210,7 @@ const openCompareModal = (task: MattingTask) => {
           <NUploadDragger>
             <div class="flex flex-col items-center py-4">
               <NIcon size="48" :depth="3" class="mb-2 transition-transform scale-hover">
-                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5c0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5l5 5h-3z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5c0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5l5 5h-3z" /></svg>
               </NIcon>
               <NText style="font-size: 16px; font-weight: 500;">
                 {{ tasks.length === 0 ? '点击或者拖动多张图片到此处排队处理' : '继续追加图片到任务队列...' }}
@@ -233,18 +232,18 @@ const openCompareModal = (task: MattingTask) => {
           </NTag>
         </div>
         <div class="flex flex-wrap gap-3">
-          <NButton @click="() => tasks = []" ghost size="small">清空列表</NButton>
+          <NButton ghost size="small" @click="() => tasks = []">清空列表</NButton>
           <NButton 
             v-if="tasks.filter(t => t.status === 'success').length > 1" 
             type="success" size="small" tertiary 
             :loading="isDownloadingZip" 
             @click="handleDownloadZip"
           >
-            <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7l7-7zm-8 2V5h2v6h1.17L12 13.17L9.83 11zM5 19v-2h14v2z"/></svg></template>
+            <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7l7-7zm-8 2V5h2v6h1.17L12 13.17L9.83 11zM5 19v-2h14v2z" /></svg></template>
             图集 ZIP 打包下载
           </NButton>
           <NButton type="primary" size="small" :loading="isProcessingAll" @click="startAll">
-            <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg></template>
+            <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z" /></svg></template>
             一键批量处理
           </NButton>
         </div>
@@ -260,8 +259,8 @@ const openCompareModal = (task: MattingTask) => {
           <template #action>
             <div class="flex justify-end p-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
               <NButton type="success" size="large" @click="handleDownloadSingle(tasks[0])">
-                 <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"/></svg></template>
-                 下载此图片
+                <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z" /></svg></template>
+                下载此图片
               </NButton>
             </div>
           </template>
@@ -290,45 +289,45 @@ const openCompareModal = (task: MattingTask) => {
             
             <!-- 遮罩层状态提示 -->
             <div v-if="task.status !== 'success'" class="absolute inset-0 flex flex-col items-center justify-center bg-black/10 text-white p-4 text-center">
-               <template v-if="task.status === 'processing'">
-                 <NSpin size="medium" />
-                 <span class="mt-2 text-xs font-bold text-gray-800 dark:text-gray-100">云端推理中...</span>
-               </template>
-               <template v-else-if="task.status === 'error'">
-                 <div class="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center mb-1 text-white">!</div>
-                 <span class="text-xs font-bold leading-tight drop-shadow-md text-red-500">{{ task.errorMsg || '失败' }}</span>
-                 <NButton size="tiny" type="primary" class="mt-2" @click="processTask(task)">重试</NButton>
-               </template>
-               <template v-else>
-                 <NButton size="tiny" type="info" ghost @click="processTask(task)">处理</NButton>
-               </template>
+              <template v-if="task.status === 'processing'">
+                <NSpin size="medium" />
+                <span class="mt-2 text-xs font-bold text-gray-800 dark:text-gray-100">云端推理中...</span>
+              </template>
+              <template v-else-if="task.status === 'error'">
+                <div class="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center mb-1 text-white">!</div>
+                <span class="text-xs font-bold leading-tight drop-shadow-md text-red-500">{{ task.errorMsg || '失败' }}</span>
+                <NButton size="tiny" type="primary" class="mt-2" @click="processTask(task)">重试</NButton>
+              </template>
+              <template v-else>
+                <NButton size="tiny" type="info" ghost @click="processTask(task)">处理</NButton>
+              </template>
             </div>
             
             <!-- 成功后的对比/下载操作悬浮按钮 -->
             <div v-if="task.status === 'success'" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 backdrop-blur-sm">
-               <NTooltip placement="top" trigger="hover">
-                 <template #trigger>
-                   <NButton circle type="primary" @click="openCompareModal(task)">
-                      <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5 5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3"/></svg></template>
-                   </NButton>
-                 </template>
-                 精细对比
-               </NTooltip>
-               <NTooltip placement="top" trigger="hover">
-                 <template #trigger>
-                   <NButton circle type="success" @click="handleDownloadSingle(task)">
-                      <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z"/></svg></template>
-                   </NButton>
-                 </template>
-                 单图下载
-               </NTooltip>
+              <NTooltip placement="top" trigger="hover">
+                <template #trigger>
+                  <NButton circle type="primary" @click="openCompareModal(task)">
+                    <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5 5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3" /></svg></template>
+                  </NButton>
+                </template>
+                精细对比
+              </NTooltip>
+              <NTooltip placement="top" trigger="hover">
+                <template #trigger>
+                  <NButton circle type="success" @click="handleDownloadSingle(task)">
+                    <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z" /></svg></template>
+                  </NButton>
+                </template>
+                单图下载
+              </NTooltip>
             </div>
           </div>
           
           <!-- 右上角移除按钮 -->
           <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
             <NButton circle size="tiny" type="error" @click.stop="removeTask(task.id)">
-              <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg></template>
+              <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z" /></svg></template>
             </NButton>
           </div>
         </div>
@@ -339,8 +338,8 @@ const openCompareModal = (task: MattingTask) => {
     <NModal v-model:show="showCompareModal" preset="card" class="w-11/12 max-w-5xl" :title="'细节对比: ' + (activeCompareTask?.file.name || '')">
       <div v-if="activeCompareTask" class="h-[70vh] min-h-[500px] w-full rounded-lg overflow-hidden relative">
         <ImageCompare 
-            :original-src="activeCompareTask.originalUrl"
-            :result-src="activeCompareTask.resultUrl"
+          :original-src="activeCompareTask.originalUrl"
+          :result-src="activeCompareTask.resultUrl"
         />
       </div>
     </NModal>

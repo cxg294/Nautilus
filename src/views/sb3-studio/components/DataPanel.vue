@@ -77,12 +77,12 @@ function renameVariable(varInfo: any) {
   });
 }
 
-function doRenameVariable(oldName: string, newName: string, varId: string, isGlobal: boolean) {
+function doRenameVariable(oldName: string, newName: string, _varId: string, _isGlobal: boolean) {
   if (!project.value) return;
   let count = 0;
   for (const target of project.value.targets || []) {
     if (target.variables) {
-      for (const [id, varDef] of Object.entries(target.variables) as [string, any][]) {
+      for (const [_id, varDef] of Object.entries(target.variables) as [string, any][]) {
         if (Array.isArray(varDef) && varDef[0] === oldName) {
           varDef[0] = newName;
           count++;
@@ -114,6 +114,7 @@ function deleteUnusedVariables() {
       if (target.variables) {
         for (const [id, varDef] of Object.entries(target.variables) as [string, any][]) {
           if (Array.isArray(varDef) && varDef[0] === uv.name) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete target.variables[id];
             deleted++;
           }

@@ -17,7 +17,7 @@ interface Props {
   videoInfo: VideoInfo | null;
 }
 
-const props = defineProps<Props>();
+const _props = defineProps<Props>();
 
 const emit = defineEmits<{
   /** 视频文件选择完成 */
@@ -112,7 +112,7 @@ defineExpose({ videoRef });
         <div class="upload-icon">
           <NIcon size="40">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01L12.01 11L8 15.01z"/>
+              <path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01L12.01 11L8 15.01z" />
             </svg>
           </NIcon>
         </div>

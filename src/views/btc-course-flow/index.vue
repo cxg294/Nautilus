@@ -1,340 +1,11 @@
-<template>
-  <div class="btc-flow-page w-full overflow-y-auto" style="padding: 20px 28px">
-    <!-- 顶部工具栏 -->
-    <header class="flex items-center gap-16px mb-20px flex-nowrap">
-      <h2 class="text-18px font-800 m-0 flex items-center gap-6px shrink-0 whitespace-nowrap">
-        <span class="header-icon">📊</span>
-        BTC 课程流转数据
-      </h2>
-      <div class="mode-tabs shrink-0">
-        <NButton
-          v-for="tab in modes"
-          :key="tab.key"
-          :type="activeMode === tab.key ? 'primary' : 'default'"
-          :ghost="activeMode !== tab.key"
-          :tertiary="activeMode !== tab.key"
-          size="small"
-          @click="activeMode = tab.key"
-        >
-          <template #icon><span class="text-13px">{{ tab.icon }}</span></template>
-          {{ tab.label }}
-        </NButton>
-      </div>
-      <div class="flex-1" />
-      <div class="flex items-center gap-12px shrink-0">
-        <NSwitch v-model:value="excludeTest" size="small" @update:value="reload">
-          <template #checked>屏蔽测试</template>
-          <template #unchecked>含测试</template>
-        </NSwitch>
-        <NUpload
-          :show-file-list="false"
-          accept=".xlsx,.xls"
-          :custom-request="handleUploadRequest"
-        >
-          <NButton type="primary" size="small" strong>
-            <template #icon><span class="i-mdi-folder-upload text-14px" /></template>
-            上传数据
-          </NButton>
-        </NUpload>
-      </div>
-    </header>
-
-    <!-- 加载 / 空态 -->
-    <div v-if="loading" class="flex-col-center min-h-400px gap-16px">
-      <NSpin size="large" />
-      <p class="op-40 text-14px">数据加载中…</p>
-    </div>
-    <div v-else-if="!hasData" class="flex-col-center min-h-400px gap-16px">
-      <div class="empty-hero">
-        <span class="text-72px">📋</span>
-        <h3 class="text-20px font-700 m-0 mt-8px">暂无数据</h3>
-        <p class="op-40 m-0 mt-4px text-14px">请上传 BTC 课程流转数据 (.xlsx) 文件开始分析</p>
-        <NUpload
-          :show-file-list="false"
-          accept=".xlsx,.xls"
-          :custom-request="handleUploadRequest"
-          class="mt-20px"
-        >
-          <NButton type="primary" size="large" strong>
-            <template #icon><span class="i-mdi-upload text-16px" /></template>
-            上传数据文件
-          </NButton>
-        </NUpload>
-      </div>
-    </div>
-
-    <!-- ═══ 透视分析模式 ═══ -->
-    <template v-else-if="activeMode === 'pivot'">
-      <!-- 概览卡片 -->
-      <div class="stat-grid">
-        <div class="stat-card" v-for="(stat, idx) in statCards" :key="idx" :class="stat.accent ? 'accent' : ''">
-          <div class="stat-card-inner">
-            <div class="stat-icon-wrap" :style="{ background: stat.iconBg }">
-              <span class="text-20px">{{ stat.icon }}</span>
-            </div>
-            <div class="stat-body">
-              <div class="stat-value">{{ stat.value }}</div>
-              <div class="stat-label">{{ stat.label }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 紧凑控制栏 -->
-      <NCard size="small" :bordered="true" class="toolbar-card mt-20px">
-        <div class="flex items-start gap-16px flex-wrap">
-          <div class="flex items-center gap-8px shrink-0">
-            <span class="tbar-label">行维度</span>
-            <NSelect
-              v-model:value="rowDim"
-              :options="dimOptions"
-              size="small"
-              class="w-130px"
-            />
-          </div>
-          <NDivider vertical class="h-28px!" />
-          <div class="flex items-center gap-8px shrink-0">
-            <span class="tbar-label">期次</span>
-            <div class="flex gap-4px flex-wrap max-w-520px">
-              <NButton
-                size="tiny"
-                :type="periodFilter.length === 0 ? 'primary' : 'default'"
-                :ghost="periodFilter.length !== 0"
-                round
-                @click="periodFilter = []"
-              >全部</NButton>
-              <NButton
-                v-for="p in availablePeriods"
-                :key="p"
-                size="tiny"
-                :type="periodFilter.includes(p) ? 'primary' : 'default'"
-                :ghost="!periodFilter.includes(p)"
-                round
-                @click="togglePeriod(p)"
-              >{{ shortPeriod(p) }}</NButton>
-            </div>
-          </div>
-          <NDivider vertical class="h-28px!" />
-          <div class="flex items-center gap-8px shrink-0">
-            <span class="tbar-label">指标</span>
-            <div class="flex gap-4px flex-wrap">
-              <NButton
-                v-for="(m, k) in rateMetrics"
-                :key="k"
-                size="tiny"
-                :type="selectedMetrics.includes(k) ? 'primary' : 'default'"
-                :ghost="!selectedMetrics.includes(k)"
-                round
-                @click="toggleMetric(k)"
-              >{{ m.label }}</NButton>
-            </div>
-          </div>
-        </div>
-      </NCard>
-
-      <!-- 图表 + 表格 -->
-      <div class="flex flex-col gap-16px mt-20px">
-        <NCard size="small" title="📈 透视图表" :segmented="{ content: true }">
-          <div ref="chartRef" class="w-full h-320px" />
-        </NCard>
-        <NCard size="small" title="📋 透视表格" :segmented="{ content: true }" :content-style="{ padding: 0 }">
-          <div class="overflow-x-auto">
-            <table class="btc-table">
-              <thead>
-                <tr>
-                  <th class="sticky-col">{{ DIMENSIONS[rowDim]?.label }}</th>
-                  <th>n(首课到课)</th>
-                  <th v-for="mk in selectedMetrics" :key="mk">{{ METRICS[mk]?.label }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="row in pivotResult"
-                  :key="row._key"
-                  @mouseenter="highlightChart(row._key)"
-                  @mouseleave="highlightChart(null)"
-                >
-                  <td class="sticky-col dim-cell">{{ row._key }}</td>
-                  <td class="num-cell n-cell">{{ fmtNum(row._n) }}</td>
-                  <td
-                    v-for="mk in selectedMetrics"
-                    :key="mk"
-                    class="num-cell"
-                    :style="cellStyle(row[mk], mk, row._n)"
-                  >
-                    {{ METRICS[mk]?.type === 'rate' ? fmtRate(row[mk]) : fmtNum(row[mk]) }}
-                    <NTag
-                      v-if="METRICS[mk]?.type === 'rate' && row._n < 30"
-                      type="warning"
-                      size="tiny"
-                      :bordered="false"
-                      round
-                      class="ml-4px"
-                    >⚠</NTag>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr class="total-row">
-                  <td class="sticky-col">合计</td>
-                  <td class="num-cell n-cell">{{ fmtNum(totalEntry._n) }}</td>
-                  <td v-for="mk in selectedMetrics" :key="mk" class="num-cell">
-                    {{ METRICS[mk]?.type === 'rate' ? fmtRate(totalEntry[mk]) : fmtNum(totalEntry[mk]) }}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </NCard>
-      </div>
-    </template>
-
-    <!-- ═══ 课程对比模式 ═══ -->
-    <template v-else-if="activeMode === 'compare'">
-      <div class="flex gap-20px min-h-500px">
-        <!-- 左侧固定侧边栏 -->
-        <NCard size="small" class="w-250px shrink-0 sticky top-16px self-start max-h-[calc(100vh-120px)] overflow-y-auto sidebar-card">
-          <div class="flex flex-col gap-14px">
-            <div class="flex flex-col gap-6px">
-              <span class="tbar-label">对比 A</span>
-              <NSelect v-model:value="compareA" :options="courseOptions" size="small" placeholder="选择课程…" />
-            </div>
-            <div class="flex flex-col gap-6px">
-              <span class="tbar-label">对比 B</span>
-              <NSelect v-model:value="compareB" :options="courseOptions" size="small" placeholder="选择课程…" />
-            </div>
-            <NDivider class="my-2px!" />
-            <div class="flex flex-col gap-6px">
-              <span class="tbar-label">每期门槛</span>
-              <NSelect v-model:value="compareThreshold" :options="thresholdOptions" size="small" />
-            </div>
-            <!-- 期次选择 -->
-            <template v-if="compareA && compareB">
-              <NDivider class="my-2px!" />
-              <div class="flex flex-col gap-6px">
-                <span class="tbar-label">A 期次 <span class="op-40 text-10px">({{ manualPeriodsA.length }}选)</span></span>
-                <div class="flex gap-4px flex-wrap">
-                  <NButton
-                    v-for="p in comparePeriodsA"
-                    :key="p.period"
-                    size="tiny"
-                    :type="manualPeriodsA.includes(p.period) ? 'primary' : 'default'"
-                    :ghost="!manualPeriodsA.includes(p.period)"
-                    round
-                    @click="toggleManualPeriod('A', p.period); compareUserTouched = true"
-                  >{{ shortPeriod(p.period) }} <span class="op-40 text-10px ml-2px">({{ p.n }})</span></NButton>
-                </div>
-              </div>
-              <div class="flex flex-col gap-6px">
-                <span class="tbar-label">B 期次 <span class="op-40 text-10px">({{ manualPeriodsB.length }}选)</span></span>
-                <div class="flex gap-4px flex-wrap">
-                  <NButton
-                    v-for="p in comparePeriodsB"
-                    :key="p.period"
-                    size="tiny"
-                    :type="manualPeriodsB.includes(p.period) ? 'primary' : 'default'"
-                    :ghost="!manualPeriodsB.includes(p.period)"
-                    round
-                    @click="toggleManualPeriod('B', p.period); compareUserTouched = true"
-                  >{{ shortPeriod(p.period) }} <span class="op-40 text-10px ml-2px">({{ p.n }})</span></NButton>
-                </div>
-              </div>
-            </template>
-          </div>
-        </NCard>
-        <!-- 右侧内容区 -->
-        <div class="flex-1 min-w-0">
-          <div v-if="compareResult">
-            <NAlert :type="compareResult.level === 'good' ? 'success' : 'warning'" class="mb-16px">
-              {{ compareResult.matchInfo }}
-            </NAlert>
-            <div class="flex gap-16px flex-wrap">
-              <NCard size="small" :content-style="{ padding: 0 }" class="flex-1 min-w-400px" title="📋 指标对比">
-                <table class="btc-table compare-table">
-                  <thead>
-                    <tr>
-                      <th class="sticky-col">指标</th>
-                      <th>{{ compareA }}</th>
-                      <th>{{ compareB }}</th>
-                      <th>差异(B-A)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="row in compareResult.rows" :key="row.label" :class="{ 'separator-row': row.separator }">
-                      <td class="sticky-col dim-cell">{{ row.label }}</td>
-                      <td class="num-cell">{{ row.valA }}</td>
-                      <td class="num-cell">{{ row.valB }}</td>
-                      <td class="num-cell" :style="diffStyle(row.diff)">{{ row.diffStr }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </NCard>
-              <NCard size="small" class="w-380px shrink-0" title="📊 差异可视化">
-                <div ref="compareChartRef" class="w-full h-400px" />
-              </NCard>
-            </div>
-          </div>
-          <NEmpty v-else description="请在左侧选择两个不同的课程进行对比" class="min-h-300px flex-center" />
-        </div>
-      </div>
-    </template>
-
-    <!-- ═══ 完课漏斗模式 ═══ -->
-    <template v-else-if="activeMode === 'funnel'">
-      <div class="flex gap-20px min-h-500px">
-        <NCard size="small" class="w-210px shrink-0 sticky top-16px self-start sidebar-card">
-          <div class="flex flex-col gap-14px">
-            <div class="flex flex-col gap-6px">
-              <span class="tbar-label">课程</span>
-              <NSelect v-model:value="funnelCourse" :options="courseOptionsWithAll" size="small" />
-            </div>
-            <NDivider class="my-2px!" />
-            <div class="flex flex-col gap-6px">
-              <span class="tbar-label">渠道拆分</span>
-              <NSelect v-model:value="funnelChannel" :options="channelOptionsWithAll" size="small" />
-            </div>
-          </div>
-        </NCard>
-        <NCard size="small" class="flex-1 min-h-480px" title="🔻 完课漏斗">
-          <div ref="funnelChartRef" class="w-full h-440px" />
-        </NCard>
-      </div>
-    </template>
-
-    <!-- ═══ 期次趋势模式 ═══ -->
-    <template v-else-if="activeMode === 'trend'">
-      <NCard size="small" class="toolbar-card">
-        <div class="flex items-start gap-16px flex-wrap">
-          <div class="flex items-center gap-8px">
-            <span class="tbar-label">课程</span>
-            <NSelect v-model:value="trendCourse" :options="courseOptionsWithAll" size="small" class="w-170px" />
-          </div>
-          <NDivider vertical class="h-28px!" />
-          <div class="flex items-center gap-8px">
-            <span class="tbar-label">指标</span>
-            <NSelect v-model:value="trendMetric" :options="rateMetricOptions" size="small" class="w-170px" />
-          </div>
-          <NDivider vertical class="h-28px!" />
-          <div class="flex items-center gap-8px">
-            <span class="tbar-label">拆分维度</span>
-            <NSelect v-model:value="trendSplit" :options="splitOptions" size="small" class="w-130px" />
-          </div>
-        </div>
-      </NCard>
-      <NCard size="small" class="min-h-480px mt-20px" title="📈 趋势走势">
-        <div ref="trendChartRef" class="w-full h-440px" />
-      </NCard>
-    </template>
-  </div>
-</template>
-
 <script setup>
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useMessage } from 'naive-ui';
 import * as echarts from 'echarts';
 import { useBtcData, METRICS, DIMENSIONS, pivot, totalRow, fmtRate, fmtNum } from './composables/use-btc-data';
 
-const { rawData, meta, loading, hasData, loadData, loadMeta, uploadFile } = useBtcData();
+const { rawData, meta: _meta, loading, hasData, loadData, loadMeta, uploadFile } = useBtcData();
 const message = useMessage();
 
 // ═══ 读取主题色（用于 ECharts） ═══
@@ -898,6 +569,348 @@ const resizeHandler = () => { chartInstance?.resize(); funnelChartInstance?.resi
 onMounted(() => window.addEventListener('resize', resizeHandler));
 onBeforeUnmount(() => window.removeEventListener('resize', resizeHandler));
 </script>
+
+<template>
+  <div class="btc-flow-page w-full overflow-y-auto" style="padding: 20px 28px">
+    <!-- 顶部工具栏 -->
+    <header class="flex items-center gap-16px mb-20px flex-nowrap">
+      <h2 class="text-18px font-800 m-0 flex items-center gap-6px shrink-0 whitespace-nowrap">
+        <span class="header-icon">📊</span>
+        BTC 课程流转数据
+      </h2>
+      <div class="mode-tabs shrink-0">
+        <NButton
+          v-for="tab in modes"
+          :key="tab.key"
+          :type="activeMode === tab.key ? 'primary' : 'default'"
+          :ghost="activeMode !== tab.key"
+          :tertiary="activeMode !== tab.key"
+          size="small"
+          @click="activeMode = tab.key"
+        >
+          <template #icon><span class="text-13px">{{ tab.icon }}</span></template>
+          {{ tab.label }}
+        </NButton>
+      </div>
+      <div class="flex-1" />
+      <div class="flex items-center gap-12px shrink-0">
+        <NSwitch v-model:value="excludeTest" size="small" @update:value="reload">
+          <template #checked>屏蔽测试</template>
+          <template #unchecked>含测试</template>
+        </NSwitch>
+        <NUpload
+          :show-file-list="false"
+          accept=".xlsx,.xls"
+          :custom-request="handleUploadRequest"
+        >
+          <NButton type="primary" size="small" strong>
+            <template #icon><span class="i-mdi-folder-upload text-14px" /></template>
+            上传数据
+          </NButton>
+        </NUpload>
+      </div>
+    </header>
+
+    <!-- 加载 / 空态 -->
+    <div v-if="loading" class="flex-col-center min-h-400px gap-16px">
+      <NSpin size="large" />
+      <p class="op-40 text-14px">数据加载中…</p>
+    </div>
+    <div v-else-if="!hasData" class="flex-col-center min-h-400px gap-16px">
+      <div class="empty-hero">
+        <span class="text-72px">📋</span>
+        <h3 class="text-20px font-700 m-0 mt-8px">暂无数据</h3>
+        <p class="op-40 m-0 mt-4px text-14px">请上传 BTC 课程流转数据 (.xlsx) 文件开始分析</p>
+        <NUpload
+          :show-file-list="false"
+          accept=".xlsx,.xls"
+          :custom-request="handleUploadRequest"
+          class="mt-20px"
+        >
+          <NButton type="primary" size="large" strong>
+            <template #icon><span class="i-mdi-upload text-16px" /></template>
+            上传数据文件
+          </NButton>
+        </NUpload>
+      </div>
+    </div>
+
+    <!-- ═══ 透视分析模式 ═══ -->
+    <template v-else-if="activeMode === 'pivot'">
+      <!-- 概览卡片 -->
+      <div class="stat-grid">
+        <div v-for="(stat, idx) in statCards" :key="idx" class="stat-card" :class="stat.accent ? 'accent' : ''">
+          <div class="stat-card-inner">
+            <div class="stat-icon-wrap" :style="{ background: stat.iconBg }">
+              <span class="text-20px">{{ stat.icon }}</span>
+            </div>
+            <div class="stat-body">
+              <div class="stat-value">{{ stat.value }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 紧凑控制栏 -->
+      <NCard size="small" :bordered="true" class="toolbar-card mt-20px">
+        <div class="flex items-start gap-16px flex-wrap">
+          <div class="flex items-center gap-8px shrink-0">
+            <span class="tbar-label">行维度</span>
+            <NSelect
+              v-model:value="rowDim"
+              :options="dimOptions"
+              size="small"
+              class="w-130px"
+            />
+          </div>
+          <NDivider vertical class="h-28px!" />
+          <div class="flex items-center gap-8px shrink-0">
+            <span class="tbar-label">期次</span>
+            <div class="flex gap-4px flex-wrap max-w-520px">
+              <NButton
+                size="tiny"
+                :type="periodFilter.length === 0 ? 'primary' : 'default'"
+                :ghost="periodFilter.length !== 0"
+                round
+                @click="periodFilter = []"
+              >
+                全部
+              </NButton>
+              <NButton
+                v-for="p in availablePeriods"
+                :key="p"
+                size="tiny"
+                :type="periodFilter.includes(p) ? 'primary' : 'default'"
+                :ghost="!periodFilter.includes(p)"
+                round
+                @click="togglePeriod(p)"
+              >
+                {{ shortPeriod(p) }}
+              </NButton>
+            </div>
+          </div>
+          <NDivider vertical class="h-28px!" />
+          <div class="flex items-center gap-8px shrink-0">
+            <span class="tbar-label">指标</span>
+            <div class="flex gap-4px flex-wrap">
+              <NButton
+                v-for="(m, k) in rateMetrics"
+                :key="k"
+                size="tiny"
+                :type="selectedMetrics.includes(k) ? 'primary' : 'default'"
+                :ghost="!selectedMetrics.includes(k)"
+                round
+                @click="toggleMetric(k)"
+              >
+                {{ m.label }}
+              </NButton>
+            </div>
+          </div>
+        </div>
+      </NCard>
+
+      <!-- 图表 + 表格 -->
+      <div class="flex flex-col gap-16px mt-20px">
+        <NCard size="small" title="📈 透视图表" :segmented="{ content: true }">
+          <div ref="chartRef" class="w-full h-320px" />
+        </NCard>
+        <NCard size="small" title="📋 透视表格" :segmented="{ content: true }" :content-style="{ padding: 0 }">
+          <div class="overflow-x-auto">
+            <table class="btc-table">
+              <thead>
+                <tr>
+                  <th class="sticky-col">{{ DIMENSIONS[rowDim]?.label }}</th>
+                  <th>n(首课到课)</th>
+                  <th v-for="mk in selectedMetrics" :key="mk">{{ METRICS[mk]?.label }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in pivotResult"
+                  :key="row._key"
+                  @mouseenter="highlightChart(row._key)"
+                  @mouseleave="highlightChart(null)"
+                >
+                  <td class="sticky-col dim-cell">{{ row._key }}</td>
+                  <td class="num-cell n-cell">{{ fmtNum(row._n) }}</td>
+                  <td
+                    v-for="mk in selectedMetrics"
+                    :key="mk"
+                    class="num-cell"
+                    :style="cellStyle(row[mk], mk, row._n)"
+                  >
+                    {{ METRICS[mk]?.type === 'rate' ? fmtRate(row[mk]) : fmtNum(row[mk]) }}
+                    <NTag
+                      v-if="METRICS[mk]?.type === 'rate' && row._n < 30"
+                      type="warning"
+                      size="tiny"
+                      :bordered="false"
+                      round
+                      class="ml-4px"
+                    >
+                      ⚠
+                    </NTag>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="total-row">
+                  <td class="sticky-col">合计</td>
+                  <td class="num-cell n-cell">{{ fmtNum(totalEntry._n) }}</td>
+                  <td v-for="mk in selectedMetrics" :key="mk" class="num-cell">
+                    {{ METRICS[mk]?.type === 'rate' ? fmtRate(totalEntry[mk]) : fmtNum(totalEntry[mk]) }}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </NCard>
+      </div>
+    </template>
+
+    <!-- ═══ 课程对比模式 ═══ -->
+    <template v-else-if="activeMode === 'compare'">
+      <div class="flex gap-20px min-h-500px">
+        <!-- 左侧固定侧边栏 -->
+        <NCard size="small" class="w-250px shrink-0 sticky top-16px self-start max-h-[calc(100vh-120px)] overflow-y-auto sidebar-card">
+          <div class="flex flex-col gap-14px">
+            <div class="flex flex-col gap-6px">
+              <span class="tbar-label">对比 A</span>
+              <NSelect v-model:value="compareA" :options="courseOptions" size="small" placeholder="选择课程…" />
+            </div>
+            <div class="flex flex-col gap-6px">
+              <span class="tbar-label">对比 B</span>
+              <NSelect v-model:value="compareB" :options="courseOptions" size="small" placeholder="选择课程…" />
+            </div>
+            <NDivider class="my-2px!" />
+            <div class="flex flex-col gap-6px">
+              <span class="tbar-label">每期门槛</span>
+              <NSelect v-model:value="compareThreshold" :options="thresholdOptions" size="small" />
+            </div>
+            <!-- 期次选择 -->
+            <template v-if="compareA && compareB">
+              <NDivider class="my-2px!" />
+              <div class="flex flex-col gap-6px">
+                <span class="tbar-label">A 期次 <span class="op-40 text-10px">({{ manualPeriodsA.length }}选)</span></span>
+                <div class="flex gap-4px flex-wrap">
+                  <NButton
+                    v-for="p in comparePeriodsA"
+                    :key="p.period"
+                    size="tiny"
+                    :type="manualPeriodsA.includes(p.period) ? 'primary' : 'default'"
+                    :ghost="!manualPeriodsA.includes(p.period)"
+                    round
+                    @click="toggleManualPeriod('A', p.period); compareUserTouched = true"
+                  >
+                    {{ shortPeriod(p.period) }} <span class="op-40 text-10px ml-2px">({{ p.n }})</span>
+                  </NButton>
+                </div>
+              </div>
+              <div class="flex flex-col gap-6px">
+                <span class="tbar-label">B 期次 <span class="op-40 text-10px">({{ manualPeriodsB.length }}选)</span></span>
+                <div class="flex gap-4px flex-wrap">
+                  <NButton
+                    v-for="p in comparePeriodsB"
+                    :key="p.period"
+                    size="tiny"
+                    :type="manualPeriodsB.includes(p.period) ? 'primary' : 'default'"
+                    :ghost="!manualPeriodsB.includes(p.period)"
+                    round
+                    @click="toggleManualPeriod('B', p.period); compareUserTouched = true"
+                  >
+                    {{ shortPeriod(p.period) }} <span class="op-40 text-10px ml-2px">({{ p.n }})</span>
+                  </NButton>
+                </div>
+              </div>
+            </template>
+          </div>
+        </NCard>
+        <!-- 右侧内容区 -->
+        <div class="flex-1 min-w-0">
+          <div v-if="compareResult">
+            <NAlert :type="compareResult.level === 'good' ? 'success' : 'warning'" class="mb-16px">
+              {{ compareResult.matchInfo }}
+            </NAlert>
+            <div class="flex gap-16px flex-wrap">
+              <NCard size="small" :content-style="{ padding: 0 }" class="flex-1 min-w-400px" title="📋 指标对比">
+                <table class="btc-table compare-table">
+                  <thead>
+                    <tr>
+                      <th class="sticky-col">指标</th>
+                      <th>{{ compareA }}</th>
+                      <th>{{ compareB }}</th>
+                      <th>差异(B-A)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in compareResult.rows" :key="row.label" :class="{ 'separator-row': row.separator }">
+                      <td class="sticky-col dim-cell">{{ row.label }}</td>
+                      <td class="num-cell">{{ row.valA }}</td>
+                      <td class="num-cell">{{ row.valB }}</td>
+                      <td class="num-cell" :style="diffStyle(row.diff)">{{ row.diffStr }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </NCard>
+              <NCard size="small" class="w-380px shrink-0" title="📊 差异可视化">
+                <div ref="compareChartRef" class="w-full h-400px" />
+              </NCard>
+            </div>
+          </div>
+          <NEmpty v-else description="请在左侧选择两个不同的课程进行对比" class="min-h-300px flex-center" />
+        </div>
+      </div>
+    </template>
+
+    <!-- ═══ 完课漏斗模式 ═══ -->
+    <template v-else-if="activeMode === 'funnel'">
+      <div class="flex gap-20px min-h-500px">
+        <NCard size="small" class="w-210px shrink-0 sticky top-16px self-start sidebar-card">
+          <div class="flex flex-col gap-14px">
+            <div class="flex flex-col gap-6px">
+              <span class="tbar-label">课程</span>
+              <NSelect v-model:value="funnelCourse" :options="courseOptionsWithAll" size="small" />
+            </div>
+            <NDivider class="my-2px!" />
+            <div class="flex flex-col gap-6px">
+              <span class="tbar-label">渠道拆分</span>
+              <NSelect v-model:value="funnelChannel" :options="channelOptionsWithAll" size="small" />
+            </div>
+          </div>
+        </NCard>
+        <NCard size="small" class="flex-1 min-h-480px" title="🔻 完课漏斗">
+          <div ref="funnelChartRef" class="w-full h-440px" />
+        </NCard>
+      </div>
+    </template>
+
+    <!-- ═══ 期次趋势模式 ═══ -->
+    <template v-else-if="activeMode === 'trend'">
+      <NCard size="small" class="toolbar-card">
+        <div class="flex items-start gap-16px flex-wrap">
+          <div class="flex items-center gap-8px">
+            <span class="tbar-label">课程</span>
+            <NSelect v-model:value="trendCourse" :options="courseOptionsWithAll" size="small" class="w-170px" />
+          </div>
+          <NDivider vertical class="h-28px!" />
+          <div class="flex items-center gap-8px">
+            <span class="tbar-label">指标</span>
+            <NSelect v-model:value="trendMetric" :options="rateMetricOptions" size="small" class="w-170px" />
+          </div>
+          <NDivider vertical class="h-28px!" />
+          <div class="flex items-center gap-8px">
+            <span class="tbar-label">拆分维度</span>
+            <NSelect v-model:value="trendSplit" :options="splitOptions" size="small" class="w-130px" />
+          </div>
+        </div>
+      </NCard>
+      <NCard size="small" class="min-h-480px mt-20px" title="📈 趋势走势">
+        <div ref="trendChartRef" class="w-full h-440px" />
+      </NCard>
+    </template>
+  </div>
+</template>
 
 <style scoped>
 /* ═══ 标题区域 ═══ */

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
-import { useEventListener } from '@vueuse/core';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{
   originalSrc: string;
@@ -67,7 +66,7 @@ watch(() => props.originalSrc, () => {
     >
       <div class="w-10 h-10 bg-white/95 text-gray-600 rounded-full flex items-center justify-center shadow-lg border border-gray-100 backdrop-blur-md transition-transform duration-200">
         <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M8 14V9l-4 3zm8 0l4-3l-4-3z"/>
+          <path fill="currentColor" d="M8 14V9l-4 3zm8 0l4-3l-4-3z" />
         </svg>
       </div>
     </div>

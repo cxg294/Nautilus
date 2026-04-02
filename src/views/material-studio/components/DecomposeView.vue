@@ -17,7 +17,7 @@ const selectedCount = computed(() => state.elements.filter(e => e.selected).leng
     <!-- 左侧：图片 + bbox 叠加 -->
     <div class="decompose-canvas">
       <div class="canvas-wrapper">
-        <img :src="state.imageUrl" alt="原图" class="base-img" ref="baseImg" />
+        <img ref="baseImg" :src="state.imageUrl" alt="原图" class="base-img" />
         <!-- bbox 框 -->
         <div
           v-for="(el, idx) in state.elements"

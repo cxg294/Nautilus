@@ -281,8 +281,7 @@ function handleSoundReplace(options: any, soundIndex: number) {
     </div>
 
     <!-- ▌右侧：详情 -->
-    <div class="sprite-detail" v-if="current">
-
+    <div v-if="current" class="sprite-detail">
       <!-- ━━ 属性信息条 ━━ -->
       <div class="section props-bar">
         <div class="section-title">
@@ -316,7 +315,7 @@ function handleSoundReplace(options: any, soundIndex: number) {
       </div>
 
       <!-- ━━ 引用资源条 ━━ -->
-      <div class="section ref-bar" v-if="resources.variables.length > 0 || resources.broadcasts.sends.length > 0 || resources.broadcasts.receives.length > 0">
+      <div v-if="resources.variables.length > 0 || resources.broadcasts.sends.length > 0 || resources.broadcasts.receives.length > 0" class="section ref-bar">
         <div class="section-title">🔗 引用资源</div>
         <div class="ref-content">
           <!-- 变量 -->
@@ -348,7 +347,6 @@ function handleSoundReplace(options: any, soundIndex: number) {
 
       <!-- ━━ 双列主体 ━━ -->
       <div class="main-columns">
-
         <!-- ●  左列：脚本 + 孤立积木 -->
         <div class="col-scripts">
           <div class="section">
@@ -380,7 +378,7 @@ function handleSoundReplace(options: any, soundIndex: number) {
                 clearable
                 style="flex:1; min-width: 100px"
               />
-              <NButton v-if="isFiltering" size="tiny" quaternary @click="filterVar = null; filterBroadcast = null" style="flex-shrink:0">✕ 清除</NButton>
+              <NButton v-if="isFiltering" size="tiny" quaternary style="flex-shrink:0" @click="filterVar = null; filterBroadcast = null">✕ 清除</NButton>
             </div>
             <div v-if="filteredScripts.length > 0" class="scripts-flow">
               <div v-for="(script, si) in filteredScripts" :key="si" class="script-card" :class="{ collapsed: isCollapsed(si) }">
@@ -419,7 +417,7 @@ function handleSoundReplace(options: any, soundIndex: number) {
 
           <!-- 孤立积木 -->
           <div v-if="orphans.length > 0" class="section orphan-section">
-            <div class="section-title orphan-title" @click="orphansExpanded = !orphansExpanded" style="cursor:pointer">
+            <div class="section-title orphan-title" style="cursor:pointer" @click="orphansExpanded = !orphansExpanded">
               <span class="hat-chevron">{{ orphansExpanded ? '▼' : '▶' }}</span>
               ⚠️ 孤立积木
               <span class="badge orphan-badge">{{ orphans.length }}</span>
@@ -470,8 +468,8 @@ function handleSoundReplace(options: any, soundIndex: number) {
                   :show-file-list="false"
                   accept=".svg,.png,.jpg,.jpeg,.gif,.bmp"
                   :custom-request="() => {}"
-                  @change="(e: any) => handleCostumeReplace(e, i)"
                   style="display: inline-flex"
+                  @change="(e: any) => handleCostumeReplace(e, i)"
                 >
                   <NButton size="tiny" quaternary class="replace-btn">🔄 替换</NButton>
                 </NUpload>
@@ -502,15 +500,15 @@ function handleSoundReplace(options: any, soundIndex: number) {
                     {{ s.sampleCount ? ` · ${s.sampleCount} 采样` : '' }}
                   </div>
                 </div>
-                <NButton size="tiny" quaternary :type="playingSound === i ? 'warning' : 'default'" @click="playSound(s, i)" class="play-btn">
+                <NButton size="tiny" quaternary :type="playingSound === i ? 'warning' : 'default'" class="play-btn" @click="playSound(s, i)">
                   {{ playingSound === i ? '⏹ 停止' : '▶ 播放' }}
                 </NButton>
                 <NUpload
                   :show-file-list="false"
                   accept=".wav,.mp3,.ogg"
                   :custom-request="() => {}"
-                  @change="(e: any) => handleSoundReplace(e, i)"
                   style="display: inline-flex"
+                  @change="(e: any) => handleSoundReplace(e, i)"
                 >
                   <NButton size="tiny" quaternary class="replace-btn">🔄 替换</NButton>
                 </NUpload>

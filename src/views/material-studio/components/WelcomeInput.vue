@@ -91,16 +91,16 @@ function handleGalleryClick(styleName: string) {
           @keydown="handleKeydown"
         >
           <template #prefix>
-            <NButton quaternary circle @click="triggerUpload" title="上传参考图">
+            <NButton quaternary circle title="上传参考图" @click="triggerUpload">
               <span style="font-size: 20px; font-weight: 300; line-height: 1;">＋</span>
             </NButton>
-             <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                style="display: none"
-                @change="handleFileChange"
-              />
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleFileChange"
+            />
           </template>
           <template #suffix>
             <div class="flex items-end h-full pb-1">

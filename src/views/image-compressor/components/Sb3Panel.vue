@@ -28,7 +28,6 @@ const {
   compressAssets,
   exportSb3,
   selectAll,
-  resetState
 } = useSb3Compressor();
 
 /** 处理文件上传 */
@@ -63,8 +62,8 @@ function formatSize(bytes: number): string {
         :show-file-list="false"
         accept=".sb3"
         :custom-request="() => {}"
-        @change="handleUpload"
         style="margin-top: 16px"
+        @change="handleUpload"
       >
         <NButton type="primary">📂 {{ t('page.imageCompressor.sb3.uploadSb3') }}</NButton>
       </NUpload>

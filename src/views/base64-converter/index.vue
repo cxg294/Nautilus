@@ -141,7 +141,7 @@ const base64Length = computed(() => {
   return fileBase64.value.length;
 });
 
-const base64SizeEstimate = computed(() => {
+const _base64SizeEstimate = computed(() => {
   // Base64 编码后大小约为原始大小的 4/3
   const len = base64Length.value;
   return formatSize(Math.ceil(len * 0.75));
@@ -217,7 +217,7 @@ function clearAll() {
               <div class="text-area-group">
                 <div class="text-area-header">
                   <span class="area-label">Base64</span>
-                  <NTag size="tiny" type="info" v-if="base64Input">
+                  <NTag v-if="base64Input" size="tiny" type="info">
                     {{ base64Input.length }} chars
                   </NTag>
                   <NButton quaternary size="tiny" @click="copyToClipboard(base64Input)">

@@ -54,15 +54,15 @@ function handleFileUpload(options: { file: { file: File | null } }) {
         </NTag>
       </div>
       <NSpace :size="6" align="center">
-        <NButton size="small" @click="loadSample" :disabled="loading" quaternary>
+        <NButton size="small" :disabled="loading" quaternary @click="loadSample">
           🔬 {{ t('page.sb3Studio.loadSample') }}
         </NButton>
         <NUpload
           :show-file-list="false"
           accept=".sb3,.json"
           :custom-request="() => {}"
-          @change="handleFileUpload"
           style="display: inline-flex"
+          @change="handleFileUpload"
         >
           <NButton size="small" :disabled="loading" quaternary>
             📂 {{ t('page.sb3Studio.openFile') }}

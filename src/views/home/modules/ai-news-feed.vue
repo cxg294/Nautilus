@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { $t } from '@/locales';
 import { fetchAINews } from '@/service/api/news';
 import type { NewsItem } from '@/service/api/news';

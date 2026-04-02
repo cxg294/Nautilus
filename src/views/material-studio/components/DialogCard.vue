@@ -6,7 +6,7 @@
  */
 import type { DialogCardData } from '../composables/use-material-studio';
 
-const props = defineProps<{
+const _props = defineProps<{
   card: DialogCardData;
   expanded: boolean;
   isLatest: boolean;

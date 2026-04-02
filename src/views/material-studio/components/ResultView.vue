@@ -32,7 +32,7 @@ const showPrompt = ref(false);
 
       <!-- 操作按钮组 -->
       <div class="action-group">
-        <button class="action-btn primary" @click="analyzeImage" :disabled="state.analyzeLoading">
+        <button class="action-btn primary" :disabled="state.analyzeLoading" @click="analyzeImage">
           <span class="btn-icon">🔍</span>
           <span class="btn-text">
             {{ state.analyzeLoading ? (state.analyzeProgress || '识别中...') : '素材拆解' }}
@@ -40,7 +40,7 @@ const showPrompt = ref(false);
           <span class="btn-hint">AI 识别前景元素</span>
         </button>
 
-        <button class="action-btn" @click="regenerate" :disabled="state.generateLoading">
+        <button class="action-btn" :disabled="state.generateLoading" @click="regenerate">
           <span class="btn-icon">🔄</span>
           <span class="btn-text">重新生成</span>
           <span class="btn-hint">相同描述，不同结果</span>

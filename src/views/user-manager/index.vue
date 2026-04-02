@@ -4,7 +4,7 @@
  * 管理员可以：查看用户列表、审批注册、创建用户、修改角色、禁用/启用、删除
  */
 import { ref, computed, onMounted, h } from 'vue';
-import { NButton, NTag, NSpace, NPopconfirm, useMessage, useDialog } from 'naive-ui';
+import { NButton, NTag, NSpace, NPopconfirm, useMessage } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import {
   fetchUserList,
@@ -21,7 +21,6 @@ import type { UserRecord } from '@/service/api/user-management';
 defineOptions({ name: 'UserManager' });
 
 const message = useMessage();
-const dialog = useDialog();
 
 // === State ===
 const loading = ref(false);
