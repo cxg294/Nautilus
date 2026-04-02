@@ -229,7 +229,23 @@ const local: App.I18n.Schema = {
     404: 'Page Not Found',
     500: 'Server Error',
     'iframe-page': 'Iframe',
-    home: 'Home'
+    home: 'Home',
+    'base64-converter': 'Base64 Converter',
+    'btc-course-flow': 'BTC Course Flow',
+    'effects-generator': 'Effects Generator',
+    'image-compressor': 'Image Compressor',
+    'image-matting': 'Image Matting',
+    locked: 'Locked',
+    'material-studio': 'Material Studio',
+    'qrcode-generator': 'QR Code Generator',
+    'quick-links': 'Quick Links',
+    'role-manager': 'Role Manager',
+    'sb3-compressor': 'SB3 Compressor',
+    'sb3-studio': 'SB3 Studio',
+    'timestamp-converter': 'Timestamp Converter',
+    'tts-studio': 'TTS Studio',
+    'user-manager': 'User Manager',
+    'video-frame-extractor': 'Video Frame Extractor'
   },
   page: {
     login: {

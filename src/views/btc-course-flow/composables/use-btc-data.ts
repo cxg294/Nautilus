@@ -1,19 +1,92 @@
 import { ref, computed } from 'vue';
-import { useRequest } from '@sa/hooks';
 
 // API 基础路径
 const API_BASE = '/api/btc-course-flow';
 
-/** 全局状态 (single source of truth) */
-const rawData = ref([]);
-const meta = ref(null);
+// ═══════════════════════════════════════════════
+// 类型定义
+// ═══════════════════════════════════════════════
+
+/** 原始数据行 */
+export interface BtcRow {
+  period: string;
+  semester?: string;
+  course_name: string;
+  course_theme?: string;
+  course_version?: string;
+  device?: string;
+  channel?: string;
+  course_mode?: string;
+  grade?: string;
+  season?: string;
+  year?: string;
+  make_year?: string;
+  reg_count: number;
+  l1_count: number;
+  attend_1: number;
+  attend_2: number;
+  attend_3: number;
+  attend_4: number;
+  attend_5: number;
+  complete_1: number;
+  complete_2: number;
+  complete_3: number;
+  complete_4: number;
+  complete_5: number;
+  [key: string]: string | number | undefined;
+}
+
+/** 计数指标定义 */
+interface CountMetricDef {
+  label: string;
+  type: 'count';
+  key: string;
+}
+
+/** 比率指标定义 */
+interface RateMetricDef {
+  label: string;
+  type: 'rate';
+  num: string;
+  den: string;
+}
+
+type MetricDef = CountMetricDef | RateMetricDef;
+
+/** 聚合后的数据行 */
+export interface AggRow {
+  [key: string]: string | number | null | undefined;
+  _key: string;
+  _count: number;
+  _n: number;
+}
+
+/** 维度定义 */
+interface DimensionDef {
+  label: string;
+  key: string;
+}
+
+/** 元数据（后端返回） */
+interface BtcMeta {
+  totalRows?: number;
+  periods?: string[];
+  [key: string]: unknown;
+}
+
+// ═══════════════════════════════════════════════
+// 全局状态 (single source of truth)
+// ═══════════════════════════════════════════════
+
+const rawData = ref<BtcRow[]>([]);
+const meta = ref<BtcMeta | null>(null);
 const loading = ref(false);
 const hasData = computed(() => rawData.value.length > 0);
 
 // ═══════════════════════════════════════════════
 // 比率类指标定义
 // ═══════════════════════════════════════════════
-export const METRICS = {
+export const METRICS: Record<string, MetricDef> = {
   // 计数指标
   reg_count:   { label: '领号人数', type: 'count', key: 'reg_count' },
   l1_count:    { label: 'L1领取人数', type: 'count', key: 'l1_count' },
@@ -45,7 +118,7 @@ export const METRICS = {
 // ═══════════════════════════════════════════════
 // 维度字段定义
 // ═══════════════════════════════════════════════
-export const DIMENSIONS = {
+export const DIMENSIONS: Record<string, DimensionDef> = {
   period:         { label: '期次', key: 'period' },
   semester:       { label: '学期', key: 'semester' },
   course_name:    { label: '课程', key: 'course_name' },
@@ -65,25 +138,27 @@ export const DIMENSIONS = {
 // ═══════════════════════════════════════════════
 
 /** 对一组行求和（计数字段） */
-function sumRows(rows) {
-  const s = {};
-  const countKeys = Object.values(METRICS).filter(m => m.type === 'count').map(m => m.key);
+function sumRows(rows: BtcRow[]): Record<string, number> {
+  const s: Record<string, number> = {};
+  const countKeys = Object.values(METRICS)
+    .filter((m): m is CountMetricDef => m.type === 'count')
+    .map(m => m.key);
   for (const k of countKeys) s[k] = 0;
   for (const r of rows) {
-    for (const k of countKeys) s[k] += (r[k] || 0);
+    for (const k of countKeys) s[k] += (Number(r[k]) || 0);
   }
   return s;
 }
 
 /** 判断总完课率的分子：取最后一课有数据的完课人数 */
-function getLastComplete(sums) {
+function getLastComplete(sums: Record<string, number>): number {
   if (sums.attend_5 > 0) return sums.complete_5;
   return sums.complete_4;
 }
 
 /** 计算比率指标 */
-function calcRate(metricDef, sums) {
-  let num = metricDef.num === '_last_complete' ? getLastComplete(sums) : sums[metricDef.num];
+function calcRate(metricDef: RateMetricDef, sums: Record<string, number>): number | null {
+  const num = metricDef.num === '_last_complete' ? getLastComplete(sums) : sums[metricDef.num];
   const den = sums[metricDef.den];
   if (!den || den === 0) return null;
   // 当分子对应的原始数据为0且该字段可能不存在（如无第5课），返回 null 而非 0
@@ -97,13 +172,13 @@ function calcRate(metricDef, sums) {
 }
 
 /** 格式化比率 */
-export function fmtRate(val) {
+export function fmtRate(val: number | null | undefined): string {
   if (val === null || val === undefined) return '-';
   return (val * 100).toFixed(1) + '%';
 }
 
 /** 格式化数字 */
-export function fmtNum(val) {
+export function fmtNum(val: number | null | undefined): string {
   if (val === null || val === undefined) return '-';
   return val.toLocaleString();
 }
@@ -113,24 +188,24 @@ export function fmtNum(val) {
 // ═══════════════════════════════════════════════
 
 /** 按维度分组聚合 */
-export function pivot(data, rowDim, metrics) {
+export function pivot(data: BtcRow[], rowDim: string, metrics: string[]): AggRow[] {
   // 分组
-  const groups = new Map();
+  const groups = new Map<string, BtcRow[]>();
   for (const row of data) {
-    const key = row[rowDim] ?? '未知';
+    const key = String(row[rowDim] ?? '未知');
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(row);
+    groups.get(key)!.push(row);
   }
 
   // 聚合
-  const result = [];
+  const result: AggRow[] = [];
   for (const [key, rows] of groups) {
     const sums = sumRows(rows);
-    const entry = { _key: key, _count: rows.length, _n: sums.attend_1, ...sums };
+    const entry: AggRow = { _key: key, _count: rows.length, _n: sums.attend_1, ...sums };
 
     for (const mKey of metrics) {
       const def = METRICS[mKey];
-      if (def.type === 'rate') {
+      if (def && def.type === 'rate') {
         entry[mKey] = calcRate(def, sums);
       }
     }
@@ -141,12 +216,12 @@ export function pivot(data, rowDim, metrics) {
 }
 
 /** 汇总行（合计） */
-export function totalRow(data, metrics) {
+export function totalRow(data: BtcRow[], metrics: string[]): AggRow {
   const sums = sumRows(data);
-  const entry = { _key: '合计', _count: data.length, _n: sums.attend_1, ...sums };
+  const entry: AggRow = { _key: '合计', _count: data.length, _n: sums.attend_1, ...sums };
   for (const mKey of metrics) {
     const def = METRICS[mKey];
-    if (def.type === 'rate') {
+    if (def && def.type === 'rate') {
       entry[mKey] = calcRate(def, sums);
     }
   }
@@ -180,7 +255,7 @@ export function useBtcData() {
     }
   }
 
-  async function uploadFile(file) {
+  async function uploadFile(file: File) {
     const formData = new FormData();
     formData.append('file', file);
     const resp = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });

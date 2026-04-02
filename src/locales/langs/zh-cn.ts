@@ -225,7 +225,23 @@ const local: App.I18n.Schema = {
     404: '页面不存在',
     500: '服务器错误',
     'iframe-page': '外链页面',
-    home: '首页'
+    home: '首页',
+    'base64-converter': 'Base64 转换',
+    'btc-course-flow': 'BTC 课程流',
+    'effects-generator': '特效生成器',
+    'image-compressor': '图片压缩',
+    'image-matting': '图片抠图',
+    locked: '锁屏',
+    'material-studio': '素材工坊',
+    'qrcode-generator': '二维码生成',
+    'quick-links': '快捷链接',
+    'role-manager': '角色管理',
+    'sb3-compressor': 'SB3 压缩',
+    'sb3-studio': 'SB3 工作室',
+    'timestamp-converter': '时间戳转换',
+    'tts-studio': 'TTS 工作室',
+    'user-manager': '用户管理',
+    'video-frame-extractor': '视频抽帧'
   },
   page: {
     login: {

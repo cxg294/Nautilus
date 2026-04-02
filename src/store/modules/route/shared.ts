@@ -1,5 +1,5 @@
 import type { RouteLocationNormalizedLoaded, RouteRecordRaw, _RouteRecordBase } from 'vue-router';
-import type { ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
+import type { ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap, RoutePath } from '@elegant-router/types';
 import { useSvgIcon } from '@/hooks/common/icon';
 import { $t } from '@/locales';
 
@@ -137,7 +137,7 @@ function getGlobalMenuByBaseRoute(route: RouteLocationNormalizedLoaded | Elegant
     label,
     i18nKey,
     routeKey: name as RouteKey,
-    routePath: path as string,
+    routePath: path as RoutePath,
     icon: SvgIconVNode({ icon, localIcon, fontSize: iconFontSize || 20 })
   };
 
