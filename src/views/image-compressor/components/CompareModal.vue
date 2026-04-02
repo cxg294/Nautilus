@@ -105,11 +105,16 @@ function formatSize(bytes: number): string {
   max-height: 450px;
   overflow: hidden;
   background: repeating-conic-gradient(#f0f0f4 0% 25%, transparent 0% 50%) 50% / 16px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--n-border-color, #e0e0e6);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.dark .compare-img-wrapper {
+  background: repeating-conic-gradient(#2a2a3e 0% 25%, #1e1e2e 0% 50%) 50% / 16px 16px;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .compare-img {

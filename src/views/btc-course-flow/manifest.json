@@ -5,7 +5,7 @@
   "order": 1,
   "categoryOrder": 5,
   "access": "user",
-  "locked": true,
+  "locked": false,
   "i18n": {
     "zh-CN": {
       "route": "BTC 课程流转数据",

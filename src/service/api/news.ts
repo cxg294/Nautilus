@@ -15,7 +15,7 @@ export interface NewsItem {
 /** 获取 AI 新闻列表（来自飞书多维表格） */
 export function fetchAINews() {
   return request<NewsItem[]>({
-    url: '/api/news',
+    url: '/news',
     method: 'get',
   });
 }
@@ -23,7 +23,7 @@ export function fetchAINews() {
 /** 强制刷新 AI 新闻缓存 */
 export function refreshAINews() {
   return request<NewsItem[]>({
-    url: '/api/news/refresh',
+    url: '/news/refresh',
     method: 'post',
   });
 }

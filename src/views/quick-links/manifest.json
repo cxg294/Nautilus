@@ -1,0 +1,21 @@
+{
+  "name": "quick-links",
+  "category": "quick-links",
+  "icon": "mdi:link-box-variant-outline",
+  "order": 1,
+  "categoryOrder": 7,
+  "access": "guest",
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "常用网站",
+      "category": "常用网站",
+      "categoryIcon": "mdi:link-box-variant-outline"
+    },
+    "en-US": {
+      "route": "Quick Links",
+      "category": "Quick Links",
+      "categoryIcon": "mdi:link-box-variant-outline"
+    }
+  }
+}

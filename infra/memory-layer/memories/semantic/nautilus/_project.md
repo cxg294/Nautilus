@@ -26,6 +26,46 @@
 | 认证方案 | JWT 双 Token（access 15min + refresh 7d） | 安全性与体验平衡 |
 | 权限模型 | RBAC（owner / user / guest） | 简单有效 |
 
+### UI 组件规范（强制）
+
+> ⚠️ **所有页面必须使用 NaiveUI 标准组件**，严禁手写原生 HTML 替代已有组件。
+> NaiveUI 通过 `unplugin-vue-components` + `NaiveUiResolver` 实现**模板内自动导入**，无需 import。
+> 仅在 render 函数中使用时需要显式 `import { NButton, NTag, ... } from 'naive-ui'`。
+
+#### 组件对照表
+
+| 场景 | ✅ 使用 | ❌ 禁止 |
+|:---|:---|:---|
+| 按钮 | `<NButton>` | `<button class="xxx">` |
+| 下拉选择 | `<NSelect>` | `<select>` |
+| 标签/徽章 | `<NTag>` | `<span class="chip">` |
+| 卡片容器 | `<NCard>` | `<div class="card">` |
+| 数据表格 | `<NDataTable>` | `<table>` |
+| Tab 切换 | `<NTabs>` + `<NTabPane>` | `<button class="tab">` |
+| 弹窗/抽屉 | `<NModal>` / `<NDrawer>` | 自定义弹窗 |
+| 间距布局 | `<NSpace>` | `<div style="gap:...">` |
+| 输入框 | `<NInput>` | `<input>` |
+| 复选框 | `<NCheckbox>` | `<input type="checkbox">` |
+| 加载状态 | `<NSpin>` | 自定义 loading |
+| 提示消息 | `useMessage()` | `alert()` |
+
+#### 暗色模式适配
+
+- **NaiveUI 组件**：自动适配（`App.vue` 中 `NConfigProvider` + `darkTheme` 控制）
+- **自定义样式**：使用 `.dark .xxx` 选择器覆盖（`DARK_CLASS = 'dark'`，挂在 `<html>` 上）
+- **UnoCSS**：使用 `dark:` 前缀（如 `class="bg-white dark:bg-dark"`）
+- **ECharts**：需手动监听 darkMode 切换背景色和文字色
+
+#### 样式优先级
+
+1. NaiveUI 组件（自带暗色适配） → 2. UnoCSS 原子类（`dark:` 前缀） → 3. Scoped CSS（`.dark .xxx`）
+
+#### 标准页面参考
+
+- `src/views/role-manager/index.vue` — NDataTable + NButton + NTag 组合
+- `src/views/sb3-studio/components/DataPanel.vue` — NTabs + NDataTable
+- `src/views/sb3-studio/components/LogicPanel.vue` — NSelect + NDataTable + NTag
+
 ---
 
 ## 项目结构

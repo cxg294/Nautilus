@@ -45,6 +45,13 @@ export default {
   // 工具 API Key（AI Agent 调用鉴权）
   apiKey: process.env.NAUTILUS_API_KEY || 'naut-dev-key-change-me',
 
+  // Qwen3 TTS Gradio 服务地址
+  tts: {
+    base: process.env.TTS_BASE_URL || 'http://10.64.128.6:8000',       // 声音克隆
+    custom: process.env.TTS_CUSTOM_URL || 'http://10.64.128.6:8001',   // 角色语音
+    design: process.env.TTS_DESIGN_URL || 'http://10.64.128.6:8002',   // 音色设计
+  },
+
   // 阿里云视觉智能（分割抠图）
   aliyun: {
     accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID || '',

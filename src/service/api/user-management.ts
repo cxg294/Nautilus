@@ -16,14 +16,14 @@ export interface UserRecord {
 /** 获取用户列表 */
 export function fetchUserList(status?: string) {
   return request<UserRecord[]>({
-    url: '/api/users',
+    url: '/users',
     params: status ? { status } : {}
   });
 }
 
 /** 获取待审批用户列表 */
 export function fetchPendingUsers() {
-  return request<UserRecord[]>({ url: '/api/users/pending' });
+  return request<UserRecord[]>({ url: '/users/pending' });
 }
 
 /** 管理员直接创建用户 */
@@ -35,7 +35,7 @@ export function fetchCreateUser(data: {
   email?: string;
 }) {
   return request({
-    url: '/api/users',
+    url: '/users',
     method: 'post',
     data
   });
@@ -44,7 +44,7 @@ export function fetchCreateUser(data: {
 /** 审批通过 */
 export function fetchApproveUser(id: number) {
   return request({
-    url: `/api/users/${id}/approve`,
+    url: `/users/${id}/approve`,
     method: 'put'
   });
 }
@@ -52,7 +52,7 @@ export function fetchApproveUser(id: number) {
 /** 拒绝注册 */
 export function fetchRejectUser(id: number) {
   return request({
-    url: `/api/users/${id}/reject`,
+    url: `/users/${id}/reject`,
     method: 'put'
   });
 }
@@ -60,7 +60,7 @@ export function fetchRejectUser(id: number) {
 /** 修改用户角色 */
 export function fetchUpdateUserRole(id: number, role: string) {
   return request({
-    url: `/api/users/${id}/role`,
+    url: `/users/${id}/role`,
     method: 'put',
     data: { role }
   });
@@ -69,7 +69,7 @@ export function fetchUpdateUserRole(id: number, role: string) {
 /** 修改状态 */
 export function fetchUpdateStatus(id: number, status: string) {
   return request({
-    url: `/api/users/${id}/status`,
+    url: `/users/${id}/status`,
     method: 'put',
     data: { status }
   });
@@ -78,7 +78,7 @@ export function fetchUpdateStatus(id: number, status: string) {
 /** 删除用户 */
 export function fetchDeleteUser(id: number) {
   return request({
-    url: `/api/users/${id}`,
+    url: `/users/${id}`,
     method: 'delete'
   });
 }

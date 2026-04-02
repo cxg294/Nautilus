@@ -1,106 +1,56 @@
 <script setup lang="ts">
 /**
- * TTS Studio — Qwen3 语音合成工具
+ * TTS Studio — 语音合成工作台
  *
- * 通过 iframe 嵌入内网 Gradio TTS 服务。
- * 使用 Vite 代理解决 X-Frame-Options / CORS 限制。
+ * 整合 3 个 Qwen3 TTS 服务：
+ *   🎭 角色语音  — 预设说话人 + 情绪指令 (:8001)
+ *   🎨 音色设计  — 自然语言描述音色 (:8002)
+ *   🎤 声音克隆  — 上传参考音频克隆 (:8000)
  */
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
+import RoleVoicePanel from './components/RoleVoicePanel.vue';
+import VoiceDesignPanel from './components/VoiceDesignPanel.vue';
+import VoiceClonePanel from './components/VoiceClonePanel.vue';
 
-const TTS_URL = '/tts-proxy/';
-const loading = ref(true);
-const error = ref(false);
-
-function onIframeLoad() {
-  loading.value = false;
-}
-
-function onIframeError() {
-  loading.value = false;
-  error.value = true;
-}
-
-function retry() {
-  error.value = false;
-  loading.value = true;
-  // 强制 iframe 重载
-  const iframe = document.querySelector('.tts-iframe') as HTMLIFrameElement;
-  if (iframe) {
-    iframe.src = `${TTS_URL}?t=${Date.now()}`;
-  }
-}
-
-function openInNewTab() {
-  window.open('http://10.64.128.6:8000', '_blank');
-}
-
-// 5s 超时检测
-onMounted(() => {
-  setTimeout(() => {
-    if (loading.value) {
-      loading.value = false;
-      error.value = true;
-    }
-  }, 8000);
-});
+const activeTab = ref('role');
 </script>
 
 <template>
   <div class="tts-studio">
-    <!-- 顶部工具栏 -->
-    <div class="tts-toolbar">
-      <div class="toolbar-left">
-        <NTag type="success" size="small" round>
+    <!-- 顶部信息栏 -->
+    <div class="tts-header">
+      <div class="header-left">
+        <span class="header-title">语音合成工作台</span>
+        <NTag size="small" round type="success" :bordered="false">
           <template #icon>
-            <span class="i-mdi-circle" style="color: #18a058" />
+            <span class="status-dot" />
           </template>
           Qwen3 TTS
         </NTag>
-        <span class="toolbar-model">12Hz-1.7B-Base</span>
-      </div>
-      <div class="toolbar-right">
-        <NButton quaternary size="small" @click="retry">
-          <template #icon>
-            <span class="i-mdi-refresh" />
-          </template>
-          刷新
-        </NButton>
-        <NButton quaternary size="small" @click="openInNewTab">
-          <template #icon>
-            <span class="i-mdi-open-in-new" />
-          </template>
-          新窗口
-        </NButton>
+        <span class="header-model">12Hz · 1.7B</span>
       </div>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="tts-loading">
-      <NSpin size="large" />
-      <p class="loading-text">正在连接 TTS 服务...</p>
+    <!-- Tab 面板 -->
+    <div class="tts-body">
+      <NTabs v-model:value="activeTab" type="segment" animated class="tts-tabs">
+        <NTabPane name="role" tab="🎭 角色语音">
+          <div class="tab-content">
+            <RoleVoicePanel />
+          </div>
+        </NTabPane>
+        <NTabPane name="design" tab="🎨 音色设计">
+          <div class="tab-content">
+            <VoiceDesignPanel />
+          </div>
+        </NTabPane>
+        <NTabPane name="clone" tab="🎤 声音克隆">
+          <div class="tab-content">
+            <VoiceClonePanel />
+          </div>
+        </NTabPane>
+      </NTabs>
     </div>
-
-    <!-- 错误状态 -->
-    <div v-else-if="error" class="tts-error">
-      <NResult status="warning" title="加载失败，请确认内网环境" description="TTS 服务 (10.64.128.6:8000) 可能未启动或当前网络不可达">
-        <template #footer>
-          <NSpace>
-            <NButton type="primary" @click="retry">重试</NButton>
-            <NButton @click="openInNewTab">新窗口打开</NButton>
-          </NSpace>
-        </template>
-      </NResult>
-    </div>
-
-    <!-- iframe -->
-    <iframe
-      v-show="!loading && !error"
-      class="tts-iframe"
-      :src="TTS_URL"
-      allow="microphone"
-      @load="onIframeLoad"
-      @error="onIframeError"
-    />
   </div>
 </template>
 
@@ -110,60 +60,78 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 20px 24px 16px;
 }
 
-.tts-toolbar {
+/* ── 顶部栏 ── */
+.tts-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  align-items: center;
+  padding-bottom: 16px;
   flex-shrink: 0;
 }
 
-.toolbar-left {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.toolbar-model {
+.header-title {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.header-model {
   font-size: 12px;
-  color: rgba(128, 128, 128, 0.7);
-  font-family: monospace;
+  color: rgba(128, 128, 128, 0.45);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  letter-spacing: 0.02em;
 }
 
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #18a058;
+  box-shadow: 0 0 6px rgba(24, 160, 88, 0.5);
 }
 
-.tts-iframe {
+/* ── 主体 ── */
+.tts-body {
   flex: 1;
-  width: 100%;
-  border: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Tab 样式 ── */
+.tts-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tts-tabs :deep(.n-tabs-nav) {
+  flex-shrink: 0;
+}
+
+.tts-tabs :deep(.n-tabs-pane-wrapper) {
+  flex: 1;
   min-height: 0;
 }
 
-.tts-loading {
+.tts-tabs :deep(.n-tab-pane) {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
+  min-height: 0;
 }
 
-.loading-text {
-  font-size: 14px;
-  color: rgba(128, 128, 128, 0.7);
-}
-
-.tts-error {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tab-content {
+  padding-top: 20px;
+  height: 100%;
 }
 </style>

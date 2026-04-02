@@ -36,3 +36,7 @@ npm-debug.log*
 # === 临时文件 ===
 *.sb3
 output.png
+
+# === 运行时生成 ===
+server/material-studio-output/
+*.xlsx

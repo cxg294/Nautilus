@@ -46,11 +46,10 @@ const activeTab = ref('images');
 .main-tabs :deep(.n-tabs-pane-wrapper) {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
 }
 
 .main-tabs :deep(.n-tab-pane) {
-  padding-top: 8px;
+  padding-top: 0;
   height: 100%;
 }
 </style>

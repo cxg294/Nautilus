@@ -13,6 +13,8 @@ import toolsRoutes from './routes/tools.js';
 import { requireApiKey } from './middleware/apiKey.js';
 import imageMattingRoutes from './routes/image-matting.js';
 import materialStudioRoutes from './routes/material-studio.js';
+import btcCourseFlowRoutes from './routes/btc-course-flow.js';
+import ttsRoutes from './routes/tts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +62,12 @@ app.use('/api/image-matting', imageMattingRoutes);
 
 // Material Studio 素材生成工作台
 app.use('/api/material-studio', materialStudioRoutes);
+
+// BTC 课程流转数据看板
+app.use('/api/btc-course-flow', btcCourseFlowRoutes);
+
+// TTS 语音合成代理
+app.use('/api/tts', ttsRoutes);
 
 // === 生产模式：提供前端静态文件 ===
 if (!config.isDev) {

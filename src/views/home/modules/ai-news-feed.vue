@@ -34,7 +34,8 @@ async function loadNews() {
   try {
     const { data } = await fetchAINews();
     if (data) {
-      newsList.value = data;
+      // 只展示最新 5 条
+      newsList.value = data.slice(0, 5);
     }
   } catch (e: any) {
     error.value = e?.message || '获取新闻失败';

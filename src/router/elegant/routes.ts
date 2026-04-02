@@ -50,6 +50,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'btc-course-flow',
+    path: '/btc-course-flow',
+    component: 'layout.base$view.btc-course-flow',
+    meta: {
+      title: 'btc-course-flow',
+      i18nKey: 'route.btc-course-flow',
+      hideInMenu: true
+    }
+  },
+  {
     name: 'effects-generator',
     path: '/effects-generator',
     component: 'layout.base$view.effects-generator',
@@ -144,6 +154,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       title: 'qrcode-generator',
       i18nKey: 'route.qrcode-generator',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'quick-links',
+    path: '/quick-links',
+    component: 'layout.base$view.quick-links',
+    meta: {
+      title: 'quick-links',
+      i18nKey: 'route.quick-links',
       hideInMenu: true
     }
   },

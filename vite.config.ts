@@ -1,6 +1,8 @@
 import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
+import wasm from 'vite-plugin-wasm';
+import topLevelAwait from 'vite-plugin-top-level-await';
 import { setupVitePlugins } from './build/plugins';
 import { createViteProxy, getBuildTime } from './build/config';
 
@@ -27,7 +29,7 @@ export default defineConfig(configEnv => {
         }
       }
     },
-    plugins: setupVitePlugins(viteEnv, buildTime),
+    plugins: [wasm(), topLevelAwait(), ...setupVitePlugins(viteEnv, buildTime)],
     define: {
       BUILD_TIME: JSON.stringify(buildTime)
     },
@@ -40,19 +42,6 @@ export default defineConfig(configEnv => {
         '/api': {
           target: 'http://localhost:3000',
           changeOrigin: true,
-        },
-        // Qwen3 TTS Gradio 服务代理（剥离 iframe 限制头）
-        '/tts-proxy': {
-          target: 'http://10.64.128.6:8000',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/tts-proxy/, ''),
-          configure: (proxy) => {
-            proxy.on('proxyRes', (proxyRes) => {
-              // 删除阻止 iframe 嵌入的响应头
-              delete proxyRes.headers['x-frame-options'];
-              delete proxyRes.headers['content-security-policy'];
-            });
-          }
         },
         // Soybean Admin 原有代理（Mock / 其他服务）
         ...(createViteProxy(viteEnv, enableProxy) || {})
@@ -67,6 +56,9 @@ export default defineConfig(configEnv => {
       commonjsOptions: {
         ignoreTryCatch: false
       }
+    },
+    optimizeDeps: {
+      exclude: ['@jsquash/jpeg', '@jsquash/png', '@jsquash/webp', '@jsquash/oxipng']
     }
   };
 });

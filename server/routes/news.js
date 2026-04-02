@@ -47,9 +47,12 @@ function shouldRefresh() {
  */
 async function fetchNewsFromLark() {
   const apiPath = `/open-apis/bitable/v1/apps/${LARK_BASE_TOKEN}/tables/${LARK_TABLE_ID}/records/search`;
+
+  // 多拉一些记录，后面在代码里做"今天优先 + 历史补足"
   const body = JSON.stringify({
-    page_size: NEWS_LIMIT,
+    page_size: 20,
     automatic_fields: true,
+    sort: [{ field_name: '日期', desc: true }],
   });
 
   const { stdout } = await execFileAsync('lark-cli', [
@@ -65,33 +68,37 @@ async function fetchNewsFromLark() {
 
   const items = result.data?.items || [];
 
+  // 提取 text 数组字段的纯文本
+  const extractText = (field) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    if (Array.isArray(field)) {
+      return field.map(seg => seg.text || '').join('');
+    }
+    return String(field);
+  };
+
+  // 提取 url 字段
+  const extractUrl = (field) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    if (field.link) return field.link;
+    if (Array.isArray(field)) {
+      return field.map(seg => seg.text || '').join('');
+    }
+    return '';
+  };
+
+  // 今天 0 点时间戳
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
   // 转换为前端需要的格式
-  const news = items.map((item, index) => {
+  const allNews = items.map((item, index) => {
     const fields = item.fields || {};
-
-    // 提取 text 数组字段的纯文本
-    const extractText = (field) => {
-      if (!field) return '';
-      if (typeof field === 'string') return field;
-      if (Array.isArray(field)) {
-        return field.map(seg => seg.text || '').join('');
-      }
-      return String(field);
-    };
-
-    // 提取 url 字段
-    const extractUrl = (field) => {
-      if (!field) return '';
-      if (typeof field === 'string') return field;
-      if (field.link) return field.link;
-      if (Array.isArray(field)) {
-        return field.map(seg => seg.text || '').join('');
-      }
-      return '';
-    };
+    const dateMs = fields['日期'];
 
     // 计算相对时间
-    const dateMs = fields['日期'];
     let timeAgo = '';
     if (dateMs) {
       const diff = Date.now() - dateMs;
@@ -117,10 +124,22 @@ async function fetchNewsFromLark() {
     };
   });
 
-  // 按排名排序
-  news.sort((a, b) => a.rank - b.rank);
+  // 策略：今天的优先，不足 NEWS_LIMIT 条时按日期倒序补历史
+  const todayNews = allNews.filter(n => n.date >= todayStart);
+  const olderNews = allNews.filter(n => n.date < todayStart);
 
-  return news;
+  // 今天的按排名排序
+  todayNews.sort((a, b) => a.rank - b.rank);
+
+  let finalNews;
+  if (todayNews.length >= NEWS_LIMIT) {
+    finalNews = todayNews.slice(0, NEWS_LIMIT);
+  } else {
+    // 今天的全部保留，用历史按日期倒序补足
+    finalNews = [...todayNews, ...olderNews.slice(0, NEWS_LIMIT - todayNews.length)];
+  }
+
+  return finalNews;
 }
 
 // ========== API 路由 ==========
