@@ -30,12 +30,12 @@ const statCards = computed(() => [
 /** 获取目标列表 */
 const targets = computed(() => {
   if (!project.value) return [];
-  return (project.value.targets || []).map((t: any) => ({
-    name: t.name,
-    isStage: t.isStage,
-    blockCount: Object.values(t.blocks || {}).filter((b: any) => typeof b === 'object' && b.opcode).length,
-    costumeCount: (t.costumes || []).length,
-    soundCount: (t.sounds || []).length,
+  return (project.value.targets || []).map((target: any) => ({
+    name: target.name,
+    isStage: target.isStage,
+    blockCount: Object.values(target.blocks || {}).filter((b: any) => typeof b === 'object' && b.opcode).length,
+    costumeCount: (target.costumes || []).length,
+    soundCount: (target.sounds || []).length,
   }));
 });
 

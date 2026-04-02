@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config/env.js';
-import db, { runMigrations } from './db/index.js';
+import { runMigrations } from './db/index.js';
 import authRoutes from './routes/auth.js';
 
 import userRoutes from './routes/users.js';

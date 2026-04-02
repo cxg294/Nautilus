@@ -3,6 +3,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { removeBackground } from '../services/aliyun-imageseg.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ const upload = multer({
 // ===========================
 // 1. 提交图片进行抠图去背
 // ===========================
-router.post('/segment', upload.single('image'), async (req, res) => {
+router.post('/segment', upload.single('image'), asyncHandler(async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: '请上传一张图片' });
@@ -52,12 +53,12 @@ router.post('/segment', upload.single('image'), async (req, res) => {
     }
     res.status(500).json({ success: false, error: `抠图处理失败: ${error.message}` });
   }
-});
+}));
 
 // ===========================
 // 2. 提供阿里云回传图片的代理下载 (绕过跨域限制进行前端 canvas 或 blob 请求) 
 // ===========================
-router.get('/proxy-image', async (req, res) => {
+router.get('/proxy-image', asyncHandler(async (req, res) => {
   const { url } = req.query;
   if (!url) {
     return res.status(400).json({ success: false, error: '缺少图片链接' });
@@ -82,6 +83,6 @@ router.get('/proxy-image', async (req, res) => {
     console.error('[Image Matting Proxy] Fetch error:', error);
     res.status(500).json({ success: false, error: '代理拉取图片失败' });
   }
-});
+}));
 
 export default router;

@@ -44,7 +44,7 @@ export default defineConfig(configEnv => {
           changeOrigin: true,
         },
         // Soybean Admin 原有代理（Mock / 其他服务）
-        ...(createViteProxy(viteEnv, enableProxy) || {})
+        ...createViteProxy(viteEnv, enableProxy)
       }
     },
     preview: {

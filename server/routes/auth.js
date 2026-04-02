@@ -5,7 +5,7 @@
  */
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import { compareSync } from 'bcryptjs';
 import config from '../config/env.js';
 import { success, fail, CODE } from '../utils/response.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -54,7 +54,7 @@ router.post('/login', (req, res) => {
   }
 
   // 验证密码
-  const isMatch = bcrypt.compareSync(password, user.password_hash);
+  const isMatch = compareSync(password, user.password_hash);
   if (!isMatch) {
     return res.json(fail(CODE.AUTH_INVALID, '用户名或密码错误'));
   }
@@ -213,7 +213,7 @@ router.post('/changePassword', requireAuth, (req, res) => {
   }
 
   // 验证旧密码
-  if (!bcrypt.compareSync(oldPassword, user.password_hash)) {
+  if (!compareSync(oldPassword, user.password_hash)) {
     return res.json(fail(CODE.VALIDATION, '旧密码错误'));
   }
 

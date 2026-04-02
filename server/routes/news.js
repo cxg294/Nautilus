@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const execFileAsync = promisify(execFile);
 const router = Router();
@@ -148,7 +149,7 @@ async function fetchNewsFromLark() {
  * GET /api/news
  * 返回缓存的 AI 新闻，按需从飞书刷新
  */
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   try {
     if (shouldRefresh()) {
       console.log('[News] 从飞书多维表格获取最新新闻...');
@@ -187,13 +188,13 @@ router.get('/', async (req, res) => {
       });
     }
   }
-});
+}));
 
 /**
  * POST /api/news/refresh
  * 强制刷新新闻缓存
  */
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', asyncHandler(async (req, res) => {
   try {
     console.log('[News] 强制刷新新闻缓存...');
     cachedNews = await fetchNewsFromLark();
@@ -213,6 +214,6 @@ router.post('/refresh', async (req, res) => {
       data: [],
     });
   }
-});
+}));
 
 export default router;

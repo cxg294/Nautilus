@@ -56,6 +56,6 @@ export async function removeBackground(localFilePath) {
     throw new Error('阿里云返回结果中没有找到 ImageURL');
   } catch (error) {
     console.error('【阿里云分割抠图失败】:', error.message || error);
-    throw new Error(error.message || '抠图服务调用失败');
+    throw new Error(error.message || '抠图服务调用失败', { cause: error });
   }
 }

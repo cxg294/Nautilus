@@ -12,6 +12,7 @@ import fs from 'fs';
 import config from '../config/env.js';
 import * as materialGen from '../services/material-gen.js';
 import { removeBackground } from '../services/aliyun-imageseg.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ const upload = multer({
 // ===========================
 // 1. 意图评估 + 追问
 // ===========================
-router.post('/chat', upload.single('reference'), async (req, res) => {
+router.post('/chat', upload.single('reference'), asyncHandler(async (req, res) => {
   try {
     const { message, context: ctxStr, aspectRatio } = req.body;
     if (!message) {
@@ -85,12 +86,12 @@ router.post('/chat', upload.single('reference'), async (req, res) => {
     console.error('[Material Studio] chat error:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ===========================
 // 2. 图片生成（Prompt 增强 + 生成）
 // ===========================
-router.post('/generate', upload.single('reference'), async (req, res) => {
+router.post('/generate', upload.single('reference'), asyncHandler(async (req, res) => {
   try {
     const { conclusions: conclusionsStr, style, aspectRatio, context: ctxStr } = req.body;
     if (!conclusionsStr || !style) {
@@ -130,12 +131,12 @@ router.post('/generate', upload.single('reference'), async (req, res) => {
     console.error('[Material Studio] generate error:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ===========================
 // 3. 素材拆解（元素识别）
 // ===========================
-router.post('/analyze', async (req, res) => {
+router.post('/analyze', asyncHandler(async (req, res) => {
   try {
     const { taskId } = req.body;
     if (!taskId) {
@@ -155,12 +156,12 @@ router.post('/analyze', async (req, res) => {
     console.error('[Material Studio] analyze error:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ===========================
 // 4. 素材提取（背景重绘 + 前景抠图）
 // ===========================
-router.post('/extract', async (req, res) => {
+router.post('/extract', asyncHandler(async (req, res) => {
   try {
     const { taskId, selectedElements, aspectRatio } = req.body;
     if (!taskId || !selectedElements || !Array.isArray(selectedElements)) {
@@ -235,12 +236,12 @@ router.post('/extract', async (req, res) => {
     console.error('[Material Studio] extract error:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ===========================
 // 5. ZIP 打包下载
 // ===========================
-router.get('/download/:taskId', async (req, res) => {
+router.get('/download/:taskId', asyncHandler(async (req, res) => {
   try {
     const { taskId } = req.params;
     const taskDir = path.join(OUTPUT_DIR, taskId);
@@ -292,7 +293,7 @@ router.get('/download/:taskId', async (req, res) => {
     console.error('[Material Studio] download error:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ===========================
 // 6. 单个文件下载

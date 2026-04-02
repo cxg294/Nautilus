@@ -92,7 +92,7 @@ async function generateQR() {
 }
 
 /** 在二维码上叠加 Logo */
-function addLogoToQR(qrDataUrl: string, logoSrc: string): Promise<string> {
+function addLogoToQR(qrImgUrl: string, logoSrc: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -126,7 +126,7 @@ function addLogoToQR(qrDataUrl: string, logoSrc: string): Promise<string> {
       logoImg.src = logoSrc;
     };
     qrImg.onerror = reject;
-    qrImg.src = qrDataUrl;
+    qrImg.src = qrImgUrl;
   });
 }
 

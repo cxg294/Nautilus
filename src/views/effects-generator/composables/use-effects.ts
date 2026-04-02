@@ -747,7 +747,7 @@ export function useEffects() {
     }
     loop();
     burst(innerWidth/2, innerHeight/2); // 初始演示
-  <\/script>
+  </script>
 </body>
 </html>`;
   }
@@ -768,12 +768,12 @@ export function useEffects() {
 </head>
 <body>
   <div id="tsparticles"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@3/tsparticles.slim.bundle.min.js"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@3/tsparticles.slim.bundle.min.js"></script>
   <script>
     (async () => {
       await tsParticles.load({ id: "tsparticles", options: ${config} });
     })();
-  <\/script>
+  </script>
 </body>
 </html>`;
   }

@@ -342,7 +342,6 @@ export function generateVariableFlowMermaid(varInfo) {
     lines.push(`  w${nid++} --> ${varNode}`);
   }
   nid = 0;
-  const readerOffset = varInfo.writers.length;
   for (let i = 0; i < varInfo.readers.length; i++) {
     lines.push(`  ${varNode} --> r${nid++}`);
   }

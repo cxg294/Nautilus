@@ -96,8 +96,8 @@ function diffTarget(a, b) {
   }
 
   // Blocks count comparison
-  const blockCountA = Object.values(a.blocks || {}).filter(b => typeof b === 'object').length;
-  const blockCountB = Object.values(b.blocks || {}).filter(b => typeof b === 'object').length;
+  const blockCountA = Object.values(a.blocks || {}).filter(blk => typeof blk === 'object').length;
+  const blockCountB = Object.values(b.blocks || {}).filter(blk => typeof blk === 'object').length;
   if (blockCountA !== blockCountB) {
     details.push({ type: 'blocks', from: blockCountA, to: blockCountB });
   }

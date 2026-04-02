@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import XLSX from 'xlsx';
+import { read, utils } from 'xlsx';
 import db from '../db/index.js';
 import crypto from 'crypto';
 
@@ -112,9 +112,9 @@ router.post('/upload', upload.single('file'), (req, res) => {
       return res.status(400).json({ error: '请上传文件' });
     }
 
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const workbook = read(req.file.buffer, { type: 'buffer' });
     const ws = workbook.Sheets[workbook.SheetNames[0]];
-    const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    const rawRows = utils.sheet_to_json(ws, { header: 1, defval: null });
 
     if (rawRows.length < 2) {
       return res.status(400).json({ error: '文件为空或格式不对' });

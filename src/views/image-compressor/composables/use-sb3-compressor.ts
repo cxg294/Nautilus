@@ -12,7 +12,7 @@ import JSZip from 'jszip';
 
 // === jSquash WASM 编解码器（懒加载） ===
 let jpegCodec: { decode: (buf: ArrayBuffer) => Promise<ImageData>; encode: (data: ImageData, opts?: { quality?: number }) => Promise<ArrayBuffer> } | null = null;
-let pngCodec: { decode: (buf: ArrayBuffer) => Promise<ImageData>; encode: (data: ImageData) => Promise<ArrayBuffer> } | null = null;
+let _pngCodec: { decode: (buf: ArrayBuffer) => Promise<ImageData>; encode: (data: ImageData) => Promise<ArrayBuffer> } | null = null;
 let oxipngCodec: { optimise: (data: ArrayBuffer, opts?: { level?: number }) => Promise<ArrayBuffer> } | null = null;
 
 /** 懒加载 WASM 编解码器 */
@@ -24,7 +24,7 @@ async function ensureWasmCodecs() {
       import('@jsquash/oxipng')
     ]);
     jpegCodec = jpeg;
-    pngCodec = png;
+    _pngCodec = png;
     oxipngCodec = oxipng;
   }
 }

@@ -9,6 +9,7 @@ import express from 'express';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
 import { success, fail, CODE } from '../utils/response.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = express.Router();
 
@@ -85,7 +86,7 @@ router.get('/catalog', (req, res) => {
 // ═══════════════════════════════════════════
 // POST /qrcode — 生成二维码
 // ═══════════════════════════════════════════
-router.post('/qrcode', async (req, res) => {
+router.post('/qrcode', asyncHandler(async (req, res) => {
   try {
     const {
       content,
@@ -121,7 +122,7 @@ router.post('/qrcode', async (req, res) => {
     console.error('[Tools API] qrcode error:', err);
     res.status(500).json(fail(CODE.FAIL, `二维码生成失败: ${err.message}`));
   }
-});
+}));
 
 // ═══════════════════════════════════════════
 // POST /timestamp — 时间戳转换
@@ -238,7 +239,7 @@ router.post('/base64/decode', (req, res) => {
 // POST /image/compress — 图片压缩
 // ═══════════════════════════════════════════
 // 请求体限制提升到 10MB（base64 图片较大）
-router.post('/image/compress', express.json({ limit: '10mb' }), async (req, res) => {
+router.post('/image/compress', express.json({ limit: '10mb' }), asyncHandler(async (req, res) => {
   try {
     const {
       image,
@@ -299,6 +300,6 @@ router.post('/image/compress', express.json({ limit: '10mb' }), async (req, res)
     console.error('[Tools API] image compress error:', err);
     res.status(500).json(fail(CODE.FAIL, `图片压缩失败: ${err.message}`));
   }
-});
+}));
 
 export default router;

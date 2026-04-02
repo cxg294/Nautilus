@@ -42,10 +42,10 @@ function computeStats(targets) {
     costumeCount += (target.costumes || []).length;
     soundCount += (target.sounds || []).length;
 
-    for (const v of Object.values(target.variables || {})) {
+    for (const _v of Object.values(target.variables || {})) {
       variableCount++;
     }
-    for (const l of Object.values(target.lists || {})) {
+    for (const _l of Object.values(target.lists || {})) {
       listCount++;
     }
     for (const b of Object.values(target.broadcasts || {})) {
@@ -92,9 +92,9 @@ export function computeVarStats(targets) {
   }
 
   // Scan all blocks for variable/list usage
-  const varReadOps = new Set(['data_setvariableto', 'data_changevariableby']);
   const varWriteOps = new Set(['data_setvariableto', 'data_changevariableby']);
-  const varShowHideOps = new Set(['data_showvariable', 'data_hidevariable']);
+  // eslint-disable-next-line no-unused-vars
+  const _varShowHideOps = new Set(['data_showvariable', 'data_hidevariable']);
 
   for (const target of targets) {
     const blocks = target.blocks || {};
@@ -301,7 +301,7 @@ function runDiagnostics(targets) {
 
   // Large assets
   for (const target of targets) {
-    for (const costume of target.costumes || []) {
+    for (const _costume of target.costumes || []) {
       // We can't check file size from project.json alone,
       // but we can flag based on known large formats
     }

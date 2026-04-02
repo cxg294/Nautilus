@@ -17,7 +17,6 @@ import {
   roleNameExists,
   getRoleToolPermissions,
   setRoleToolPermissions,
-  listToolPermissions,
   listAllPermissions,
 } from '../services/role.js';
 

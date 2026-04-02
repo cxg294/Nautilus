@@ -3,7 +3,7 @@
  * 封装用户相关的数据库操作
  */
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+import { hashSync } from 'bcryptjs';
 import db from '../db/index.js';
 import config from '../config/env.js';
 
@@ -47,7 +47,7 @@ export function usernameExists(username) {
  * @returns {object} 创建的用户记录
  */
 export function createUser({ username, password, displayName, email, role = 'user', status = 'pending' }) {
-  const passwordHash = bcrypt.hashSync(password, 10);
+  const passwordHash = hashSync(password, 10);
   const result = db.prepare(`
     INSERT INTO users (username, email, password_hash, display_name, role, status)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -62,7 +62,7 @@ export function createUser({ username, password, displayName, email, role = 'use
  * @param {string} newPassword - 明文密码
  */
 export function updatePassword(userId, newPassword) {
-  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  const passwordHash = hashSync(newPassword, 10);
   db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
     .run(passwordHash, userId);
 }

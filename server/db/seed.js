@@ -4,7 +4,7 @@
  * 为开发环境填充初始数据（如默认管理员账号）
  */
 import db, { runMigrations } from './index.js';
-import bcrypt from 'bcryptjs';
+import { hashSync } from 'bcryptjs';
 
 // 确保 migration 已执行
 runMigrations();
@@ -13,7 +13,7 @@ runMigrations();
 const existingOwner = db.prepare('SELECT id FROM users WHERE role = ?').get('owner');
 
 if (!existingOwner) {
-  const passwordHash = bcrypt.hashSync('admin123', 10);
+  const passwordHash = hashSync('admin123', 10);
   db.prepare(`
     INSERT INTO users (username, email, password_hash, display_name, role)
     VALUES (?, ?, ?, ?, ?)

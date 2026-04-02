@@ -2,7 +2,7 @@
  * Material Studio 状态管理 + API 调用
  */
 
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref } from 'vue';
 
 // ===========================
 // 类型定义
@@ -52,7 +52,7 @@ export type Phase =
   | 'extracting'    // 素材提取中
   | 'exported';     // 导出完成
 
-import { STYLE_LIBRARY, type StyleOption } from '../config/styles';
+import { STYLE_LIBRARY } from '../config/styles';
 
 // ===========================
 // 全局状态

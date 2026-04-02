@@ -12,6 +12,7 @@ import fetch from 'node-fetch';
 import FormData from 'form-data';
 import fs from 'fs';
 import config from '../config/env.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
 const upload = multer({ dest: '/tmp/tts-uploads/' });
@@ -33,7 +34,7 @@ function getServiceUrl(service) {
 // POST /api/tts/upload/:service
 // 上传音频文件到 Gradio 服务端
 // ──────────────────────────────────────────
-router.post('/upload/:service', upload.single('file'), async (req, res) => {
+router.post('/upload/:service', upload.single('file'), asyncHandler(async (req, res) => {
   try {
     const serviceUrl = getServiceUrl(req.params.service);
     const filePath = req.file.path;
@@ -64,13 +65,13 @@ router.post('/upload/:service', upload.single('file'), async (req, res) => {
     console.error('[TTS Upload Error]', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ──────────────────────────────────────────
 // POST /api/tts/call/:service/:apiName
 // 提交合成任务
 // ──────────────────────────────────────────
-router.post('/call/:service/:apiName', async (req, res) => {
+router.post('/call/:service/:apiName', asyncHandler(async (req, res) => {
   try {
     const serviceUrl = getServiceUrl(req.params.service);
     const { apiName } = req.params;
@@ -92,13 +93,13 @@ router.post('/call/:service/:apiName', async (req, res) => {
     console.error('[TTS Call Error]', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ──────────────────────────────────────────
 // GET /api/tts/result/:service/:apiName/:eventId
 // SSE 代理 — 透传 Gradio 的 SSE 事件流
 // ──────────────────────────────────────────
-router.get('/result/:service/:apiName/:eventId', async (req, res) => {
+router.get('/result/:service/:apiName/:eventId', asyncHandler(async (req, res) => {
   try {
     const serviceUrl = getServiceUrl(req.params.service);
     const { apiName, eventId } = req.params;
@@ -133,14 +134,14 @@ router.get('/result/:service/:apiName/:eventId', async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   }
-});
+}));
 
 // ──────────────────────────────────────────
 // GET /api/tts/file/:service
 // 代理下载 Gradio 生成的音频文件
 // query: ?path=/path/to/file
 // ──────────────────────────────────────────
-router.get('/file/:service', async (req, res) => {
+router.get('/file/:service', asyncHandler(async (req, res) => {
   try {
     const serviceUrl = getServiceUrl(req.params.service);
     const filePath = req.query.path;
@@ -164,6 +165,6 @@ router.get('/file/:service', async (req, res) => {
     console.error('[TTS File Error]', err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 export default router;

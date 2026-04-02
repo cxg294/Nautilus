@@ -236,11 +236,11 @@ function handleCostumeReplace(options: any, costumeIndex: number) {
   if (!file || !current.value) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const costumes = current.value!.costumes;
-    if (costumes[costumeIndex]) {
-      costumes[costumeIndex].name = file.name.replace(/\.[^.]+$/, '');
-      costumes[costumeIndex]._replaced = true;
-      costumes[costumeIndex]._fileData = reader.result;
+    const costumeArr = current.value!.costumes;
+    if (costumeArr[costumeIndex]) {
+      costumeArr[costumeIndex].name = file.name.replace(/\.[^.]+$/, '');
+      costumeArr[costumeIndex]._replaced = true;
+      costumeArr[costumeIndex]._fileData = reader.result;
       message.success(`✅ 造型 ${costumeIndex + 1} 已替换为 ${file.name}`);
     }
   };
@@ -252,11 +252,11 @@ function handleSoundReplace(options: any, soundIndex: number) {
   if (!file || !current.value) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const sounds = current.value!.sounds;
-    if (sounds[soundIndex]) {
-      sounds[soundIndex].name = file.name.replace(/\.[^.]+$/, '');
-      sounds[soundIndex]._replaced = true;
-      sounds[soundIndex]._fileData = reader.result;
+    const soundArr = current.value!.sounds;
+    if (soundArr[soundIndex]) {
+      soundArr[soundIndex].name = file.name.replace(/\.[^.]+$/, '');
+      soundArr[soundIndex]._replaced = true;
+      soundArr[soundIndex]._fileData = reader.result;
       message.success(`✅ 声音 ${soundIndex + 1} 已替换为 ${file.name}`);
     }
   };
