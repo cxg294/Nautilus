@@ -7,6 +7,9 @@ import WeatherForecast from './modules/weather-forecast.vue';
 import QuickShortcuts from './modules/quick-shortcuts.vue';
 import Changelog from './modules/changelog.vue';
 import AINewsFeed from './modules/ai-news-feed.vue';
+import { usePageTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('home');
 
 const appStore = useAppStore();
 

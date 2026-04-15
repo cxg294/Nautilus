@@ -5,6 +5,10 @@ import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import JSZip from 'jszip';
 import ImageCompare from './components/ImageCompare.vue';
+import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('image-matting');
+const { trackAction } = useActionTracker('image-matting');
 
 interface MattingTask {
   id: string;
@@ -108,6 +112,7 @@ const startAll = async () => {
 
   isProcessingAll.value = false;
   const successCount = tasks.value.filter(t => t.status === 'success').length;
+  trackAction('batch_matting', successCount === tasks.value.length ? 'success' : 'fail', { total: tasks.value.length, success: successCount });
   if (successCount === tasks.value.length) {
     message.success('全部抠图处理完成！');
   } else {

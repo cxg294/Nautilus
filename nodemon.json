@@ -1,0 +1,5 @@
+{
+  "watch": ["server/"],
+  "ignore": ["server/db/*.db", "server/db/*.db-wal", "server/db/*.db-shm", "*.log"],
+  "ext": "js,mjs,cjs,json"
+}

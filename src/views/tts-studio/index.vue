@@ -11,6 +11,9 @@ import { ref } from 'vue';
 import RoleVoicePanel from './components/RoleVoicePanel.vue';
 import VoiceDesignPanel from './components/VoiceDesignPanel.vue';
 import VoiceClonePanel from './components/VoiceClonePanel.vue';
+import { usePageTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('tts-studio');
 
 const activeTab = ref('role');
 </script>

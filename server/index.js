@@ -15,6 +15,8 @@ import imageMattingRoutes from './routes/image-matting.js';
 import materialStudioRoutes from './routes/material-studio.js';
 import btcCourseFlowRoutes from './routes/btc-course-flow.js';
 import ttsRoutes from './routes/tts.js';
+import analyticsRoutes from './routes/analytics.js';
+import systemSettingsRoutes from './routes/system-settings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +70,12 @@ app.use('/api/btc-course-flow', btcCourseFlowRoutes);
 
 // TTS 语音合成代理
 app.use('/api/tts', ttsRoutes);
+
+// 埋点分析
+app.use('/api/analytics', analyticsRoutes);
+
+// 系统设置（代理配置等）
+app.use('/api/system-settings', systemSettingsRoutes);
 
 // === 生产模式：提供前端静态文件 ===
 if (!config.isDev) {

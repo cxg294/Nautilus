@@ -17,8 +17,11 @@ import {
   fetchDeleteUser
 } from '@/service/api/user-management';
 import type { UserRecord } from '@/service/api/user-management';
+import { usePageTracker } from '@/hooks/common/use-tracker';
 
 defineOptions({ name: 'UserManager' });
+
+usePageTracker('user-manager');
 
 const message = useMessage();
 

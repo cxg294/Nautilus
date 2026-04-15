@@ -14,8 +14,11 @@ import {
   fetchSetRolePermissions
 } from '@/service/api/role-management';
 import type { RoleRecord, PermissionRecord } from '@/service/api/role-management';
+import { usePageTracker } from '@/hooks/common/use-tracker';
 
 defineOptions({ name: 'RoleManager' });
+
+usePageTracker('role-manager');
 
 const message = useMessage();
 

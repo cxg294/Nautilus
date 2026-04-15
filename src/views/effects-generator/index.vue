@@ -14,6 +14,10 @@ import ParamsPanel from './components/params-panel.vue';
 import PreviewCanvas from './components/preview-canvas.vue';
 import CropOverlay from './components/crop-overlay.vue';
 import RecordingPanel from './components/recording-panel.vue';
+import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('effects-generator');
+const { trackAction } = useActionTracker('effects-generator');
 
 const { t } = useI18n();
 const message = useMessage();
@@ -167,6 +171,7 @@ function handleExportHtml() {
   a.click();
   URL.revokeObjectURL(url);
   message.success(t('page.effectsGenerator.exportSuccess'));
+  trackAction('export_html', 'success', { preset: activePresetKey.value });
 }
 
 /** 全屏 */

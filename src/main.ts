@@ -5,6 +5,7 @@ import { setupAppVersionNotification, setupDayjs, setupIconifyOffline, setupLoad
 import { setupStore } from './store';
 import { setupRouter } from './router';
 import { getLocale, setupI18n } from './locales';
+import { initTracker } from './utils/tracker';
 import App from './App.vue';
 
 async function setupApp() {
@@ -25,6 +26,8 @@ async function setupApp() {
   setupI18n(app);
 
   setupAppVersionNotification();
+
+  initTracker();
 
   setupVueRootValidator(app, {
     lang: getLocale() === 'zh-CN' ? 'zh' : 'en'

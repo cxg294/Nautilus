@@ -13,6 +13,7 @@ import { GoogleGenAI } from '@google/genai';
 import fs from 'fs';
 import path from 'path';
 import config from '../config/env.js';
+import db from '../db/index.js';
 
 // 模型选择
 const MODEL_TEXT = 'gemini-3.1-flash-lite-preview';       // 意图判断 + Prompt 增强
@@ -24,12 +25,26 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-/** 获取 Gemini 客户端 */
+/** 获取 Gemini 客户端（支持 system_settings 代理配置） */
 function getClient() {
   if (!config.geminiApiKey) {
     throw new Error('请在 .env 文件中配置 GEMINI_API_KEY');
   }
-  return new GoogleGenAI({ apiKey: config.geminiApiKey });
+
+  const opts = { apiKey: config.geminiApiKey };
+
+  // 读取代理 baseUrl 配置
+  try {
+    const row = db.prepare('SELECT value FROM system_settings WHERE key = ?').get('proxy.gemini_base_url');
+    if (row && row.value) {
+      opts.httpOptions = { baseUrl: row.value.replace(/\/+$/, '') };
+      console.log('[Material-Gen] 使用 Gemini 代理:', row.value);
+    }
+  } catch {
+    // 表可能不存在（首次启动迁移未完成），忽略
+  }
+
+  return new GoogleGenAI(opts);
 }
 
 /** 从 Gemini 响应中提取并保存图片到指定任务目录 */

@@ -7,6 +7,9 @@
 import { ref, computed, reactive } from 'vue';
 import { siteGroups, getFaviconUrl } from './data/sites';
 import type { SiteItem } from './data/sites';
+import { usePageTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('quick-links');
 
 // ──── 分组切换 ────
 const activeGroup = ref('all');

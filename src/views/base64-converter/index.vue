@@ -11,6 +11,10 @@
  */
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('base64-converter');
+const { trackAction } = useActionTracker('base64-converter');
 
 const { t } = useI18n();
 
@@ -30,6 +34,7 @@ function encodeText() {
     base64Input.value = urlSafe.value
       ? encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
       : encoded;
+    trackAction('encode', 'success');
   } catch {
     window.$message?.error(t('page.base64Converter.encodeFailed'));
   }
@@ -45,6 +50,7 @@ function decodeBase64() {
       while (input.length % 4) input += '=';
     }
     textInput.value = decodeURIComponent(escape(atob(input)));
+    trackAction('decode', 'success');
   } catch {
     window.$message?.error(t('page.base64Converter.decodeFailed'));
   }

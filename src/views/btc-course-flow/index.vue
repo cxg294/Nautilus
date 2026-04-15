@@ -4,6 +4,9 @@ import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useMessage } from 'naive-ui';
 import * as echarts from 'echarts';
 import { useBtcData, METRICS, DIMENSIONS, pivot, totalRow, fmtRate, fmtNum } from './composables/use-btc-data';
+import { usePageTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('btc-course-flow');
 
 const { rawData, meta: _meta, loading, hasData, loadData, loadMeta, uploadFile } = useBtcData();
 const message = useMessage();

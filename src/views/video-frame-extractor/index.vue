@@ -12,6 +12,10 @@ import VideoPlayer from './components/video-player.vue';
 import ExtractControls from './components/extract-controls.vue';
 import FrameGallery from './components/frame-gallery.vue';
 import { useFrameExtractor } from './composables/use-frame-extractor';
+import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('video-frame-extractor');
+const { trackAction } = useActionTracker('video-frame-extractor');
 
 const { t } = useI18n();
 

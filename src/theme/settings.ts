@@ -4,7 +4,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
   grayscale: false,
   colourWeakness: false,
   recommendColor: false,
-  themeColor: '#0f9b8e',
+  themeColor: '#646cff',
   themeRadius: 6,
   otherColor: {
     info: '#2080f0',
@@ -14,7 +14,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
   },
   isInfoFollowPrimary: true,
   layout: {
-    mode: 'vertical',
+    mode: 'horizontal',
     scrollMode: 'content'
   },
   page: {
@@ -22,22 +22,22 @@ export const themeSettings: App.Theme.ThemeSetting = {
     animateMode: 'fade-slide'
   },
   header: {
-    height: 48,
+    height: 56,
     breadcrumb: {
       visible: true,
       showIcon: true
     },
     multilingual: {
-      visible: true
+      visible: false
     },
     globalSearch: {
       visible: true
     }
   },
   tab: {
-    visible: true,
+    visible: false,
     cache: true,
-    height: 38,
+    height: 44,
     mode: 'chrome',
     closeTabByMiddleClick: false
   },
@@ -52,7 +52,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
     autoSelectFirstMenu: false
   },
   footer: {
-    visible: false,
+    visible: true,
     fixed: false,
     height: 48,
     right: true

@@ -12,6 +12,10 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import QRCode from 'qrcode';
+import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('qrcode-generator');
+const { trackAction } = useActionTracker('qrcode-generator');
 
 const { t } = useI18n();
 
@@ -161,6 +165,7 @@ function handleLogoUpload(e: Event) {
 /** 下载二维码 */
 function downloadQR(format: 'png' | 'svg') {
   if (!finalContent.value.trim()) return;
+  trackAction('download', 'success', { format });
 
   if (format === 'svg') {
     QRCode.toString(finalContent.value, {
@@ -228,6 +233,7 @@ async function generateBatch() {
   }
 
   isBatchGenerating.value = false;
+  trackAction('batch_generate', 'success', { count: lines.length });
 }
 
 function downloadBatchItem(item: { text: string; dataUrl: string }) {

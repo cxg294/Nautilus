@@ -12,6 +12,10 @@ import SpritePanel from './components/SpritePanel.vue';
 import DataPanel from './components/DataPanel.vue';
 import LogicPanel from './components/LogicPanel.vue';
 import DiffModal from './components/DiffModal.vue';
+import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('sb3-studio');
+const { trackAction } = useActionTracker('sb3-studio');
 
 const { t } = useI18n();
 const {

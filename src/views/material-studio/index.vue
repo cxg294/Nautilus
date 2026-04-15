@@ -19,6 +19,9 @@ import GeneratingView from './components/GeneratingView.vue';
 import ResultView from './components/ResultView.vue';
 import DecomposeView from './components/DecomposeView.vue';
 import ExtractView from './components/ExtractView.vue';
+import { usePageTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('material-studio');
 
 const { state, error, reset } = useMaterialStudio();
 </script>

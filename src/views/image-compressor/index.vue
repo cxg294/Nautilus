@@ -10,6 +10,9 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ImagePanel from './components/ImagePanel.vue';
 import Sb3Panel from './components/Sb3Panel.vue';
+import { usePageTracker } from '@/hooks/common/use-tracker';
+
+usePageTracker('image-compressor');
 
 const { t } = useI18n();
 const activeTab = ref('images');

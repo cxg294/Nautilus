@@ -13,11 +13,18 @@ import { fail, CODE } from '../utils/response.js';
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.json(fail(CODE.FORCE_LOGOUT, '未提供认证令牌'));
+  // 优先从 Authorization header 获取 token
+  // 如果没有，尝试从 query 参数获取（sendBeacon 兜底方案）
+  let token;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else if (req.query._token) {
+    token = req.query._token;
   }
 
-  const token = authHeader.slice(7);
+  if (!token) {
+    return res.json(fail(CODE.FORCE_LOGOUT, '未提供认证令牌'));
+  }
 
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
