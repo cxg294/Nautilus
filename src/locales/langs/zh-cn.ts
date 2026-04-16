@@ -227,6 +227,7 @@ const local: App.I18n.Schema = {
     'iframe-page': '外链页面',
     home: '首页',
     'base64-converter': 'Base64 转换',
+    'character-generator': '角色生成（test）',
     'btc-course-flow': 'BTC 课程流',
     'effects-generator': '特效生成器',
     'image-compressor': '图片压缩',
@@ -241,7 +242,9 @@ const local: App.I18n.Schema = {
     'timestamp-converter': '时间戳转换',
     'tts-studio': 'TTS 工作室',
     'user-manager': '用户管理',
-    'video-frame-extractor': '视频抽帧'
+    'video-frame-extractor': '视频抽帧',
+    'analytics-dashboard': '数据看板',
+    'proxy-settings': '代理设置'
   },
   page: {
     login: {

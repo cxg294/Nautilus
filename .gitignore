@@ -40,3 +40,4 @@ output.png
 # === 运行时生成 ===
 server/material-studio-output/
 *.xlsx
+server/character-gen-output/

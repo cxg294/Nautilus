@@ -20,8 +20,10 @@ declare module "@elegant-router/types" {
     "403": "/403";
     "404": "/404";
     "500": "/500";
+    "analytics-dashboard": "/analytics-dashboard";
     "base64-converter": "/base64-converter";
     "btc-course-flow": "/btc-course-flow";
+    "character-generator": "/character-generator";
     "effects-generator": "/effects-generator";
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
@@ -30,6 +32,7 @@ declare module "@elegant-router/types" {
     "locked": "/locked";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
     "material-studio": "/material-studio";
+    "proxy-settings": "/proxy-settings";
     "qrcode-generator": "/qrcode-generator";
     "quick-links": "/quick-links";
     "role-manager": "/role-manager";
@@ -73,8 +76,10 @@ declare module "@elegant-router/types" {
     | "403"
     | "404"
     | "500"
+    | "analytics-dashboard"
     | "base64-converter"
     | "btc-course-flow"
+    | "character-generator"
     | "effects-generator"
     | "home"
     | "iframe-page"
@@ -83,6 +88,7 @@ declare module "@elegant-router/types" {
     | "locked"
     | "login"
     | "material-studio"
+    | "proxy-settings"
     | "qrcode-generator"
     | "quick-links"
     | "role-manager"
@@ -114,13 +120,16 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "locked"
     | "login"
+    | "analytics-dashboard"
     | "base64-converter"
     | "btc-course-flow"
+    | "character-generator"
     | "effects-generator"
     | "home"
     | "image-compressor"
     | "image-matting"
     | "material-studio"
+    | "proxy-settings"
     | "qrcode-generator"
     | "quick-links"
     | "role-manager"

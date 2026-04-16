@@ -40,6 +40,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'analytics-dashboard',
+    path: '/analytics-dashboard',
+    component: 'layout.base$view.analytics-dashboard',
+    meta: {
+      title: 'analytics-dashboard',
+      i18nKey: 'route.analytics-dashboard',
+      hideInMenu: true
+    }
+  },
+  {
     name: 'base64-converter',
     path: '/base64-converter',
     component: 'layout.base$view.base64-converter',
@@ -56,6 +66,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       title: 'btc-course-flow',
       i18nKey: 'route.btc-course-flow',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'character-generator',
+    path: '/character-generator',
+    component: 'layout.base$view.character-generator',
+    meta: {
+      title: 'character-generator',
+      i18nKey: 'route.character-generator',
       hideInMenu: true
     }
   },
@@ -145,6 +165,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       title: 'material-studio',
       i18nKey: 'route.material-studio',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'proxy-settings',
+    path: '/proxy-settings',
+    component: 'layout.base$view.proxy-settings',
+    meta: {
+      title: 'proxy-settings',
+      i18nKey: 'route.proxy-settings',
       hideInMenu: true
     }
   },

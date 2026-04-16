@@ -231,6 +231,7 @@ const local: App.I18n.Schema = {
     'iframe-page': 'Iframe',
     home: 'Home',
     'base64-converter': 'Base64 Converter',
+    'character-generator': 'Character Generator (test)',
     'btc-course-flow': 'BTC Course Flow',
     'effects-generator': 'Effects Generator',
     'image-compressor': 'Image Compressor',
@@ -245,7 +246,9 @@ const local: App.I18n.Schema = {
     'timestamp-converter': 'Timestamp Converter',
     'tts-studio': 'TTS Studio',
     'user-manager': 'User Manager',
-    'video-frame-extractor': 'Video Frame Extractor'
+    'video-frame-extractor': 'Video Frame Extractor',
+    'analytics-dashboard': 'Analytics Dashboard',
+    'proxy-settings': 'Proxy Settings'
   },
   page: {
     login: {

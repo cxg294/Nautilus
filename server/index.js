@@ -17,6 +17,7 @@ import btcCourseFlowRoutes from './routes/btc-course-flow.js';
 import ttsRoutes from './routes/tts.js';
 import analyticsRoutes from './routes/analytics.js';
 import systemSettingsRoutes from './routes/system-settings.js';
+import characterGenRoutes from './routes/character-gen.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +77,9 @@ app.use('/api/analytics', analyticsRoutes);
 
 // 系统设置（代理配置等）
 app.use('/api/system-settings', systemSettingsRoutes);
+
+// 角色生成（test）
+app.use('/api/character-gen', characterGenRoutes);
 
 // === 生产模式：提供前端静态文件 ===
 if (!config.isDev) {
