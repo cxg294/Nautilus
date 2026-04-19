@@ -227,7 +227,6 @@ const local: App.I18n.Schema = {
     'iframe-page': '外链页面',
     home: '首页',
     'base64-converter': 'Base64 转换',
-    'character-generator': '角色生成（test）',
     'btc-course-flow': 'BTC 课程流',
     'effects-generator': '特效生成器',
     'image-compressor': '图片压缩',

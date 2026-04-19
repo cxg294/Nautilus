@@ -12,7 +12,7 @@ import { getRouteName, getRoutePath } from '@/router/elegant/transform';
 import { useAuthStore } from '../auth';
 import { useTabStore } from '../tab';
 import {
-  filterAuthRoutesByRoles,
+  filterAuthRoutesByPermissions,
   getBreadcrumbsByRoute,
   getCacheRouteNames,
   getGlobalMenusByAuthRoutes,
@@ -193,7 +193,20 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   /** Init guest-accessible routes (for unauthenticated users) */
   function initGuestRoutes() {
     const { authRoutes: staticAuthRoutes } = createStaticRoutes();
-    const guestRoutes = staticAuthRoutes.filter(route => route.meta?.guestAccessible);
+
+    // 深度过滤：只保留 guestAccessible 的路由及其 guestAccessible 子路由
+    const guestRoutes = staticAuthRoutes.flatMap(route => {
+      if (!route.meta?.guestAccessible) return [];
+
+      const filtered = { ...route };
+      if (filtered.children?.length) {
+        filtered.children = filtered.children.filter(child => child.meta?.guestAccessible);
+      }
+      // 如果分类路由下没有 guest 子路由了，则不显示该分类
+      if (filtered.children?.length === 0) return [];
+
+      return [filtered];
+    });
 
     addAuthRoutes(guestRoutes);
     handleConstantAndAuthRoutes();
@@ -207,7 +220,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     if (authStore.isStaticSuper) {
       addAuthRoutes(staticAuthRoutes);
     } else {
-      const filteredAuthRoutes = filterAuthRoutesByRoles(staticAuthRoutes, authStore.userInfo.roles);
+      const filteredAuthRoutes = filterAuthRoutesByPermissions(staticAuthRoutes, authStore.userInfo.buttons);
 
       addAuthRoutes(filteredAuthRoutes);
     }

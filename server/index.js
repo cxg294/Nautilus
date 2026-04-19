@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config/env.js';
 import { runMigrations } from './db/index.js';
+import { syncToolPermissions } from './services/permission-sync.js';
 import authRoutes from './routes/auth.js';
 
 import userRoutes from './routes/users.js';
@@ -17,7 +18,6 @@ import btcCourseFlowRoutes from './routes/btc-course-flow.js';
 import ttsRoutes from './routes/tts.js';
 import analyticsRoutes from './routes/analytics.js';
 import systemSettingsRoutes from './routes/system-settings.js';
-import characterGenRoutes from './routes/character-gen.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // === 数据库初始化 ===
 runMigrations();
+
+// === 权限同步：扫描 manifest.json 自动注册工具权限 ===
+syncToolPermissions();
 
 // === API 路由 ===
 // 健康检查
@@ -78,8 +81,6 @@ app.use('/api/analytics', analyticsRoutes);
 // 系统设置（代理配置等）
 app.use('/api/system-settings', systemSettingsRoutes);
 
-// 角色生成（test）
-app.use('/api/character-gen', characterGenRoutes);
 
 // === 生产模式：提供前端静态文件 ===
 if (!config.isDev) {

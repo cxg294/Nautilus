@@ -4,7 +4,6 @@
   "icon": "mdi:server-network",
   "order": 4,
   "categoryOrder": 99,
-  "access": "admin",
   "locked": false,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "System",
       "categoryIcon": "mdi:cog-outline"
     }
-  }
+  },
+  "guestAccessible": false
 }

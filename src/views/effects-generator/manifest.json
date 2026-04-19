@@ -4,7 +4,6 @@
   "icon": "mdi:sparkles",
   "order": 3,
   "categoryOrder": 2,
-  "access": "guest",
   "locked": false,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "Image Tools",
       "categoryIcon": "mdi:image-multiple"
     }
-  }
+  },
+  "guestAccessible": true
 }

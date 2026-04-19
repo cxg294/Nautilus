@@ -26,10 +26,10 @@ export function createRouteGuard(router: Router) {
 
     const isLogin = Boolean(localStg.get('token'));
     const needLogin = !to.meta.constant && !to.meta.guestAccessible;
-    const routeRoles = to.meta.roles || [];
+    const permKey = (to.meta as any).permissionKey as string | undefined;
 
-    const hasRole = authStore.userInfo.roles.some(role => routeRoles.includes(role));
-    const hasAuth = authStore.isStaticSuper || !routeRoles.length || hasRole;
+    // 权限判定：guestAccessible 路由无条件放行，否则检查 permissionKey
+    const hasAuth = to.meta.guestAccessible || !permKey || authStore.userInfo.buttons.includes(permKey);
 
     // if it is login route when logged in, then switch to the root page
     if (to.name === loginRoute && isLogin) {

@@ -24,8 +24,8 @@ interface PluginManifest {
   order: number;
   /** 分类在侧边栏中的排列顺序 */
   categoryOrder?: number;
-  /** 访问权限级别 */
-  access: 'guest' | 'user' | 'admin';
+  /** 未登录用户是否可访问 */
+  guestAccessible: boolean;
   /** 是否为锁定占位工具 */
   locked?: boolean;
   /** 多语言翻译 */
@@ -142,13 +142,6 @@ export function getPluginRoutes(): any[] {
     const children = category.tools.map(tool => {
       const routeKey = `${category.name}_${tool.name}`;
 
-      // 将 access 级别映射为前端 roles
-      const accessRolesMap: Record<string, string[]> = {
-        guest: [], // 空数组 = 无角色限制
-        user: ['R_USER', 'R_ADMIN', 'R_SUPER'],
-        admin: ['R_ADMIN', 'R_SUPER']
-      };
-
       return {
         name: routeKey,
         path: `/${category.name}/${tool.name}`,
@@ -158,11 +151,15 @@ export function getPluginRoutes(): any[] {
           i18nKey: `route.${routeKey}`,
           icon: tool.icon,
           order: tool.order,
-          guestAccessible: tool.access === 'guest',
-          roles: accessRolesMap[tool.access] || []
+          guestAccessible: tool.guestAccessible,
+          // 权限 key：登录用户的路由可见性由后端 buttons[] 控制
+          permissionKey: `module:${tool.name}:access`
         }
       };
     });
+
+    // 分类路由只有在包含 guest 子路由时才对 guest 可见
+    const hasGuestChild = children.some(c => c.meta?.guestAccessible);
 
     routes.push({
       name: category.name,
@@ -173,7 +170,7 @@ export function getPluginRoutes(): any[] {
         i18nKey: `route.${category.name}`,
         icon: category.icon,
         order: category.order,
-        guestAccessible: true
+        guestAccessible: hasGuestChild
       },
       children
     });

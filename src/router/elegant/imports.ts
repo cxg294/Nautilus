@@ -24,7 +24,6 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   "analytics-dashboard": () => import("@/views/analytics-dashboard/index.vue"),
   "base64-converter": () => import("@/views/base64-converter/index.vue"),
   "btc-course-flow": () => import("@/views/btc-course-flow/index.vue"),
-  "character-generator": () => import("@/views/character-generator/index.vue"),
   "effects-generator": () => import("@/views/effects-generator/index.vue"),
   home: () => import("@/views/home/index.vue"),
   "image-compressor": () => import("@/views/image-compressor/index.vue"),

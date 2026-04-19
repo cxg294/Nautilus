@@ -4,7 +4,6 @@
   "icon": "mdi:lightbulb-on-outline",
   "order": 3,
   "categoryOrder": 6,
-  "access": "user",
   "locked": true,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "Copywriting",
       "categoryIcon": "mdi:text-box-edit-outline"
     }
-  }
+  },
+  "guestAccessible": true
 }

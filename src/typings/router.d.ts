@@ -37,6 +37,15 @@ declare module 'vue-router' {
      */
     guestAccessible?: boolean | null;
     /**
+     * Permission key for access control
+     *
+     * If set, the user must have this permission key in their buttons[] to access the route.
+     * Used by the route guard and route filtering logic.
+     *
+     * @example 'module:tts-studio:access'
+     */
+    permissionKey?: string;
+    /**
      * Iconify icon
      *
      * It can be used in the menu or breadcrumb

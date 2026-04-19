@@ -23,7 +23,6 @@ declare module "@elegant-router/types" {
     "analytics-dashboard": "/analytics-dashboard";
     "base64-converter": "/base64-converter";
     "btc-course-flow": "/btc-course-flow";
-    "character-generator": "/character-generator";
     "effects-generator": "/effects-generator";
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
@@ -79,7 +78,6 @@ declare module "@elegant-router/types" {
     | "analytics-dashboard"
     | "base64-converter"
     | "btc-course-flow"
-    | "character-generator"
     | "effects-generator"
     | "home"
     | "iframe-page"
@@ -123,7 +121,6 @@ declare module "@elegant-router/types" {
     | "analytics-dashboard"
     | "base64-converter"
     | "btc-course-flow"
-    | "character-generator"
     | "effects-generator"
     | "home"
     | "image-compressor"

@@ -70,16 +70,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'character-generator',
-    path: '/character-generator',
-    component: 'layout.base$view.character-generator',
-    meta: {
-      title: 'character-generator',
-      i18nKey: 'route.character-generator',
-      hideInMenu: true
-    }
-  },
-  {
     name: 'effects-generator',
     path: '/effects-generator',
     component: 'layout.base$view.effects-generator',

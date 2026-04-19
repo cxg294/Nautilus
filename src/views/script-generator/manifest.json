@@ -4,7 +4,6 @@
   "icon": "mdi:file-document-edit-outline",
   "order": 2,
   "categoryOrder": 6,
-  "access": "guest",
   "locked": true,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "Copywriting",
       "categoryIcon": "mdi:text-box-edit-outline"
     }
-  }
+  },
+  "guestAccessible": true
 }

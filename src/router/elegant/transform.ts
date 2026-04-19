@@ -169,7 +169,6 @@ const routeMap: RouteMap = {
   "analytics-dashboard": "/analytics-dashboard",
   "base64-converter": "/base64-converter",
   "btc-course-flow": "/btc-course-flow",
-  "character-generator": "/character-generator",
   "effects-generator": "/effects-generator",
   "home": "/home",
   "iframe-page": "/iframe-page/:url",

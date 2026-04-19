@@ -4,7 +4,6 @@
   "icon": "mdi:archive-arrow-down",
   "order": 2,
   "categoryOrder": 3,
-  "access": "guest",
   "locked": false,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "SB3 Graphical",
       "categoryIcon": "mdi:puzzle"
     }
-  }
+  },
+  "guestAccessible": true
 }

@@ -4,34 +4,33 @@ import { useSvgIcon } from '@/hooks/common/icon';
 import { $t } from '@/locales';
 
 /**
- * Filter auth routes by roles
+ * Filter auth routes by permissions (permission keys from backend buttons[])
  *
  * @param routes Auth routes
- * @param roles Roles
+ * @param permissions Permission keys the user has (userInfo.buttons)
  */
-export function filterAuthRoutesByRoles(routes: ElegantConstRoute[], roles: string[]) {
-  return routes.flatMap(route => filterAuthRouteByRoles(route, roles));
+export function filterAuthRoutesByPermissions(routes: ElegantConstRoute[], permissions: string[]) {
+  return routes.flatMap(route => filterAuthRouteByPermissions(route, permissions));
 }
 
 /**
- * Filter auth route by roles
+ * Filter auth route by permissions
  *
  * @param route Auth route
- * @param roles Roles
+ * @param permissions Permission keys the user has
  */
-function filterAuthRouteByRoles(route: ElegantConstRoute, roles: string[]): ElegantConstRoute[] {
-  const routeRoles = (route.meta && route.meta.roles) || [];
+function filterAuthRouteByPermissions(route: ElegantConstRoute, permissions: string[]): ElegantConstRoute[] {
+  const permKey = (route.meta as any)?.permissionKey as string | undefined;
+  const isGuestAccessible = route.meta?.guestAccessible;
 
-  // if the route's "roles" is empty, then it is allowed to access
-  const isEmptyRoles = !routeRoles.length;
-
-  // if the user's role is included in the route's "roles", then it is allowed to access
-  const hasPermission = routeRoles.some(role => roles.includes(role));
+  // guestAccessible 路由对所有人可见（登录用户不应比 guest 看到更少）
+  // 非 guest 路由需要检查 permission key
+  const hasPermission = isGuestAccessible || !permKey || permissions.includes(permKey);
 
   const filterRoute = { ...route };
 
   if (filterRoute.children?.length) {
-    filterRoute.children = filterRoute.children.flatMap(item => filterAuthRouteByRoles(item, roles));
+    filterRoute.children = filterRoute.children.flatMap(item => filterAuthRouteByPermissions(item, permissions));
   }
 
   // Exclude the route if it has no children after filtering
@@ -39,7 +38,7 @@ function filterAuthRouteByRoles(route: ElegantConstRoute, roles: string[]): Eleg
     return [];
   }
 
-  return hasPermission || isEmptyRoles ? [filterRoute] : [];
+  return hasPermission ? [filterRoute] : [];
 }
 
 /**

@@ -4,7 +4,6 @@
   "icon": "mdi:swap-horizontal-bold",
   "order": 1,
   "categoryOrder": 5,
-  "access": "user",
   "locked": false,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "Data Dashboard",
       "categoryIcon": "mdi:chart-areaspline"
     }
-  }
+  },
+  "guestAccessible": false
 }

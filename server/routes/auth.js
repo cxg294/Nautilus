@@ -22,6 +22,7 @@ import {
   revokeRefreshToken,
   revokeAllUserTokens,
 } from '../services/user.js';
+import { listAllPermissions } from '../services/role.js';
 
 const router = Router();
 
@@ -139,11 +140,13 @@ router.get('/getUserInfo', requireAuth, (req, res) => {
     return res.json(fail(CODE.FORCE_LOGOUT, '账号状态异常'));
   }
 
-  // 获取前端角色标识
+  // 获取前端角色标识（保留向后兼容）
   const roles = mapRolesToFrontend(user.role);
 
-  // 获取权限按钮列表（作为 buttons）
-  const buttons = getRolePermissions(user.role);
+  // 获取权限列表：owner 硬编码拥有全部权限，其他角色查 role_permissions 表
+  const buttons = user.role === 'owner'
+    ? listAllPermissions().map(p => p.key)
+    : getRolePermissions(user.role);
 
   res.json(success({
     userId: String(user.id),

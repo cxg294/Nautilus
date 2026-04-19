@@ -4,7 +4,6 @@
   "icon": "mdi:link-box-variant-outline",
   "order": 1,
   "categoryOrder": 7,
-  "access": "guest",
   "locked": false,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "Quick Links",
       "categoryIcon": "mdi:link-box-variant-outline"
     }
-  }
+  },
+  "guestAccessible": true
 }

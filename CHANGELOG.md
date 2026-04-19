@@ -1,5 +1,126 @@
 # Nautilus 更新日志
 
+## [0.7.0] - 2026-05-13
+
+### ⚠️ BREAKING CHANGE — 权限系统改造
+
+> **@houna @ruoxi @wentao** 请在继续开发前执行下方「分支迁移步骤」。
+
+#### 变更概要
+
+1. **manifest.json 格式变更**（影响所有模块）
+   - ❌ 移除：`"access": "guest" | "user" | "admin"` 字段
+   - ✅ 新增：`"guestAccessible": true | false` 字段（放在 JSON 末尾）
+   - 路由权限不再由前端 roles 双轨控制，统一为后端 `permission_key` 驱动
+
+2. **character-generator 模块已删除**
+   - 前后端代码全部移除（含 `server/routes/character-gen.js`、`server/services/character-gen.js`、`src/views/character-generator/` 整个目录）
+   - DB migration `007_remove_character_generator.sql` 已包含
+
+3. **AI 工具分类重命名**
+   - `ai-tools` → `voice-tools`
+   - 中文名：AI 工具 → 语音工具
+   - 图标：`mdi:robot-outline` → `mdi:microphone-outline`
+
+4. **路由核心改动**
+   - `plugin-scanner.ts`：权限映射从 `accessRolesMap[access]` → `guestAccessible` + `permissionKey`
+   - `route.ts` / `shared.ts` / `route/index.ts`：路由过滤逻辑更新
+   - `router.d.ts`：新增 `permissionKey?: string` 类型声明
+
+5. **新增后端中间件**
+   - `server/middleware/requirePermission.js`：细粒度权限守卫
+   - `server/services/permission-sync.js`：启动时自动注册模块权限到 DB
+
+#### 分支迁移步骤
+
+```bash
+# 1. 切换到你的 test 分支
+git checkout test-houna   # 或 test-ruoxi / test-wentao
+
+# 2. 拉取最新 main
+git fetch origin
+
+# 3. 变基到最新 main（你的分支当前没有额外 commit，直接 reset 也可以）
+git rebase origin/main
+
+# 4. 如果你新建了模块，检查你的 manifest.json：
+#    - 删除 "access" 字段
+#    - 添加 "guestAccessible": false（或 true，如果无需登录可访问）
+#    示例：
+#    {
+#      "name": "your-module",
+#      "category": "your-category",
+#      ...
+#      "guestAccessible": false   ← 放在 JSON 最后
+#    }
+
+# 5. 确认无误后推送
+git push origin test-houna --force-with-lease
+```
+
+#### manifest.json 新旧格式对照
+
+```diff
+ {
+   "name": "btc-course-flow",
+   "category": "data-dashboard",
+   "icon": "mdi:swap-horizontal-bold",
+   "order": 1,
+   "categoryOrder": 5,
+-  "access": "user",
+   "locked": false,
+   "i18n": { ... }
+-}
++  },
++  "guestAccessible": false
++}
+```
+
+---
+
+## [0.6.0] - 2026-05-03
+
+### 🎬 新模块 — 序列脚本播放器 (Sequence Player)
+
+教研"课堂 Galgame 引擎"——导入逐字稿后自动解析为可播放的课程序列。
+
+- **脚本解析引擎**：规则式解析 `角色(造型)：台词`、`【停顿Ns】`、括号动作提示，自动发现角色并分配颜色
+- **6 层播放器舞台**：背景层 + 角色占位/立绘层 + 字幕层（打字机效果）+ UI 控制层
+- **播放器状态机**：idle → ready → playing/paused，支持自动步骤推进
+- **浏览器 TTS 语音**：SpeechSynthesis 封装，支持语速/音调调节
+- **播放控制**：播放/暂停/停止/上一步/下一步/点击跳转
+- **步骤列表**：高亮跟随 + 角色颜色标记 + 自动滚动
+- **键盘快捷键**：Space 播放/暂停、←→ 上/下一步、Esc 停止
+- **设置面板**：5 种内置背景、打字速度、台词间停顿、语速
+- **草稿保存**：localStorage 持久化
+- **内置示例脚本**：一键加载演示
+
+### 🎨 新模块 — 图标库浏览器 (Icon Explorer)
+
+接入 Iconify 公共 API 的 200,000+ 开源图标搜索工具。
+
+- **中文搜索**：内置 120+ 条中英翻译表（箭头→arrow、设置→settings…）
+- **实时搜索**：300ms 防抖 + 防并发
+- **分页加载**：每页 64 条 + 加载更多
+- **图标集筛选**：左侧面板按集合过滤
+- **5 种复制格式**：Iconify 名称、UnoCSS Class、Vue 组件、SVG URL、HTML img
+- **搜索历史**：localStorage 持久化，最多 20 条
+- **热门搜索建议**：15 个常用关键词一键触发
+
+### 🔒 安全加固 — 后端权限中间件
+
+- **TTS 路由**：挂载 `requireAuth + requirePermission('module:tts-studio:access')`
+- **素材工坊路由**：挂载 `requirePermission('module:material-studio:access')`
+- **抠图路由**：挂载 `requirePermission('module:image-matting:access')`
+- **BTC 课程流路由**：挂载 `requirePermission('module:btc-course-flow:access')`
+
+### 🔧 优化 — 用户管理 & 角色系统
+
+- **后端动态化**：角色校验从硬编码 `['owner','user','guest']` 改为数据库动态查询
+- **新增 API**：`GET /api/users/role-options` 返回可分配角色列表
+- **前端 UI**：Tab → NTabs/NTabPane 组件化，角色切换 → NSelect 动态下拉
+- **搜索筛选**：用户管理列表新增搜索过滤功能
+
 ## [0.4.0] - 2026-03-31
 
 ### 🏗️ 架构升级

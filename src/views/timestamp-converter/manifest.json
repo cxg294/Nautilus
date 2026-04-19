@@ -4,7 +4,6 @@
   "icon": "mdi:clock-digital",
   "order": 1,
   "categoryOrder": 4,
-  "access": "guest",
   "locked": false,
   "i18n": {
     "zh-CN": {
@@ -17,5 +16,6 @@
       "category": "Misc Shop",
       "categoryIcon": "mdi:toolbox-outline"
     }
-  }
+  },
+  "guestAccessible": true
 }
