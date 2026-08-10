@@ -14,6 +14,8 @@
 
 ## 快速开始
 
+> 本机推荐 Node.js `v20.19.0`，与 `better-sqlite3` 原生模块 ABI 保持一致。项目已通过 `.nvmrc` 和 `packageManager` 固定运行基线。
+
 ```bash
 # 安装依赖
 pnpm install
@@ -29,6 +31,14 @@ pnpm run dev
 
 前端：http://localhost:9527  
 后端：http://localhost:3000
+
+## 本机诊断
+
+```bash
+pnpm run doctor
+```
+
+诊断会检查 Node/pnpm、better-sqlite3、SQLite 数据库、macOS LaunchAgent、前后端健康检查、AI 新闻接口、lark-cli 与 Git 工作区状态。
 
 ## 项目结构
 
