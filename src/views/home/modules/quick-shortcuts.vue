@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { $t } from '@/locales';
+import { useRouteStore } from '@/store/modules/route';
 
 defineOptions({ name: 'QuickShortcuts' });
 
 const router = useRouter();
+const routeStore = useRouteStore();
 
 // 快捷入口列表，从路由配置中提取
 interface Shortcut {
@@ -14,16 +17,19 @@ interface Shortcut {
   bgColor: string;
   route: string;
   i18nKey: string;
+  /** 对应路由菜单的 routeKey，用于权限过滤 */
+  routeKey: string;
 }
 
-const shortcuts: Shortcut[] = [
+const allShortcuts: Shortcut[] = [
   {
     key: 'image-compressor',
     icon: 'mdi:image-size-select-large',
     color: '#36d399',
     bgColor: 'rgba(54, 211, 153, 0.1)',
     route: '/image-tools/image-compressor',
-    i18nKey: 'route.image-tools_image-compressor'
+    i18nKey: 'route.image-tools_image-compressor',
+    routeKey: 'image-tools_image-compressor'
   },
   {
     key: 'video-frame',
@@ -31,7 +37,8 @@ const shortcuts: Shortcut[] = [
     color: '#6c5ce7',
     bgColor: 'rgba(108, 92, 231, 0.1)',
     route: '/image-tools/video-frame-extractor',
-    i18nKey: 'route.image-tools_video-frame-extractor'
+    i18nKey: 'route.image-tools_video-frame-extractor',
+    routeKey: 'image-tools_video-frame-extractor'
   },
   {
     key: 'effects',
@@ -39,7 +46,8 @@ const shortcuts: Shortcut[] = [
     color: '#f97316',
     bgColor: 'rgba(249, 115, 22, 0.1)',
     route: '/image-tools/effects-generator',
-    i18nKey: 'route.image-tools_effects-generator'
+    i18nKey: 'route.image-tools_effects-generator',
+    routeKey: 'image-tools_effects-generator'
   },
   {
     key: 'sb3-studio',
@@ -47,7 +55,8 @@ const shortcuts: Shortcut[] = [
     color: '#3b82f6',
     bgColor: 'rgba(59, 130, 246, 0.1)',
     route: '/sb3-graphical/sb3-studio',
-    i18nKey: 'route.sb3-graphical_sb3-studio'
+    i18nKey: 'route.sb3-graphical_sb3-studio',
+    routeKey: 'sb3-graphical_sb3-studio'
   },
   {
     key: 'sb3-compress',
@@ -55,7 +64,8 @@ const shortcuts: Shortcut[] = [
     color: '#f43f5e',
     bgColor: 'rgba(244, 63, 94, 0.1)',
     route: '/sb3-graphical/sb3-compressor',
-    i18nKey: 'route.sb3-graphical_sb3-compressor'
+    i18nKey: 'route.sb3-graphical_sb3-compressor',
+    routeKey: 'sb3-graphical_sb3-compressor'
   },
   {
     key: 'timestamp',
@@ -63,7 +73,8 @@ const shortcuts: Shortcut[] = [
     color: '#14b8a6',
     bgColor: 'rgba(20, 184, 166, 0.1)',
     route: '/misc-shop/timestamp-converter',
-    i18nKey: 'route.misc-shop_timestamp-converter'
+    i18nKey: 'route.misc-shop_timestamp-converter',
+    routeKey: 'misc-shop_timestamp-converter'
   },
   {
     key: 'base64',
@@ -71,7 +82,8 @@ const shortcuts: Shortcut[] = [
     color: '#8b5cf6',
     bgColor: 'rgba(139, 92, 246, 0.1)',
     route: '/misc-shop/base64-converter',
-    i18nKey: 'route.misc-shop_base64-converter'
+    i18nKey: 'route.misc-shop_base64-converter',
+    routeKey: 'misc-shop_base64-converter'
   },
   {
     key: 'qrcode',
@@ -79,9 +91,16 @@ const shortcuts: Shortcut[] = [
     color: '#0ea5e9',
     bgColor: 'rgba(14, 165, 233, 0.1)',
     route: '/misc-shop/qrcode-generator',
-    i18nKey: 'route.misc-shop_qrcode-generator'
+    i18nKey: 'route.misc-shop_qrcode-generator',
+    routeKey: 'misc-shop_qrcode-generator'
   }
 ];
+
+// 根据路由菜单权限过滤：只展示在当前菜单中已注册的工具入口
+const shortcuts = computed(() => {
+  const menuKeys = new Set(routeStore.searchMenus.map(m => m.key));
+  return allShortcuts.filter(s => menuKeys.has(s.routeKey));
+});
 
 function navigate(route: string) {
   router.push(route);

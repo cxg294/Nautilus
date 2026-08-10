@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 数据看板 — 埋点分析可视化
+ * 系统运行看板 — 埋点分析可视化
  *
  * 展示工具使用排行、用户活跃度、每日趋势、事件流水
  * 仅 owner 角色可访问
@@ -196,7 +196,7 @@ onBeforeUnmount(() => {
   <div class="analytics-page">
     <!-- 标题栏 -->
     <div class="page-header">
-      <h2 class="page-title">📊 数据看板</h2>
+      <h2 class="page-title">📊 系统运行看板</h2>
       <NSelect
         v-model:value="days"
         :options="daysOptions"

@@ -14,6 +14,31 @@ interface ChangelogItem {
 // TODO: 后续可改为从 Git 日志或数据库读取
 const logs: ChangelogItem[] = [
   {
+    date: '2026-07-03',
+    type: 'fix',
+    content: '补齐登录令牌静默续期兜底，避免环境变量漏配导致登录过期'
+  },
+  {
+    date: '2026-07-02',
+    type: 'milestone',
+    content: 'BTC 课程进量看板正式上线，支持按期次与 SKU 查看核心转化数据'
+  },
+  {
+    date: '2026-07-01',
+    type: 'feature',
+    content: '图片去背景支持 GIF 逐帧处理；新增正则规则工作台'
+  },
+  {
+    date: '2026-07-01',
+    type: 'optimize',
+    content: '完成模块裁剪与导航重组，AI 新闻升级为 RSS 优先的混合数据源'
+  },
+  {
+    date: '2026-06-25',
+    type: 'fix',
+    content: '恢复本机开发服务并修复网络登录 CORS 与抠图鉴权问题'
+  },
+  {
     date: '2026-03-31',
     type: 'optimize',
     content: '首页全面重新设计，新增天气预报、快捷入口、AI新闻等模块'

@@ -4,24 +4,38 @@
  * 1. Burst 模式：使用自研粒子引擎渲染点击爆发效果
  * 2. Ambient 模式：使用 tsParticles 渲染背景粒子
  */
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import type { ISourceOptions, Container } from '@tsparticles/engine';
 import { loadSlim } from '@tsparticles/slim';
 import { tsParticles } from '@tsparticles/engine';
 import { loadEmittersPlugin } from '@tsparticles/plugin-emitters';
+import { loadConfettiPreset } from '@tsparticles/preset-confetti';
+import { loadFirePreset } from '@tsparticles/preset-fire';
+import { loadFireflyPreset } from '@tsparticles/preset-firefly';
+import { loadFireworksPreset } from '@tsparticles/preset-fireworks';
+import { loadFountainPreset } from '@tsparticles/preset-fountain';
+import { loadSnowPreset } from '@tsparticles/preset-snow';
+import { loadStarsPreset } from '@tsparticles/preset-stars';
 import { BurstEngine, type BurstConfig } from '../composables/use-burst-particles';
+import type { BackgroundMode, CompositeConfig, EffectRenderer } from '../data/effect-registry';
 
 const props = defineProps<{
   /** tsParticles 配置（ambient 模式） */
   options: ISourceOptions;
   /** 爆发配置（burst 模式） */
   burstConfig: BurstConfig | null;
+  /** 复合特效配置 */
+  compositeConfig: CompositeConfig | null;
+  /** 当前渲染器 */
+  renderer: EffectRenderer;
   /** 是否为爆发模式 */
   isBurstMode: boolean;
   /** 是否正在播放 */
   isPlaying: boolean;
   /** 背景色 */
   background: string;
+  /** 背景模式 */
+  backgroundMode: BackgroundMode;
 }>();
 
 const containerId = 'effects-preview-' + Math.random().toString(36).slice(2, 8);
@@ -29,6 +43,11 @@ const containerRef = ref<Container | null>(null);
 const isEngineReady = ref(false);
 const burstCanvasRef = ref<HTMLCanvasElement | null>(null);
 let burstEngine: BurstEngine | null = null;
+let loadTimer: ReturnType<typeof setTimeout> | null = null;
+let compositeTimers: ReturnType<typeof setTimeout>[] = [];
+
+const usesBurstCanvas = computed(() => props.renderer !== 'ambient');
+const previewBackground = computed(() => (props.backgroundMode === 'transparent' ? 'transparent' : props.background));
 
 // ============================================================
 // tsParticles 引擎（Ambient 模式）
@@ -38,11 +57,20 @@ async function initTsParticles() {
   await loadSlim(tsParticles);
   // 加载 emitters 插件，支持喷泉等需要发射器的特效
   await loadEmittersPlugin(tsParticles);
+  await Promise.all([
+    loadConfettiPreset(tsParticles),
+    loadFirePreset(tsParticles),
+    loadFireflyPreset(tsParticles),
+    loadFireworksPreset(tsParticles),
+    loadFountainPreset(tsParticles),
+    loadSnowPreset(tsParticles),
+    loadStarsPreset(tsParticles)
+  ]);
   isEngineReady.value = true;
 }
 
 async function loadParticles() {
-  if (!isEngineReady.value || props.isBurstMode) return;
+  if (!isEngineReady.value || props.renderer !== 'ambient') return;
 
   if (containerRef.value) {
     containerRef.value.destroy();
@@ -66,6 +94,13 @@ async function loadParticles() {
   }
 }
 
+function scheduleLoadParticles() {
+  if (loadTimer) clearTimeout(loadTimer);
+  loadTimer = setTimeout(() => {
+    loadParticles();
+  }, 120);
+}
+
 // ============================================================
 // 自研爆发引擎（Burst 模式）
 // ============================================================
@@ -76,9 +111,51 @@ function initBurstEngine() {
   }
 }
 
+function clearCompositeTimers() {
+  compositeTimers.forEach(timer => clearTimeout(timer));
+  compositeTimers = [];
+}
+
+function runComposite() {
+  if (!burstEngine || !burstCanvasRef.value || !props.compositeConfig || !props.isPlaying) return;
+  clearCompositeTimers();
+  burstEngine.clear();
+  const rect = burstCanvasRef.value.getBoundingClientRect();
+
+  for (const layer of props.compositeConfig.layers) {
+    const timer = setTimeout(() => {
+      if (!burstEngine || !props.isPlaying) return;
+      if (layer.type === 'burst') {
+        burstEngine.burst(rect.width * layer.x, rect.height * layer.y, layer.config);
+      } else {
+        burstEngine.overlay(layer.kind, layer.durationMs, layer.color);
+      }
+    }, layer.delayMs);
+    compositeTimers.push(timer);
+  }
+}
+
+function replayCurrentEffect() {
+  if (!burstEngine || !burstCanvasRef.value || !props.isPlaying) return;
+  const rect = burstCanvasRef.value.getBoundingClientRect();
+  if (props.renderer === 'composite') {
+    runComposite();
+  } else if (props.renderer === 'burst' && props.burstConfig) {
+    burstEngine.clear();
+    burstEngine.burst(rect.width / 2, rect.height / 2, props.burstConfig);
+  }
+}
+
 /** 处理点击事件 — 在点击位置触发爆发 */
 function handleCanvasClick(e: MouseEvent) {
-  if (!props.isBurstMode || !props.burstConfig || !burstEngine || !props.isPlaying) return;
+  if (!usesBurstCanvas.value || !burstEngine || !props.isPlaying) return;
+
+  if (props.renderer === 'composite') {
+    runComposite();
+    return;
+  }
+
+  if (!props.burstConfig) return;
 
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   const x = e.clientX - rect.left;
@@ -92,8 +169,8 @@ function handleCanvasClick(e: MouseEvent) {
 // ============================================================
 
 // 监听模式切换
-watch(() => props.isBurstMode, async (isBurst) => {
-  if (isBurst) {
+watch(() => props.renderer, async () => {
+  if (props.renderer !== 'ambient') {
     // 切到 burst 模式：销毁 tsParticles
     if (containerRef.value) {
       containerRef.value.destroy();
@@ -101,14 +178,11 @@ watch(() => props.isBurstMode, async (isBurst) => {
     }
     await nextTick();
     initBurstEngine();
-    // 自动在中心触发一次演示
-    if (burstEngine && props.burstConfig && burstCanvasRef.value) {
-      const rect = burstCanvasRef.value.getBoundingClientRect();
-      burstEngine.resizeCanvas();
-      burstEngine.burst(rect.width / 2, rect.height / 2, props.burstConfig);
-    }
+    burstEngine?.resizeCanvas();
+    replayCurrentEffect();
   } else {
     // 切到 ambient 模式：清除 burst
+    clearCompositeTimers();
     if (burstEngine) burstEngine.clear();
     await loadParticles();
   }
@@ -116,26 +190,29 @@ watch(() => props.isBurstMode, async (isBurst) => {
 
 // 监听 burst 配置变化
 watch(() => props.burstConfig, () => {
-  if (props.isBurstMode && burstEngine) {
-    burstEngine.clear();
-    // 自动演示
-    if (props.burstConfig && burstCanvasRef.value) {
-      const rect = burstCanvasRef.value.getBoundingClientRect();
-      burstEngine.burst(rect.width / 2, rect.height / 2, props.burstConfig);
-    }
+  if (props.renderer === 'burst' && burstEngine) {
+    replayCurrentEffect();
+  }
+}, { deep: true });
+
+watch(() => props.compositeConfig, () => {
+  if (props.renderer === 'composite' && burstEngine) {
+    runComposite();
   }
 }, { deep: true });
 
 // 监听 ambient 配置变化
 watch(() => props.options, () => {
-  if (!props.isBurstMode) loadParticles();
+  if (props.renderer === 'ambient') scheduleLoadParticles();
 }, { deep: true });
 
 // 监听播放状态
 watch(() => props.isPlaying, (playing) => {
-  if (!props.isBurstMode && containerRef.value) {
+  if (props.renderer === 'ambient' && containerRef.value) {
     if (playing) containerRef.value.play();
     else containerRef.value.pause();
+  } else if (playing && props.renderer === 'composite') {
+    runComposite();
   }
 });
 
@@ -144,19 +221,18 @@ onMounted(async () => {
   await nextTick();
   initBurstEngine();
 
-  if (props.isBurstMode) {
+  if (props.renderer !== 'ambient') {
     // 初始自动演示
-    if (burstEngine && props.burstConfig && burstCanvasRef.value) {
-      burstEngine.resizeCanvas();
-      const rect = burstCanvasRef.value.getBoundingClientRect();
-      burstEngine.burst(rect.width / 2, rect.height / 2, props.burstConfig);
-    }
+    burstEngine?.resizeCanvas();
+    replayCurrentEffect();
   } else {
     await loadParticles();
   }
 });
 
 onUnmounted(() => {
+  if (loadTimer) clearTimeout(loadTimer);
+  clearCompositeTimers();
   if (containerRef.value) containerRef.value.destroy();
   if (burstEngine) burstEngine.destroy();
 });
@@ -166,7 +242,7 @@ onUnmounted(() => {
  * Burst 模式：返回自研 canvas；Ambient 模式：返回 tsParticles 内部 canvas
  */
 function getActiveCanvas(): HTMLCanvasElement | null {
-  if (props.isBurstMode) {
+  if (usesBurstCanvas.value) {
     return burstCanvasRef.value;
   }
   // tsParticles 的 canvas 在容器 div 内部
@@ -183,35 +259,35 @@ defineExpose({
 <template>
   <div
     class="preview-canvas"
-    :style="{ background: background }"
-    :class="{ 'preview-canvas--burst': isBurstMode }"
+    :style="{ background: previewBackground }"
+    :class="{ 'preview-canvas--burst': usesBurstCanvas, 'preview-canvas--transparent': backgroundMode === 'transparent' }"
     @click="handleCanvasClick"
   >
     <!-- Ambient 模式：tsParticles 渲染 -->
     <div
-      v-show="!isBurstMode"
+      v-show="renderer === 'ambient'"
       :id="containerId"
       class="preview-canvas__particles"
     />
 
     <!-- Burst 模式：自研 Canvas 渲染 -->
     <canvas
-      v-show="isBurstMode"
+      v-show="usesBurstCanvas"
       ref="burstCanvasRef"
       class="preview-canvas__burst"
     />
 
     <!-- 点击提示（仅 Burst 模式） -->
     <Transition name="fade">
-      <div v-if="isBurstMode && isPlaying" class="preview-canvas__hint">
+      <div v-if="usesBurstCanvas && isPlaying" class="preview-canvas__hint">
         <div class="hint-dot" />
-        <span>点击任意位置触发特效</span>
+        <span>{{ renderer === 'composite' ? '点击重放复合特效' : '点击任意位置触发特效' }}</span>
       </div>
     </Transition>
 
     <!-- 加载遮罩 -->
     <Transition name="fade">
-      <div v-if="!isEngineReady && !isBurstMode" class="preview-canvas__loading">
+      <div v-if="!isEngineReady && renderer === 'ambient'" class="preview-canvas__loading">
         <div class="loading-spinner" />
         <span>Loading engine...</span>
       </div>
@@ -232,6 +308,17 @@ defineExpose({
 
 .preview-canvas--burst {
   cursor: crosshair;
+}
+
+.preview-canvas--transparent {
+  background-color: transparent !important;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0;
 }
 
 .preview-canvas__particles {

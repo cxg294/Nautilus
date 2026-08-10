@@ -1,0 +1,21 @@
+{
+  "name": "regex-workflow",
+  "category": "copywriting",
+  "icon": "mdi:regex",
+  "order": 2,
+  "categoryOrder": 6,
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "正则规则工作台",
+      "category": "文案创意",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    },
+    "en-US": {
+      "route": "Regex Workflow",
+      "category": "Copywriting",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    }
+  },
+  "guestAccessible": false
+}

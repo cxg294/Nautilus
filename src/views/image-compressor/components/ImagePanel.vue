@@ -9,7 +9,7 @@
 import { useI18n } from 'vue-i18n';
 import { useImageCompressor, type ImageItem } from '../composables/use-image-compressor';
 import CompareModal from './CompareModal.vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const { t } = useI18n();
 const {
@@ -35,6 +35,9 @@ const compareItem = ref<ImageItem | null>(null);
 
 /** 设置抽屉 */
 const showSettings = ref(false);
+const pendingCount = computed(() => images.value.filter(img => img.status === 'pending').length);
+const compressingCount = computed(() => images.value.filter(img => img.status === 'compressing').length);
+const errorCount = computed(() => images.value.filter(img => img.status === 'error').length);
 
 /** 处理文件上传 */
 function handleUpload(opts: { file: { file: File | null } }) {
@@ -73,37 +76,31 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
   return map[status] || 'default';
 }
 
-/** 获取状态图标 */
-function getStatusIcon(status: string): string {
-  const map: Record<string, string> = {
-    pending: '⏳',
-    compressing: '⚙️',
-    done: '✅',
-    error: '❌'
-  };
-  return map[status] || '⏳';
-}
 </script>
 
 <template>
-  <div class="image-panel" @dragover.prevent @drop="handleDrop">
+  <div class="image-panel" :class="{ 'image-panel--empty': images.length === 0 }" @dragover.prevent @drop="handleDrop">
     <!-- 页面 Header -->
-    <div class="page-header">
+    <div v-if="images.length > 0" class="page-header">
       <div class="header-left">
         <h2 class="page-title">
-          图片批量压缩
+          压缩队列
           <NTag type="primary" size="small" round>{{ engine === 'wasm' ? 'WASM' : 'Canvas' }}</NTag>
         </h2>
-        <p class="page-desc">拖入多张图片，一键批量压缩，支持 JPEG / PNG / WebP 格式</p>
+        <div class="status-line">
+          <span>{{ images.length }} 张图片</span>
+          <NTag v-if="pendingCount" size="small" round>{{ pendingCount }} 等待中</NTag>
+          <NTag v-if="compressingCount" type="info" size="small" round>{{ compressingCount }} 压缩中</NTag>
+          <NTag v-if="doneCount" type="success" size="small" round>{{ doneCount }} 已完成</NTag>
+          <NTag v-if="errorCount" type="error" size="small" round>{{ errorCount }} 失败</NTag>
+        </div>
       </div>
       <div class="header-actions">
         <NTooltip trigger="hover" placement="bottom">
           <template #trigger>
             <NButton quaternary circle @click="showSettings = true">
               <template #icon>
-                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94c0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6s-1.62 3.6-3.6 3.6" />
-                </svg>
+                <SvgIcon icon="mdi:cog-outline" />
               </template>
             </NButton>
           </template>
@@ -127,7 +124,10 @@ function getStatusIcon(status: string): string {
         <NUploadDragger>
           <div class="dragger-content">
             <div v-if="images.length === 0" class="dragger-empty">
-              <div class="dragger-icon">🖼️</div>
+              <span class="dragger-icon">
+                <SvgIcon icon="mdi:image-multiple-outline" />
+              </span>
+              <NText class="empty-title">图片批量压缩</NText>
               <NText style="font-size: 16px; font-weight: 500">
                 {{ t('page.imageCompressor.uploadTitle') }}
               </NText>
@@ -136,10 +136,8 @@ function getStatusIcon(status: string): string {
               </NText>
             </div>
             <div v-else class="dragger-compact">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" />
-              </svg>
-              <NText style="font-size: 13px">继续追加图片到队列...</NText>
+              <SvgIcon icon="mdi:plus-box-outline" />
+              <NText style="font-size: 13px">继续追加图片到队列</NText>
             </div>
           </div>
         </NUploadDragger>
@@ -149,7 +147,8 @@ function getStatusIcon(status: string): string {
     <!-- 操作栏（有图片时显示） -->
     <div v-if="images.length > 0" class="action-bar">
       <div class="action-bar-left">
-        <span class="action-bar-title">任务队列 ({{ images.length }})</span>
+        <span class="action-bar-title">批量操作</span>
+        <NTag size="small" round>已选择 {{ images.length }} 张</NTag>
         <NTag v-if="doneCount > 0" type="success" size="small" round>
           已完成: {{ doneCount }}
         </NTag>
@@ -176,9 +175,7 @@ function getStatusIcon(status: string): string {
           @click="downloadAllAsZip"
         >
           <template #icon>
-            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7l7-7zm-8 2V5h2v6h1.17L12 13.17L9.83 11zM5 19v-2h14v2z" />
-            </svg>
+              <SvgIcon icon="mdi:download-outline" />
           </template>
           ZIP 打包下载
         </NButton>
@@ -190,9 +187,7 @@ function getStatusIcon(status: string): string {
           @click="compressAll"
         >
           <template #icon>
-            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M8 5v14l11-7z" />
-            </svg>
+              <SvgIcon icon="mdi:play-outline" />
           </template>
           {{ t('page.imageCompressor.compressAll') }}
         </NButton>
@@ -227,7 +222,7 @@ function getStatusIcon(status: string): string {
             size="tiny"
             round
           >
-            {{ getStatusIcon(img.status) }} {{ t(`page.imageCompressor.status.${img.status}`) }}
+            {{ t(`page.imageCompressor.status.${img.status}`) }}
           </NTag>
 
           <!-- 处理中遮罩 -->
@@ -388,9 +383,17 @@ function getStatusIcon(status: string): string {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  padding: 16px 24px;
+  gap: 14px;
+  overflow: hidden;
+  padding: 20px 24px;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.06), transparent 32%),
+    linear-gradient(315deg, rgba(15, 118, 110, 0.05), transparent 38%);
+}
+
+.image-panel--empty {
+  justify-content: center;
 }
 
 /* ---- Page Header ---- */
@@ -398,6 +401,8 @@ function getStatusIcon(status: string): string {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 18px;
+  flex-shrink: 0;
 }
 
 .page-title {
@@ -409,15 +414,24 @@ function getStatusIcon(status: string): string {
   gap: 8px;
 }
 
-.page-desc {
-  margin: 0;
+.status-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--n-text-color-2);
   font-size: 13px;
-  opacity: 0.6;
+}
+
+.header-actions {
+  display: flex;
+  flex-shrink: 0;
 }
 
 /* ---- Upload Zone ---- */
 .upload-zone :deep(.n-upload-dragger) {
-  padding: 20px;
+  background: var(--n-color-modal);
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -427,12 +441,12 @@ function getStatusIcon(status: string): string {
 }
 
 .upload-zone--empty {
-  max-width: 600px;
-  margin: 60px auto 0;
+  width: min(720px, 100%);
+  margin: 0 auto;
 }
 
 .upload-zone--empty :deep(.n-upload-dragger) {
-  padding: 48px 20px;
+  padding: 52px 24px;
 }
 
 .upload-zone--compact :deep(.n-upload-dragger) {
@@ -450,13 +464,31 @@ function getStatusIcon(status: string): string {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .dragger-icon {
-  font-size: 56px;
-  margin-bottom: 8px;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
   transition: transform 0.3s;
+}
+
+.dragger-icon :deep(svg) {
+  width: 30px;
+  height: 30px;
+}
+
+.empty-title {
+  color: var(--n-text-color);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .upload-zone :deep(.n-upload-dragger:hover) .dragger-icon {
@@ -470,6 +502,12 @@ function getStatusIcon(status: string): string {
   opacity: 0.7;
 }
 
+.dragger-compact :deep(svg) {
+  width: 18px;
+  height: 18px;
+  color: #2563eb;
+}
+
 /* ---- Action Bar ---- */
 .action-bar {
   display: flex;
@@ -481,6 +519,7 @@ function getStatusIcon(status: string): string {
   border: 1px solid var(--n-border-color, #e0e0e6);
   background: var(--n-color-modal, #f9f9fb);
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .dark .action-bar {
@@ -509,10 +548,16 @@ function getStatusIcon(status: string): string {
 
 /* ---- Image Grid ---- */
 .image-grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  padding-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-items: start;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 2px 2px 18px;
 }
 
 .image-card {
@@ -554,7 +599,7 @@ function getStatusIcon(status: string): string {
 .thumb-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: clamp(150px, 11vw, 210px);
   overflow: hidden;
   background: repeating-conic-gradient(#f0f0f4 0% 25%, transparent 0% 50%) 50% / 16px 16px;
 }
@@ -679,8 +724,14 @@ function getStatusIcon(status: string): string {
 
 /* ---- Responsive ---- */
 @media (max-width: 640px) {
+  .image-panel {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
   .image-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    overflow: visible;
   }
 
   .action-bar {

@@ -1,0 +1,21 @@
+{
+  "name": "icon-explorer",
+  "category": "misc-shop",
+  "icon": "mdi:emoticon-outline",
+  "order": 3,
+  "categoryOrder": 4,
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "图标库",
+      "category": "杂货铺",
+      "categoryIcon": "mdi:toolbox-outline"
+    },
+    "en-US": {
+      "route": "Icon Explorer",
+      "category": "Misc Shop",
+      "categoryIcon": "mdi:toolbox-outline"
+    }
+  },
+  "guestAccessible": true
+}

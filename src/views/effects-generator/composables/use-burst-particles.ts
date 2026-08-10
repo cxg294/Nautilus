@@ -40,6 +40,8 @@ interface Particle {
   sizeMode: SizeMode;
   /** 尾迹历史位置 */
   history: Array<{ x: number; y: number; opacity: number }>;
+  /** 可选粒子贴图 */
+  texture: HTMLImageElement | null;
 }
 
 /** 爆发配置 */
@@ -79,6 +81,17 @@ export interface BurstConfig {
   sizeMode?: SizeMode;
   /** 颜色渐变：粒子生命期内从 colors 中选的颜色渐变到此 endColor */
   colorGradient?: string;
+  /** 粒子贴图路径，来自素材库 */
+  texturePaths?: string[];
+}
+
+export type BurstOverlayKind = 'flash' | 'spotlight' | 'curtain' | 'speedLines' | 'impactLines';
+
+interface BurstOverlay {
+  kind: BurstOverlayKind;
+  life: number;
+  maxLife: number;
+  color: string;
 }
 
 // ============================================================
@@ -91,6 +104,18 @@ function rand(min: number, max: number) {
 
 function randItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const imageCache = new Map<string, HTMLImageElement>();
+
+function loadTexture(src: string): HTMLImageElement {
+  const cached = imageCache.get(src);
+  if (cached) return cached;
+  const image = new Image();
+  image.crossOrigin = 'anonymous';
+  image.src = src;
+  imageCache.set(src, image);
+  return image;
 }
 
 /**
@@ -287,6 +312,17 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.fillStyle = currentColor;
   ctx.strokeStyle = currentColor;
 
+  if (p.texture?.complete && p.texture.naturalWidth > 0) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation);
+    const drawSize = currentSize * 2;
+    ctx.drawImage(p.texture, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
   // ---- 边缘柔化处理 ----
   // 对 circle 和 ring 形状使用径向渐变实现柔化
   const useSoftFill = p.softness > 0 && (p.shape === 'circle' || p.shape === 'star');
@@ -372,8 +408,10 @@ export class BurstEngine {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private particles: Particle[] = [];
+  private overlays: BurstOverlay[] = [];
   private rafId: number | null = null;
   private lastTime = 0;
+  private resizeHandler = () => this.resizeCanvas();
   private pendingSecondary: Array<{
     x: number;
     y: number;
@@ -385,16 +423,16 @@ export class BurstEngine {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
     this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
+    window.addEventListener('resize', this.resizeHandler);
   }
 
   /** 调整 Canvas 分辨率 */
   resizeCanvas() {
     const rect = this.canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
-    this.ctx.scale(dpr, dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   /** 在指定位置触发爆发 */
@@ -406,6 +444,7 @@ export class BurstEngine {
       const angle = rand(angleMin, angleMax);
       const speed = rand(config.speed[0], config.speed[1]);
       const life = rand(config.life[0], config.life[1]);
+      const texture = config.texturePaths?.length ? loadTexture(randItem(config.texturePaths)) : null;
 
       const particle: Particle = {
         x,
@@ -427,7 +466,8 @@ export class BurstEngine {
         softness: config.softness ?? 0,
         lifeCurve: config.lifeCurve ?? 'easeOut',
         sizeMode: config.sizeMode ?? 'shrink',
-        history: []
+        history: [],
+        texture
       };
 
       this.particles.push(particle);
@@ -442,6 +482,17 @@ export class BurstEngine {
     }
 
     // 确保动画循环在运行
+    if (!this.rafId) {
+      this.lastTime = performance.now();
+      this.animate();
+    }
+  }
+
+  /** 播放可录制的画布叠加层 */
+  overlay(kind: BurstOverlayKind, durationMs: number, color = '#ffffff') {
+    const life = Math.max(0.1, durationMs / 1000);
+    this.overlays.push({ kind, life, maxLife: life, color });
+
     if (!this.rafId) {
       this.lastTime = performance.now();
       this.animate();
@@ -493,17 +544,96 @@ export class BurstEngine {
       }
     }
 
+    // 更新并绘制叠加层，保证 GIF/PNG 序列能录到这些效果
+    for (let i = this.overlays.length - 1; i >= 0; i--) {
+      const overlay = this.overlays[i];
+      overlay.life -= dt;
+      if (overlay.life <= 0) {
+        this.overlays.splice(i, 1);
+        continue;
+      }
+      this.drawOverlay(overlay);
+    }
+
     // 如果还有粒子，继续动画
-    if (this.particles.length > 0 || this.pendingSecondary.length > 0) {
+    if (this.particles.length > 0 || this.pendingSecondary.length > 0 || this.overlays.length > 0) {
       this.rafId = requestAnimationFrame(this.animate);
     } else {
       this.rafId = null;
     }
   };
 
+  private drawOverlay(overlay: BurstOverlay) {
+    const rect = this.canvas.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const progress = 1 - overlay.life / overlay.maxLife;
+    const fade = Math.sin(Math.PI * Math.min(1, progress));
+
+    this.ctx.save();
+
+    if (overlay.kind === 'flash') {
+      this.ctx.globalAlpha = fade * 0.85;
+      this.ctx.fillStyle = overlay.color;
+      this.ctx.fillRect(0, 0, width, height);
+    } else if (overlay.kind === 'spotlight') {
+      this.ctx.globalAlpha = 0.42 * Math.sin(Math.PI * Math.min(1, progress));
+      this.ctx.fillStyle = overlay.color;
+      this.ctx.fillRect(0, 0, width, height);
+      this.ctx.globalCompositeOperation = 'destination-out';
+      const radius = Math.min(width, height) * (0.18 + 0.1 * Math.sin(progress * Math.PI));
+      const gradient = this.ctx.createRadialGradient(width / 2, height / 2, radius * 0.25, width / 2, height / 2, radius);
+      gradient.addColorStop(0, 'rgba(0,0,0,1)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      this.ctx.fillStyle = gradient;
+      this.ctx.beginPath();
+      this.ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+      this.ctx.fill();
+    } else if (overlay.kind === 'curtain') {
+      this.ctx.globalAlpha = 0.82;
+      this.ctx.fillStyle = overlay.color;
+      const half = width / 2;
+      const cover = progress < 0.5 ? progress / 0.5 : 1 - (progress - 0.5) / 0.5;
+      this.ctx.fillRect(0, 0, half * cover, height);
+      this.ctx.fillRect(width - half * cover, 0, half * cover, height);
+    } else if (overlay.kind === 'speedLines') {
+      this.ctx.globalAlpha = (1 - progress) * 0.75;
+      this.ctx.strokeStyle = overlay.color;
+      this.ctx.lineWidth = 3;
+      for (let i = 0; i < 26; i++) {
+        const y = ((i * 53) % Math.max(1, height)) + Math.sin(i) * 8;
+        const side = i % 2 === 0 ? -1 : 1;
+        const x1 = side < 0 ? 0 : width;
+        const x2 = width / 2 + side * (40 + (i % 5) * 24);
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y);
+        this.ctx.lineTo(x2, y - 30 + (i % 7) * 10);
+        this.ctx.stroke();
+      }
+    } else if (overlay.kind === 'impactLines') {
+      this.ctx.globalAlpha = (1 - progress) * 0.85;
+      this.ctx.strokeStyle = overlay.color;
+      this.ctx.lineWidth = 3;
+      const cx = width / 2;
+      const cy = height * 0.44;
+      const inner = Math.min(width, height) * (0.12 + progress * 0.05);
+      const outer = Math.max(width, height) * 0.7;
+      for (let i = 0; i < 34; i++) {
+        const angle = (i / 34) * Math.PI * 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+        this.ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+        this.ctx.stroke();
+      }
+    }
+
+    this.ctx.restore();
+  }
+
   /** 清除所有粒子 */
   clear() {
     this.particles = [];
+    this.overlays = [];
     this.pendingSecondary = [];
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
@@ -516,6 +646,6 @@ export class BurstEngine {
   /** 销毁引擎 */
   destroy() {
     this.clear();
-    window.removeEventListener('resize', () => this.resizeCanvas());
+    window.removeEventListener('resize', this.resizeHandler);
   }
 }

@@ -1,9 +1,20 @@
 import { ref, computed, type Ref } from 'vue';
 import type { ISourceOptions } from '@tsparticles/engine';
 import type { BurstConfig, LifeCurve, SizeMode } from './use-burst-particles';
+import {
+  ADDITIONAL_EFFECT_RECIPES,
+  type BackgroundMode,
+  type CompositeConfig,
+  type EffectCategory,
+  type EffectQuality,
+  type EffectRecipe,
+  type EffectRenderer,
+  type ExportFormat,
+  type PerformanceCost
+} from '../data/effect-registry';
 
 /** 特效类型 */
-export type EffectType = 'burst' | 'ambient';
+export type EffectType = EffectRenderer;
 
 /** 预设效果定义 */
 export interface EffectPreset {
@@ -19,6 +30,22 @@ export interface EffectPreset {
   burstConfig?: BurstConfig;
   /** 默认背景色 */
   background: string;
+  /** 讲解视频节拍分类 */
+  category: EffectCategory;
+  /** 视觉/用途标签 */
+  tags: string[];
+  /** 渲染器 */
+  renderer: EffectRenderer;
+  /** 默认背景模式 */
+  backgroundMode: BackgroundMode;
+  /** 性能成本 */
+  performanceCost: PerformanceCost;
+  /** 授权素材引用 */
+  assetRefs: string[];
+  /** 复合特效配置 */
+  compositeConfig?: CompositeConfig;
+  /** 默认时长 */
+  durationMs: number;
 }
 
 /** 可调节参数 */
@@ -35,6 +62,12 @@ export interface EffectParams {
   gravity: number;
   /** 背景色 */
   background: string;
+  /** 背景模式 */
+  backgroundMode: BackgroundMode;
+  /** 预览质量 */
+  quality: EffectQuality;
+  /** 导出格式 */
+  exportFormat: ExportFormat;
   /** 边缘柔化度 0~1 */
   softness: number;
   /** 生命衰减曲线 */
@@ -53,6 +86,9 @@ const defaultParams: EffectParams = {
   opacity: 0.8,
   gravity: 0.5,
   background: '#0d1117',
+  backgroundMode: 'solid',
+  quality: 'standard',
+  exportFormat: 'html',
   softness: 0,
   lifeCurve: 'easeOut',
   sizeMode: 'shrink',
@@ -479,29 +515,139 @@ const ambientPresets: Record<string, { options: ISourceOptions; background: stri
 // 导出 — 预设列表
 // ============================================================
 
+const legacyMeta: Record<string, {
+  category: EffectCategory;
+  tags: string[];
+  performanceCost: PerformanceCost;
+  backgroundMode?: BackgroundMode;
+  durationMs: number;
+}> = {
+  'star-burst': { category: 'celebration', tags: ['legacy', 'star'], performanceCost: 'low', durationMs: 1600 },
+  'confetti-pop': { category: 'celebration', tags: ['legacy', 'confetti'], performanceCost: 'medium', durationMs: 2200 },
+  'heart-burst': { category: 'emotion', tags: ['legacy', 'heart'], performanceCost: 'low', durationMs: 1800 },
+  'sparkle-flash': { category: 'emphasis', tags: ['legacy', 'sparkle'], performanceCost: 'medium', durationMs: 900 },
+  'firework-click': { category: 'celebration', tags: ['legacy', 'firework'], performanceCost: 'high', durationMs: 1700 },
+  'lightning-spark': { category: 'emphasis', tags: ['legacy', 'energy'], performanceCost: 'medium', durationMs: 900 },
+  'rainbow-burst': { category: 'celebration', tags: ['legacy', 'rainbow'], performanceCost: 'medium', durationMs: 2200 },
+  'gold-coins': { category: 'celebration', tags: ['legacy', 'reward'], performanceCost: 'medium', durationMs: 2200 },
+  'deep-space': { category: 'ambient', tags: ['legacy', 'space'], performanceCost: 'high', durationMs: 3000 },
+  aurora: { category: 'ambient', tags: ['legacy', 'aurora'], performanceCost: 'high', durationMs: 3000 },
+  'neon-matrix': { category: 'ambient', tags: ['legacy', 'links'], performanceCost: 'high', durationMs: 3000 },
+  'cyber-bubbles': { category: 'ambient', tags: ['legacy', 'bubbles'], performanceCost: 'medium', durationMs: 3000 },
+  'fire-rise': { category: 'ambient', tags: ['legacy', 'fire'], performanceCost: 'high', durationMs: 3000 },
+  fountain: { category: 'ambient', tags: ['legacy', 'fountain'], performanceCost: 'high', durationMs: 3000 }
+};
+
+function legacyInfo(key: string) {
+  return legacyMeta[key] ?? {
+    category: 'emphasis' as EffectCategory,
+    tags: ['legacy'],
+    performanceCost: 'medium' as PerformanceCost,
+    durationMs: 1500
+  };
+}
+
+function recipeToPreset(recipe: EffectRecipe): EffectPreset {
+  return {
+    key: recipe.id,
+    i18nKey: recipe.nameI18nKey,
+    type: recipe.renderer,
+    renderer: recipe.renderer,
+    options: recipe.config.ambient,
+    burstConfig: recipe.config.burst,
+    compositeConfig: recipe.config.composite,
+    background: recipe.backgroundMode === 'transparent' ? '#0d1117' : '#0d1117',
+    category: recipe.category,
+    tags: recipe.tags,
+    backgroundMode: recipe.backgroundMode,
+    performanceCost: recipe.performanceCost,
+    assetRefs: recipe.assetRefs,
+    durationMs: recipe.durationMs
+  };
+}
+
 /** 所有预设列表 */
 export const PRESET_LIST: EffectPreset[] = [
   // 点击特效
-  ...Object.entries(burstPresets).map(([key, val]) => ({
-    key,
-    i18nKey: `page.effectsGenerator.presets.${key}` as string,
-    type: 'burst' as EffectType,
-    burstConfig: val.burstConfig,
-    background: val.background
-  })),
+  ...Object.entries(burstPresets).map(([key, val]) => {
+    const meta = legacyInfo(key);
+    return {
+      key,
+      i18nKey: `page.effectsGenerator.presets.${key}` as string,
+      type: 'burst' as EffectType,
+      renderer: 'burst' as EffectRenderer,
+      burstConfig: val.burstConfig,
+      background: val.background,
+      category: meta.category,
+      tags: meta.tags,
+      backgroundMode: meta.backgroundMode ?? 'solid',
+      performanceCost: meta.performanceCost,
+      assetRefs: [],
+      durationMs: meta.durationMs
+    };
+  }),
   // 背景特效
-  ...Object.entries(ambientPresets).map(([key, val]) => ({
-    key,
-    i18nKey: `page.effectsGenerator.presets.${key}` as string,
-    type: 'ambient' as EffectType,
-    options: val.options,
-    background: val.background
-  }))
+  ...Object.entries(ambientPresets).map(([key, val]) => {
+    const meta = legacyInfo(key);
+    return {
+      key,
+      i18nKey: `page.effectsGenerator.presets.${key}` as string,
+      type: 'ambient' as EffectType,
+      renderer: 'ambient' as EffectRenderer,
+      options: val.options,
+      background: val.background,
+      category: meta.category,
+      tags: meta.tags,
+      backgroundMode: meta.backgroundMode ?? 'solid',
+      performanceCost: meta.performanceCost,
+      assetRefs: [],
+      durationMs: meta.durationMs
+    };
+  }),
+  ...ADDITIONAL_EFFECT_RECIPES.map(recipeToPreset)
 ];
 
 /** 按类型分组 */
 export const BURST_PRESETS = PRESET_LIST.filter(p => p.type === 'burst');
 export const AMBIENT_PRESETS = PRESET_LIST.filter(p => p.type === 'ambient');
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function qualityScale(quality: EffectQuality) {
+  if (quality === 'preview') return 0.55;
+  if (quality === 'export') return 1.2;
+  return 1;
+}
+
+function applyParamsToBurst(config: BurstConfig, params: EffectParams): BurstConfig {
+  const base = clone(config);
+  const scale = qualityScale(params.quality);
+  base.count = Math.max(1, Math.round(params.particleCount * scale));
+  base.speed = [base.speed[0] * (params.speed / 3), base.speed[1] * (params.speed / 3)];
+  base.size = [base.size[0] * (params.size / 4), base.size[1] * (params.size / 4)];
+  base.gravity = params.gravity;
+  base.softness = params.softness;
+  base.lifeCurve = params.lifeCurve;
+  base.sizeMode = params.sizeMode;
+  if (params.colorGradient) {
+    base.colorGradient = params.colorGradient;
+  } else {
+    delete base.colorGradient;
+  }
+  return base;
+}
+
+function withTransparentBackground(options: ISourceOptions, backgroundMode: BackgroundMode, background: string) {
+  const base = clone(options) as any;
+  if (backgroundMode === 'transparent') {
+    delete base.background;
+  } else {
+    base.background = { color: background };
+  }
+  return base as ISourceOptions;
+}
 
 /**
  * 特效管理组合式函数
@@ -525,29 +671,32 @@ export function useEffects() {
   });
 
   /** 当前是否为点击式特效 */
-  const isBurstMode = computed(() => activePreset.value.type === 'burst');
+  const activeRenderer = computed(() => activePreset.value.renderer);
+  const isBurstMode = computed(() => activePreset.value.renderer === 'burst');
+  const isCompositeMode = computed(() => activePreset.value.renderer === 'composite');
+  const usesBurstCanvas = computed(() => activePreset.value.renderer !== 'ambient');
 
   /**
    * 获取当前爆发配置（应用参数调节）
    */
   const activeBurstConfig = computed<BurstConfig | null>(() => {
     const preset = activePreset.value;
-    if (preset.type !== 'burst' || !preset.burstConfig) return null;
+    if (preset.renderer !== 'burst' || !preset.burstConfig) return null;
+    return applyParamsToBurst(preset.burstConfig, params.value);
+  });
 
-    const base = JSON.parse(JSON.stringify(preset.burstConfig)) as BurstConfig;
-    // 应用参数面板的调节
-    base.count = params.value.particleCount;
-    base.speed = [base.speed[0] * (params.value.speed / 3), base.speed[1] * (params.value.speed / 3)];
-    base.size = [base.size[0] * (params.value.size / 4), base.size[1] * (params.value.size / 4)];
-    base.gravity = params.value.gravity;
-    // 应用新的样式参数
-    base.softness = params.value.softness;
-    base.lifeCurve = params.value.lifeCurve;
-    base.sizeMode = params.value.sizeMode;
-    if (params.value.colorGradient) {
-      base.colorGradient = params.value.colorGradient;
-    }
-    return base;
+  const activeCompositeConfig = computed<CompositeConfig | null>(() => {
+    const preset = activePreset.value;
+    if (preset.renderer !== 'composite' || !preset.compositeConfig) return null;
+    const config = clone(preset.compositeConfig);
+    config.layers = config.layers.map(layer => {
+      if (layer.type !== 'burst') return layer;
+      return {
+        ...layer,
+        config: applyParamsToBurst(layer.config, params.value)
+      };
+    });
+    return config;
   });
 
   /**
@@ -555,17 +704,18 @@ export function useEffects() {
    */
   const mergedOptions = computed<ISourceOptions>(() => {
     const preset = activePreset.value;
-    if (preset.type !== 'ambient' || !preset.options) {
-      return { background: { color: params.value.background }, fullScreen: false };
+    if (preset.renderer !== 'ambient' || !preset.options) {
+      return params.value.backgroundMode === 'transparent'
+        ? { fullScreen: false }
+        : { background: { color: params.value.background }, fullScreen: false };
     }
 
-    const base = JSON.parse(JSON.stringify(preset.options)) as ISourceOptions;
-    (base as any).background = { color: params.value.background };
+    const base = withTransparentBackground(preset.options, params.value.backgroundMode, params.value.background);
 
     if ((base as any).particles) {
       const p = (base as any).particles;
       if (p.number && typeof p.number.value === 'number' && p.number.value > 0) {
-        p.number.value = params.value.particleCount;
+        p.number.value = Math.max(1, Math.round(params.value.particleCount * qualityScale(params.value.quality)));
       }
       if (p.move) {
         if (typeof p.move.speed === 'number') {
@@ -608,6 +758,7 @@ export function useEffects() {
     const preset = PRESET_LIST.find(p => p.key === key);
     if (preset) {
       params.value.background = preset.background;
+      params.value.backgroundMode = preset.backgroundMode;
       // 同步预设的新样式参数
       if (preset.burstConfig) {
         params.value.softness = preset.burstConfig.softness ?? 0;
@@ -636,6 +787,7 @@ export function useEffects() {
     params.value = {
       ...defaultParams,
       background: preset.background,
+      backgroundMode: preset.backgroundMode,
       softness: preset.burstConfig?.softness ?? defaultParams.softness,
       lifeCurve: preset.burstConfig?.lifeCurve ?? defaultParams.lifeCurve,
       sizeMode: preset.burstConfig?.sizeMode ?? defaultParams.sizeMode,
@@ -655,7 +807,16 @@ export function useEffects() {
       return JSON.stringify({
         type: 'burst',
         preset: activePresetKey.value,
+        backgroundMode: params.value.backgroundMode,
         config: activeBurstConfig.value
+      }, null, 2);
+    }
+    if (isCompositeMode.value) {
+      return JSON.stringify({
+        type: 'composite',
+        preset: activePresetKey.value,
+        backgroundMode: params.value.backgroundMode,
+        config: activeCompositeConfig.value
       }, null, 2);
     }
     return JSON.stringify(mergedOptions.value, null, 2);
@@ -663,14 +824,16 @@ export function useEffects() {
 
   /** 生成可独立运行的 HTML 文件内容 */
   function generateStandaloneHtml(): string {
-    if (isBurstMode.value) {
+    if (usesBurstCanvas.value) {
       return generateBurstHtml();
     }
     return generateAmbientHtml();
   }
 
   function generateBurstHtml(): string {
-    const config = JSON.stringify(activeBurstConfig.value, null, 2);
+    const firstCompositeBurst = activeCompositeConfig.value?.layers.find(layer => layer.type === 'burst');
+    const config = JSON.stringify(activeBurstConfig.value ?? (firstCompositeBurst?.type === 'burst' ? firstCompositeBurst.config : null), null, 2);
+    const bodyBackground = params.value.backgroundMode === 'transparent' ? 'transparent' : params.value.background;
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -679,7 +842,7 @@ export function useEffects() {
   <title>点击特效 - ${activePresetKey.value}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; background: ${params.value.background}; cursor: crosshair; }
+    body { overflow: hidden; background: ${bodyBackground}; cursor: crosshair; }
     canvas { width: 100vw; height: 100vh; display: block; }
     .hint { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       color: rgba(255,255,255,0.5); font-size: 14px; font-family: sans-serif;
@@ -707,6 +870,7 @@ export function useEffects() {
     const pick = a => a[Math.floor(Math.random()*a.length)];
 
     function burst(x, y) {
+      if (!config) return;
       const {count,shapes,colors,life,size,speed,gravity,friction,glow,trail,angleRange} = config;
       for (let i=0;i<count;i++) {
         const angle = rand(angleRange?angleRange[0]:0, angleRange?angleRange[1]:Math.PI*2);
@@ -754,6 +918,7 @@ export function useEffects() {
 
   function generateAmbientHtml(): string {
     const config = JSON.stringify(mergedOptions.value, null, 2);
+    const bodyBackground = params.value.backgroundMode === 'transparent' ? 'transparent' : params.value.background;
     return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -762,7 +927,7 @@ export function useEffects() {
   <title>背景特效 - ${activePresetKey.value}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; background: ${params.value.background}; }
+    body { overflow: hidden; background: ${bodyBackground}; }
     #tsparticles { width: 100vw; height: 100vh; }
   </style>
 </head>
@@ -781,12 +946,16 @@ export function useEffects() {
   return {
     activePresetKey,
     activePreset,
+    activeRenderer,
     isBurstMode,
+    isCompositeMode,
+    usesBurstCanvas,
     isPlaying,
     params,
     customImageUrl,
     mergedOptions,
     activeBurstConfig,
+    activeCompositeConfig,
     selectPreset,
     togglePlay,
     resetParams,

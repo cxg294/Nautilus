@@ -77,7 +77,8 @@ router.get('/summary', (req, res) => {
 
     const { days = 30 } = req.query;
     const daysNum = Math.min(parseInt(days, 10) || 30, 365);
-    const since = `datetime('now', 'localtime', '-${daysNum} days')`;
+    // 使用参数化查询代替字符串拼接，防止 SQL 注入
+    const cutoffDate = new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000).toISOString();
 
     // 工具使用排行
     const toolRanking = db.prepare(`
@@ -85,10 +86,10 @@ router.get('/summary', (req, res) => {
         SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) as views,
         SUM(CASE WHEN event_type = 'action' THEN 1 ELSE 0 END) as actions
       FROM analytics_events
-      WHERE created_at >= ${since}
+      WHERE created_at >= ?
       GROUP BY tool_name
       ORDER BY total DESC
-    `).all();
+    `).all(cutoffDate);
 
     // 用户活跃度
     const userRanking = db.prepare(`
@@ -96,10 +97,10 @@ router.get('/summary', (req, res) => {
         COUNT(DISTINCT tool_name) as tools_used,
         SUM(CASE WHEN event_type = 'action' THEN 1 ELSE 0 END) as actions
       FROM analytics_events
-      WHERE created_at >= ${since}
+      WHERE created_at >= ?
       GROUP BY user_id
       ORDER BY total DESC
-    `).all();
+    `).all(cutoffDate);
 
     // 每日趋势
     const dailyTrend = db.prepare(`
@@ -108,10 +109,10 @@ router.get('/summary', (req, res) => {
         SUM(CASE WHEN event_type = 'action' THEN 1 ELSE 0 END) as actions,
         COUNT(DISTINCT user_id) as active_users
       FROM analytics_events
-      WHERE created_at >= ${since}
+      WHERE created_at >= ?
       GROUP BY date(created_at)
       ORDER BY date DESC
-    `).all();
+    `).all(cutoffDate);
 
     // 总计
     const totals = db.prepare(`
@@ -119,8 +120,8 @@ router.get('/summary', (req, res) => {
         COUNT(DISTINCT user_id) as total_users,
         COUNT(DISTINCT tool_name) as total_tools
       FROM analytics_events
-      WHERE created_at >= ${since}
-    `).get();
+      WHERE created_at >= ?
+    `).get(cutoffDate);
 
     res.json(success({
       days: daysNum,

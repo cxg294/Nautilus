@@ -27,7 +27,8 @@ export function syncToolPermissions() {
   }
 
   const upsertPerm = db.prepare(
-    'INSERT OR IGNORE INTO permissions (key, description) VALUES (?, ?)'
+    `INSERT INTO permissions (key, description) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET description = excluded.description`
   );
   const upsertOwner = db.prepare(
     'INSERT OR IGNORE INTO role_permissions (role, permission_key) VALUES (?, ?)'
@@ -48,7 +49,7 @@ export function syncToolPermissions() {
         const permKey = `module:${manifest.name}:access`;
         const description = manifest.i18n?.['zh-CN']?.route || manifest.name;
 
-        // 注册权限（如果不存在）
+        // 同步名称：manifest 是工具名称的唯一来源，避免旧 migration 留下过期文案。
         const result = upsertPerm.run(permKey, description);
         if (result.changes > 0) {
           synced++;

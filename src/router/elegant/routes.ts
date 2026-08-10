@@ -60,16 +60,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'btc-course-flow',
-    path: '/btc-course-flow',
-    component: 'layout.base$view.btc-course-flow',
-    meta: {
-      title: 'btc-course-flow',
-      i18nKey: 'route.btc-course-flow',
-      hideInMenu: true
-    }
-  },
-  {
     name: 'effects-generator',
     path: '/effects-generator',
     component: 'layout.base$view.effects-generator',
@@ -90,6 +80,16 @@ export const generatedRoutes: GeneratedRoute[] = [
       order: 1,
       hideInMenu: true,
       guestAccessible: true
+    }
+  },
+  {
+    name: 'icon-explorer',
+    path: '/icon-explorer',
+    component: 'layout.base$view.icon-explorer',
+    meta: {
+      title: 'icon-explorer',
+      i18nKey: 'route.icon-explorer',
+      hideInMenu: true
     }
   },
   {
@@ -149,12 +149,12 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'material-studio',
-    path: '/material-studio',
-    component: 'layout.base$view.material-studio',
+    name: 'mid-price-course',
+    path: '/mid-price-course',
+    component: 'layout.base$view.mid-price-course',
     meta: {
-      title: 'material-studio',
-      i18nKey: 'route.material-studio',
+      title: 'mid-price-course',
+      i18nKey: 'route.mid-price-course',
       hideInMenu: true
     }
   },
@@ -185,6 +185,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       title: 'quick-links',
       i18nKey: 'route.quick-links',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'regex-workflow',
+    path: '/regex-workflow',
+    component: 'layout.base$view.regex-workflow',
+    meta: {
+      title: 'regex-workflow',
+      i18nKey: 'route.regex-workflow',
       hideInMenu: true
     }
   },
@@ -229,16 +239,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'tts-studio',
-    path: '/tts-studio',
-    component: 'layout.base$view.tts-studio',
-    meta: {
-      title: 'tts-studio',
-      i18nKey: 'route.tts-studio',
-      hideInMenu: true
-    }
-  },
-  {
     name: 'user-manager',
     path: '/user-manager',
     component: 'layout.base$view.user-manager',
@@ -255,6 +255,16 @@ export const generatedRoutes: GeneratedRoute[] = [
     meta: {
       title: 'video-frame-extractor',
       i18nKey: 'route.video-frame-extractor',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'voice-lab',
+    path: '/voice-lab',
+    component: 'layout.base$view.voice-lab',
+    meta: {
+      title: 'voice-lab',
+      i18nKey: 'route.voice-lab',
       hideInMenu: true
     }
   }

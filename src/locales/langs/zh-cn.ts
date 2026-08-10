@@ -227,22 +227,23 @@ const local: App.I18n.Schema = {
     'iframe-page': '外链页面',
     home: '首页',
     'base64-converter': 'Base64 转换',
-    'btc-course-flow': 'BTC 课程流',
+    'mid-price-course': '中价课课程看板',
     'effects-generator': '特效生成器',
+    'icon-explorer': '图标库',
     'image-compressor': '图片压缩',
     'image-matting': '图片抠图',
     locked: '锁屏',
-    'material-studio': '素材工坊',
     'qrcode-generator': '二维码生成',
     'quick-links': '快捷链接',
+    'regex-workflow': '正则规则工作台',
     'role-manager': '角色管理',
     'sb3-compressor': 'SB3 压缩',
     'sb3-studio': 'SB3 工作室',
     'timestamp-converter': '时间戳转换',
-    'tts-studio': 'TTS 工作室',
     'user-manager': '用户管理',
+    'voice-lab': '语音合成',
     'video-frame-extractor': '视频抽帧',
-    'analytics-dashboard': '数据看板',
+    'analytics-dashboard': '系统运行看板',
     'proxy-settings': '代理设置'
   },
   page: {
@@ -380,7 +381,8 @@ const local: App.I18n.Schema = {
       noFrames: '暂无帧数据，请先上传视频并抽帧',
       preview: '帧预览',
       prevFrame: '上一帧',
-      nextFrame: '下一帧'
+      nextFrame: '下一帧',
+      generateGif: '生成 GIF'
     },
     effectsGenerator: {
       pageTitle: '特效生成器',
@@ -406,8 +408,27 @@ const local: App.I18n.Schema = {
       fullscreen: '全屏预览',
       exitFullscreen: '退出全屏',
       background: '背景色',
+      backgroundModes: {
+        solid: '纯色背景',
+        transparent: '透明叠加'
+      },
+      quality: {
+        label: '质量档位',
+        preview: '预览省电',
+        standard: '标准',
+        export: '导出增强'
+      },
+      exportFormat: '导出格式',
       categoryBurst: '点击特效',
       categoryAmbient: '背景特效',
+      categories: {
+        emphasis: '强调节拍',
+        celebration: '庆祝节拍',
+        transition: '转场节拍',
+        emotion: '情绪节拍',
+        character: '角色节拍',
+        ambient: '氛围背景'
+      },
       clickHint: '点击任意位置触发特效',
       presets: {
         'star-burst': '⭐ 星星迸发',
@@ -423,7 +444,19 @@ const local: App.I18n.Schema = {
         'neon-matrix': '💚 霓虹矩阵',
         'cyber-bubbles': '🫧 赛博泡泡',
         'fire-rise': '🔥 火焰升腾',
-        fountain: '⛲ 能量喷泉'
+        fountain: '⛲ 能量喷泉',
+        'corner-salute-center': '🎇 双角礼花开炮',
+        'center-confetti-bloom': '🎉 中心彩带爆发',
+        'star-rain': '🌠 星星雨',
+        'spotlight-focus': '🔦 聚光强调',
+        'important-flash-ring': '💡 重点闪光圈',
+        'arrow-pop': '➡️ 箭头弹出',
+        'white-flash-transition': '⬜ 白闪转场',
+        'curtain-sweep': '🎭 幕布扫入',
+        'speed-lines': '💨 速度线',
+        'surprise-impact-lines': '💥 惊讶冲击线',
+        'character-entry-smoke': '☁️ 角色登场烟雾',
+        'dialogue-sparkle': '✨ 对话框闪 sparkle'
       },
       styleParams: '样式参数',
       softness: '边缘柔化',
@@ -457,6 +490,9 @@ const local: App.I18n.Schema = {
         stop: '停止录制',
         cancel: '取消',
         download: '下载 GIF',
+        pngSequence: 'PNG 序列',
+        downloadPngSequence: '下载 PNG 序列',
+        pngSequenceDownloaded: 'PNG 序列已下载',
         reRecord: '重新录制',
         fileSize: '文件大小',
         stateIdle: '就绪',

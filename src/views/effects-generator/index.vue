@@ -24,12 +24,16 @@ const message = useMessage();
 
 const {
   activePresetKey,
+  activePreset,
+  activeRenderer,
   isBurstMode,
+  usesBurstCanvas,
   isPlaying,
   params,
   customImageUrl,
   mergedOptions,
   activeBurstConfig,
+  activeCompositeConfig,
   selectPreset,
   togglePlay,
   resetParams,
@@ -136,6 +140,11 @@ function handleDownloadGif() {
   message.success('GIF 已下载');
 }
 
+function handleDownloadPngSequence() {
+  recorder.downloadPngSequence(`effect-${activePresetKey.value}-frames-${Date.now()}.zip`);
+  message.success(t('page.effectsGenerator.recording.pngSequenceDownloaded'));
+}
+
 /** 重新录制 */
 function handleReRecord() {
   recorder.reRecord();
@@ -211,8 +220,8 @@ function handleUpdateParams(newParams: typeof params.value) {
         <span class="effects-page__title-icon">✨</span>
         {{ t('page.effectsGenerator.pageTitle') }}
       </h1>
-      <div class="effects-page__mode-tag" :class="{ 'effects-page__mode-tag--burst': isBurstMode }">
-        {{ isBurstMode ? '👆 ' + t('page.effectsGenerator.categoryBurst') : '🌌 ' + t('page.effectsGenerator.categoryAmbient') }}
+      <div class="effects-page__mode-tag" :class="{ 'effects-page__mode-tag--burst': usesBurstCanvas }">
+        {{ t(`page.effectsGenerator.categories.${activePreset.category}`) }}
       </div>
     </div>
 
@@ -236,9 +245,12 @@ function handleUpdateParams(newParams: typeof params.value) {
           ref="previewCanvasRef"
           :options="mergedOptions"
           :burst-config="activeBurstConfig"
-          :is-burst-mode="isBurstMode"
+          :composite-config="activeCompositeConfig"
+          :renderer="activeRenderer"
+          :is-burst-mode="usesBurstCanvas"
           :is-playing="isPlaying"
           :background="params.background"
+          :background-mode="params.backgroundMode"
         />
 
         <!-- GIF 区域选取覆盖层 -->
@@ -296,7 +308,9 @@ function handleUpdateParams(newParams: typeof params.value) {
           :elapsed="recorder.elapsed.value"
           :progress="recorder.progress.value"
           :preview-url="recorder.previewUrl.value"
+          :png-sequence-url="recorder.pngSequenceUrl.value"
           :file-size="recorder.fileSize.value"
+          :png-sequence-size="recorder.pngSequenceSize.value"
           :error-msg="recorder.errorMsg.value"
           @update:config="handleUpdateConfig"
           @enter-select="handleEnterSelect"
@@ -304,6 +318,7 @@ function handleUpdateParams(newParams: typeof params.value) {
           @stop-recording="handleStopRecording"
           @cancel-recording="handleCancelRecording"
           @download="handleDownloadGif"
+          @download-png-sequence="handleDownloadPngSequence"
           @re-record="handleReRecord"
         />
       </NCard>

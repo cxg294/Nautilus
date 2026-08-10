@@ -14,6 +14,7 @@ import {
 } from 'naive-ui';
 import type { EffectParams } from '../composables/use-effects';
 import type { LifeCurve, SizeMode } from '../composables/use-burst-particles';
+import type { BackgroundMode, EffectQuality, ExportFormat } from '../data/effect-registry';
 
 const props = defineProps<{
   /** 当前参数值 */
@@ -60,6 +61,23 @@ const sizeModeOptions = computed<SelectOption[]>(() => [
   { label: t('page.effectsGenerator.sizeModes.grow'), value: 'grow' },
   { label: t('page.effectsGenerator.sizeModes.constant'), value: 'constant' },
   { label: t('page.effectsGenerator.sizeModes.pop'), value: 'pop' }
+]);
+
+const qualityOptions = computed<SelectOption[]>(() => [
+  { label: t('page.effectsGenerator.quality.standard'), value: 'standard' },
+  { label: t('page.effectsGenerator.quality.preview'), value: 'preview' },
+  { label: t('page.effectsGenerator.quality.export'), value: 'export' }
+]);
+
+const backgroundModeOptions = computed<SelectOption[]>(() => [
+  { label: t('page.effectsGenerator.backgroundModes.solid'), value: 'solid' },
+  { label: t('page.effectsGenerator.backgroundModes.transparent'), value: 'transparent' }
+]);
+
+const exportFormatOptions = computed<SelectOption[]>(() => [
+  { label: 'HTML', value: 'html' },
+  { label: 'GIF', value: 'gif' },
+  { label: t('page.effectsGenerator.recording.pngSequence'), value: 'png-sequence' }
 ]);
 
 /** 是否启用了颜色渐变 */
@@ -180,12 +198,29 @@ function handleUpload({ file }: { file: UploadFileInfo }) {
 
       <div class="param-item">
         <label class="param-item__label">{{ t('page.effectsGenerator.background') }}</label>
+        <NSelect
+          :value="params.backgroundMode"
+          :options="backgroundModeOptions"
+          size="small"
+          @update:value="(v: BackgroundMode) => updateParam('backgroundMode', v)"
+        />
         <NColorPicker
+          v-if="params.backgroundMode === 'solid'"
           :value="params.background"
           :show-alpha="false"
           size="small"
           :swatches="['#0d1117', '#1a1a2e', '#16213e', '#0f3460', '#1b1b2f', '#162447', '#000000', '#0a0a1a']"
           @update:value="(v: string) => updateParam('background', v)"
+        />
+      </div>
+
+      <div class="param-item">
+        <label class="param-item__label">{{ t('page.effectsGenerator.quality.label') }}</label>
+        <NSelect
+          :value="params.quality"
+          :options="qualityOptions"
+          size="small"
+          @update:value="(v: EffectQuality) => updateParam('quality', v)"
         />
       </div>
     </div>
@@ -290,6 +325,15 @@ function handleUpload({ file }: { file: UploadFileInfo }) {
 
     <!-- 导出按钮 -->
     <div class="params-panel__export">
+      <div class="param-item" style="margin-bottom: 8px;">
+        <label class="param-item__label">{{ t('page.effectsGenerator.exportFormat') }}</label>
+        <NSelect
+          :value="params.exportFormat"
+          :options="exportFormatOptions"
+          size="small"
+          @update:value="(v: ExportFormat) => updateParam('exportFormat', v)"
+        />
+      </div>
       <NButton type="primary" size="small" block ghost @click="emit('copy-config')">
         📋 {{ t('page.effectsGenerator.copyConfig') }}
       </NButton>

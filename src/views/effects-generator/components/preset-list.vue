@@ -4,8 +4,9 @@
  * 分为「点击特效」和「背景特效」两大类
  */
 import { useI18n } from 'vue-i18n';
-import type { EffectPreset as _EffectPreset } from '../composables/use-effects';
-import { BURST_PRESETS, AMBIENT_PRESETS } from '../composables/use-effects';
+import { computed } from 'vue';
+import { PRESET_LIST } from '../composables/use-effects';
+import { EFFECT_CATEGORIES } from '../data/effect-registry';
 
 defineProps<{
   /** 当前激活的预设 key */
@@ -17,47 +18,37 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+const groupedPresets = computed(() => {
+  return EFFECT_CATEGORIES.map(category => ({
+    ...category,
+    presets: PRESET_LIST.filter(preset => preset.category === category.key)
+  })).filter(group => group.presets.length > 0);
+});
 </script>
 
 <template>
   <div class="preset-list">
-    <!-- 点击特效分类 -->
-    <div class="preset-list__category">
+    <div v-for="group in groupedPresets" :key="group.key" class="preset-list__category">
       <div class="category-header">
-        <span class="category-header__icon">👆</span>
-        <span class="category-header__label">{{ t('page.effectsGenerator.categoryBurst') }}</span>
-        <span class="category-header__badge">{{ BURST_PRESETS.length }}</span>
+        <span class="category-header__label">{{ t(group.i18nKey) }}</span>
+        <span class="category-header__badge">{{ group.presets.length }}</span>
       </div>
       <div class="preset-list__grid">
         <button
-          v-for="preset in BURST_PRESETS"
+          v-for="preset in group.presets"
           :key="preset.key"
-          class="preset-card" :class="[{ 'preset-card--active': activeKey === preset.key }]"
+          class="preset-card"
+          :class="[
+            { 'preset-card--active': activeKey === preset.key },
+            `preset-card--${preset.renderer}`,
+            `preset-card--cost-${preset.performanceCost}`
+          ]"
           :title="t(preset.i18nKey)"
           @click="emit('select', preset.key)"
         >
           <span class="preset-card__label">{{ t(preset.i18nKey) }}</span>
-          <span v-if="activeKey === preset.key" class="preset-card__indicator" />
-        </button>
-      </div>
-    </div>
-
-    <!-- 背景特效分类 -->
-    <div class="preset-list__category">
-      <div class="category-header">
-        <span class="category-header__icon">🌌</span>
-        <span class="category-header__label">{{ t('page.effectsGenerator.categoryAmbient') }}</span>
-        <span class="category-header__badge">{{ AMBIENT_PRESETS.length }}</span>
-      </div>
-      <div class="preset-list__grid">
-        <button
-          v-for="preset in AMBIENT_PRESETS"
-          :key="preset.key"
-          class="preset-card preset-card--ambient" :class="[{ 'preset-card--active': activeKey === preset.key }]"
-          :title="t(preset.i18nKey)"
-          @click="emit('select', preset.key)"
-        >
-          <span class="preset-card__label">{{ t(preset.i18nKey) }}</span>
+          <span class="preset-card__tags">{{ preset.tags.slice(0, 2).join(' · ') }}</span>
           <span v-if="activeKey === preset.key" class="preset-card__indicator" />
         </button>
       </div>
@@ -123,6 +114,7 @@ const { t } = useI18n();
 /* 预设卡片 — 紧凑方块 */
 .preset-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -136,7 +128,7 @@ const { t } = useI18n();
   overflow: hidden;
   color: rgba(255, 255, 255, 0.65);
   font-size: 12px;
-  min-height: 36px;
+  min-height: 48px;
 }
 
 .preset-card::before {
@@ -175,14 +167,28 @@ const { t } = useI18n();
   border-color: rgba(34, 197, 94, 0.06);
 }
 
+.preset-card--composite {
+  border-color: rgba(14, 165, 233, 0.08);
+}
+
 .preset-card--ambient:hover {
   border-color: rgba(34, 197, 94, 0.3);
+}
+
+.preset-card--composite:hover {
+  border-color: rgba(14, 165, 233, 0.3);
 }
 
 .preset-card--ambient.preset-card--active {
   border-color: rgba(34, 197, 94, 0.4);
   background: rgba(34, 197, 94, 0.1);
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.1);
+}
+
+.preset-card--composite.preset-card--active {
+  border-color: rgba(14, 165, 233, 0.45);
+  background: rgba(14, 165, 233, 0.1);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.1);
 }
 
 .preset-card--ambient.preset-card--active::before {
@@ -198,6 +204,18 @@ const { t } = useI18n();
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
+}
+
+.preset-card__tags {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 9px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preset-card__indicator {

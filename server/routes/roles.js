@@ -1,12 +1,12 @@
 /**
  * 角色/权限管理路由
  * 提供角色 CRUD 和角色-工具权限配置
- * 所有接口需要 owner 角色
+ * 所有接口需要 system:role:manage 权限；owner 自动拥有全部权限。
  */
 import { Router } from 'express';
 import { success, fail, CODE } from '../utils/response.js';
 import { requireAuth } from '../middleware/auth.js';
-import { requireRole } from '../middleware/requireRole.js';
+import { requirePermission } from '../middleware/requirePermission.js';
 import {
   listRoles,
   findRoleByName,
@@ -19,11 +19,12 @@ import {
   setRoleToolPermissions,
   listAllPermissions,
 } from '../services/role.js';
+import { catalogPermissions } from '../services/permission-catalog.js';
 
 const router = Router();
 
-// 所有接口需要 owner 角色
-router.use(requireAuth, requireRole('owner'));
+// 所有接口需要角色与权限管理能力
+router.use(requireAuth, requirePermission('system:role:manage'));
 
 /**
  * GET /api/roles
@@ -44,7 +45,7 @@ router.get('/', (req, res) => {
  * 获取所有可分配的工具权限列表
  */
 router.get('/permissions', (req, res) => {
-  const permissions = listAllPermissions();
+  const permissions = catalogPermissions(listAllPermissions());
   res.json(success(permissions));
 });
 
@@ -150,6 +151,12 @@ router.put('/:name/permissions', (req, res) => {
 
   if (!Array.isArray(permissions)) {
     return res.json(fail(CODE.VALIDATION, 'permissions 必须为数组'));
+  }
+
+  const validKeys = new Set(listAllPermissions().map(permission => permission.key));
+  const invalidKeys = permissions.filter(key => typeof key !== 'string' || !validKeys.has(key));
+  if (invalidKeys.length > 0) {
+    return res.json(fail(CODE.VALIDATION, '包含不存在的权限项'));
   }
 
   setRoleToolPermissions(name, permissions);

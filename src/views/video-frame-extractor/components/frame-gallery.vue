@@ -40,6 +40,8 @@ const emit = defineEmits<{
   exportZip: [];
   /** 下载单图 */
   downloadFrame: [frame: FrameData];
+  /** 生成 GIF 动图 */
+  generateGif: [];
 }>();
 
 /** 当前预览大图的 URL */
@@ -97,6 +99,15 @@ function formatTime(seconds: number): string {
             @click="emit('deleteSelected')"
           >
             {{ t('common.delete') }}
+          </NButton>
+          <NButton
+            size="small"
+            type="warning"
+            secondary
+            :disabled="selectedCount < 2"
+            @click="emit('generateGif')"
+          >
+            {{ t('page.videoFrameExtractor.generateGif') }}
           </NButton>
           <NButton
             size="small"

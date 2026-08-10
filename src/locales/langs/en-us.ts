@@ -231,22 +231,23 @@ const local: App.I18n.Schema = {
     'iframe-page': 'Iframe',
     home: 'Home',
     'base64-converter': 'Base64 Converter',
-    'btc-course-flow': 'BTC Course Flow',
+    'mid-price-course': 'Mid-price Course Dashboard',
     'effects-generator': 'Effects Generator',
+    'icon-explorer': 'Icon Explorer',
     'image-compressor': 'Image Compressor',
     'image-matting': 'Image Matting',
     locked: 'Locked',
-    'material-studio': 'Material Studio',
     'qrcode-generator': 'QR Code Generator',
     'quick-links': 'Quick Links',
+    'regex-workflow': 'Regex Workflow',
     'role-manager': 'Role Manager',
     'sb3-compressor': 'SB3 Compressor',
     'sb3-studio': 'SB3 Studio',
     'timestamp-converter': 'Timestamp Converter',
-    'tts-studio': 'TTS Studio',
     'user-manager': 'User Manager',
+    'voice-lab': 'Voice Lab',
     'video-frame-extractor': 'Video Frame Extractor',
-    'analytics-dashboard': 'Analytics Dashboard',
+    'analytics-dashboard': 'System Operations Dashboard',
     'proxy-settings': 'Proxy Settings'
   },
   page: {
@@ -361,7 +362,8 @@ const local: App.I18n.Schema = {
       noFrames: 'No frames yet. Upload a video and extract frames.',
       preview: 'Preview',
       prevFrame: 'Previous',
-      nextFrame: 'Next'
+      nextFrame: 'Next',
+      generateGif: 'Create GIF'
     },
     sb3Studio: {
       openFile: 'Open File',
@@ -410,8 +412,27 @@ const local: App.I18n.Schema = {
       fullscreen: 'Fullscreen',
       exitFullscreen: 'Exit Fullscreen',
       background: 'Background',
+      backgroundModes: {
+        solid: 'Solid',
+        transparent: 'Transparent Overlay'
+      },
+      quality: {
+        label: 'Quality',
+        preview: 'Preview Saver',
+        standard: 'Standard',
+        export: 'Export Boost'
+      },
+      exportFormat: 'Export Format',
       categoryBurst: 'Click Effects',
       categoryAmbient: 'Background Effects',
+      categories: {
+        emphasis: 'Emphasis Beats',
+        celebration: 'Celebration Beats',
+        transition: 'Transition Beats',
+        emotion: 'Emotion Beats',
+        character: 'Character Beats',
+        ambient: 'Ambient Backgrounds'
+      },
       clickHint: 'Click anywhere to trigger',
       presets: {
         'star-burst': '⭐ Star Burst',
@@ -427,7 +448,19 @@ const local: App.I18n.Schema = {
         'neon-matrix': '💚 Neon Matrix',
         'cyber-bubbles': '🫧 Cyber Bubbles',
         'fire-rise': '🔥 Fire Rise',
-        fountain: '⛲ Fountain'
+        fountain: '⛲ Fountain',
+        'corner-salute-center': '🎇 Corner Salute',
+        'center-confetti-bloom': '🎉 Confetti Bloom',
+        'star-rain': '🌠 Star Rain',
+        'spotlight-focus': '🔦 Spotlight Focus',
+        'important-flash-ring': '💡 Flash Ring',
+        'arrow-pop': '➡️ Arrow Pop',
+        'white-flash-transition': '⬜ White Flash',
+        'curtain-sweep': '🎭 Curtain Sweep',
+        'speed-lines': '💨 Speed Lines',
+        'surprise-impact-lines': '💥 Surprise Impact',
+        'character-entry-smoke': '☁️ Entry Smoke',
+        'dialogue-sparkle': '✨ Dialogue Sparkle'
       },
       styleParams: 'Style',
       softness: 'Edge Softness',
@@ -461,6 +494,9 @@ const local: App.I18n.Schema = {
         stop: 'Stop Recording',
         cancel: 'Cancel',
         download: 'Download GIF',
+        pngSequence: 'PNG Sequence',
+        downloadPngSequence: 'Download PNG Sequence',
+        pngSequenceDownloaded: 'PNG sequence downloaded',
         reRecord: 'Re-record',
         fileSize: 'File Size',
         stateIdle: 'Ready',

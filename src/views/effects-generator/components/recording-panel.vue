@@ -15,7 +15,9 @@ const props = defineProps<{
   elapsed: number;
   progress: number;
   previewUrl: string | null;
+  pngSequenceUrl: string | null;
   fileSize: number;
+  pngSequenceSize: number;
   errorMsg: string | null;
 }>();
 
@@ -26,6 +28,7 @@ const emit = defineEmits<{
   (e: 'stop-recording'): void;
   (e: 'cancel-recording'): void;
   (e: 'download'): void;
+  (e: 'download-png-sequence'): void;
   (e: 're-record'): void;
 }>();
 
@@ -226,10 +229,14 @@ const isConfigDisabled = computed(() =>
             </div>
             <div class="preview-info">
               <span>{{ t('page.effectsGenerator.recording.fileSize') }}: {{ formatSize(fileSize) }}</span>
+              <span v-if="pngSequenceUrl">{{ t('page.effectsGenerator.recording.pngSequence') }}: {{ formatSize(pngSequenceSize) }}</span>
             </div>
             <div class="preview-actions">
               <NButton type="primary" size="small" @click="$emit('download')">
                 💾 {{ t('page.effectsGenerator.recording.download') }}
+              </NButton>
+              <NButton v-if="pngSequenceUrl" type="info" size="small" ghost @click="$emit('download-png-sequence')">
+                🧩 {{ t('page.effectsGenerator.recording.downloadPngSequence') }}
               </NButton>
               <NButton size="small" quaternary @click="$emit('re-record')">
                 🔄 {{ t('page.effectsGenerator.recording.reRecord') }}
@@ -381,6 +388,9 @@ const isConfigDisabled = computed(() =>
 }
 
 .preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
   text-align: center;
@@ -388,6 +398,7 @@ const isConfigDisabled = computed(() =>
 
 .preview-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
 }

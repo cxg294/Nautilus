@@ -10,6 +10,7 @@ export default defineConfig(configEnv => {
   const viteEnv = loadEnv(configEnv.mode, process.cwd()) as unknown as Env.ImportMeta;
 
   const buildTime = getBuildTime();
+  const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000';
 
   const enableProxy = configEnv.command === 'serve' && !configEnv.isPreview;
 
@@ -40,7 +41,7 @@ export default defineConfig(configEnv => {
       proxy: {
         // Nautilus Express 后端 API 代理
         '/api': {
-          target: 'http://localhost:3000',
+          target: apiProxyTarget,
           changeOrigin: true,
         },
         // Soybean Admin 原有代理（Mock / 其他服务）

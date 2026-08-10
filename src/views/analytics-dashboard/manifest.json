@@ -7,12 +7,12 @@
   "locked": false,
   "i18n": {
     "zh-CN": {
-      "route": "数据看板",
+      "route": "系统运行看板",
       "category": "系统管理",
       "categoryIcon": "mdi:cog-outline"
     },
     "en-US": {
-      "route": "Analytics Dashboard",
+      "route": "System Operations Dashboard",
       "category": "System",
       "categoryIcon": "mdi:cog-outline"
     }

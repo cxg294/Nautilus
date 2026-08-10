@@ -29,6 +29,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# === Python 缓存 ===
+__pycache__/
+*.py[cod]
+
 # === 日志 ===
 *.log
 npm-debug.log*
@@ -37,7 +41,18 @@ npm-debug.log*
 *.sb3
 output.png
 
+# === 本地归档与工作记录 ===
+/GAL脚本预览器_轻量分发版_20260428/
+/和gpt的对话.md
+/public/backgrounds/
+/public/characters/
+/public/course-covers/
+/public/effects/
+
 # === 运行时生成 ===
 server/material-studio-output/
+server/matting-output/
+server/voice-lab-upload/
+server/voice-lab-output/
 *.xlsx
 server/character-gen-output/

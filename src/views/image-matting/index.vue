@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useMessage, type UploadFileInfo } from 'naive-ui';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import JSZip from 'jszip';
 import ImageCompare from './components/ImageCompare.vue';
 import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+import { getToken } from '@/store/modules/auth/shared';
 
 usePageTracker('image-matting');
 const { trackAction } = useActionTracker('image-matting');
@@ -15,20 +16,90 @@ interface MattingTask {
   file: File;
   originalUrl: string;
   resultUrl: string;
+  resultType?: 'image' | 'gif';
   status: 'pending' | 'processing' | 'success' | 'error';
   errorMsg?: string;
   progress?: number;
+  frameCount?: number;
 }
 
 const message = useMessage();
 const tasks = ref<MattingTask[]>([]);
+const selectedTaskId = ref<string>('');
 const isProcessingAll = ref(false);
 const showCompareModal = ref(false);
 const activeCompareTask = ref<MattingTask | null>(null);
 
+const successCount = computed(() => tasks.value.filter(t => t.status === 'success').length);
+const gifCount = computed(() => tasks.value.filter(t => t.resultType === 'gif' || isGifTask(t)).length);
+const pendingCount = computed(() => tasks.value.filter(t => t.status === 'pending').length);
+const processingCount = computed(() => tasks.value.filter(t => t.status === 'processing').length);
+const errorCount = computed(() => tasks.value.filter(t => t.status === 'error').length);
+
+const getAuthHeaders = () => {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const getProxyImageUrl = (url: string) => {
+  const params = new URLSearchParams({ url });
+  const token = getToken();
+  if (token) params.set('_token', token);
+  return `/api/image-matting/proxy-image?${params.toString()}`;
+};
+
+const isGifTask = (task: MattingTask) => task.file.type === 'image/gif' || /\.gif$/i.test(task.file.name);
+
+const activeTask = computed(() => tasks.value.find(task => task.id === selectedTaskId.value) || tasks.value[0] || null);
+
+const isLocalResultUrl = (url: string) => url.startsWith('/api/image-matting/output/');
+
+const withAuthQuery = (url: string) => {
+  const token = getToken();
+  if (!token) return url;
+
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_token=${encodeURIComponent(token)}`;
+};
+
+const getResultDisplayUrl = (url: string) => {
+  if (!url) return '';
+  return isLocalResultUrl(url) ? withAuthQuery(url) : url;
+};
+
+const getResultDownloadUrl = (url: string) => {
+  if (!url) return '';
+  return isLocalResultUrl(url) ? withAuthQuery(url) : getProxyImageUrl(url);
+};
+
+const getResultExtension = (task: MattingTask) => (task.resultType === 'gif' ? 'gif' : 'png');
+
+const getTaskStatusType = (status: MattingTask['status']): 'default' | 'info' | 'success' | 'error' => {
+  const map: Record<MattingTask['status'], 'default' | 'info' | 'success' | 'error'> = {
+    pending: 'default',
+    processing: 'info',
+    success: 'success',
+    error: 'error'
+  };
+  return map[status];
+};
+
+const getTaskStatusLabel = (status: MattingTask['status']) => {
+  const map: Record<MattingTask['status'], string> = {
+    pending: '待处理',
+    processing: '处理中',
+    success: '已完成',
+    error: '失败'
+  };
+  return map[status];
+};
+
 const handleUploadChange = (newFileList: UploadFileInfo[]) => {
+  let firstAddedId = '';
+
   newFileList.forEach((fileInfo) => {
     if (fileInfo.file && !tasks.value.find(t => t.id === fileInfo.id)) {
+      if (!firstAddedId) firstAddedId = fileInfo.id;
       tasks.value.push({
         id: fileInfo.id,
         file: fileInfo.file,
@@ -38,6 +109,12 @@ const handleUploadChange = (newFileList: UploadFileInfo[]) => {
       });
     }
   });
+
+  if (!selectedTaskId.value && firstAddedId) {
+    selectedTaskId.value = firstAddedId;
+  } else if (!activeTask.value && tasks.value.length > 0) {
+    selectedTaskId.value = tasks.value[0].id;
+  }
 };
 
 const removeTask = (id: string) => {
@@ -45,7 +122,20 @@ const removeTask = (id: string) => {
   if (index > -1) {
     URL.revokeObjectURL(tasks.value[index].originalUrl);
     tasks.value.splice(index, 1);
+    if (selectedTaskId.value === id) {
+      selectedTaskId.value = tasks.value[Math.min(index, tasks.value.length - 1)]?.id || '';
+    }
   }
+};
+
+const clearTasks = () => {
+  tasks.value.forEach(task => URL.revokeObjectURL(task.originalUrl));
+  tasks.value = [];
+  selectedTaskId.value = '';
+};
+
+const selectTask = (task: MattingTask) => {
+  selectedTaskId.value = task.id;
 };
 
 const processTask = async (task: MattingTask) => {
@@ -54,34 +144,39 @@ const processTask = async (task: MattingTask) => {
   task.errorMsg = '';
   
   let fileToUpload = task.file;
-  try {
-    const options = { maxSizeMB: 2.8, maxWidthOrHeight: 1999, useWebWorker: true };
-    if (fileToUpload.size > 2.8 * 1024 * 1024 || await needsResizing(fileToUpload)) {
-      fileToUpload = await imageCompression(fileToUpload, options);
+  const isGif = isGifTask(task);
+  if (!isGif) {
+    try {
+      const options = { maxSizeMB: 2.8, maxWidthOrHeight: 1999, useWebWorker: true };
+      if (fileToUpload.size > 2.8 * 1024 * 1024 || await needsResizing(fileToUpload)) {
+        fileToUpload = await imageCompression(fileToUpload, options);
+      }
+    } catch (err) {
+      console.warn(`[Task ${task.id}] 预压缩失败，将原图上传`, err);
     }
-  } catch (err) {
-    console.warn(`[Task ${task.id}] 预压缩失败，将原图上传`, err);
   }
 
   const formData = new FormData();
-  formData.append('image', fileToUpload);
+  formData.append('image', fileToUpload, task.file.name);
 
   try {
     const response = await axios.post('/api/image-matting/segment', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 45000 
+      headers: { 'Content-Type': 'multipart/form-data', ...getAuthHeaders() },
+      timeout: isGif ? 300000 : 45000
     });
     
     if (response.data.success) {
       task.resultUrl = response.data.url;
+      task.resultType = response.data.type === 'gif' ? 'gif' : 'image';
+      task.frameCount = response.data.frameCount;
       task.status = 'success';
     } else {
       task.status = 'error';
-      task.errorMsg = response.data.error || '处理失败';
+      task.errorMsg = response.data.error || response.data.msg || '处理失败';
     }
   } catch (error: any) {
     task.status = 'error';
-    task.errorMsg = error.response?.data?.error || '请求出错';
+    task.errorMsg = error.response?.data?.error || error.response?.data?.msg || '请求出错';
   }
 };
 
@@ -89,15 +184,16 @@ const processTask = async (task: MattingTask) => {
 const startAll = async () => {
   const pendingTasks = tasks.value.filter(t => t.status === 'pending' || t.status === 'error');
   if (pendingTasks.length === 0) {
-    message.warning('没有等待处理的图片');
+    message.warning('没有等待处理的素材');
     return;
   }
 
   isProcessingAll.value = true;
-  message.info(`开始处理 ${pendingTasks.length} 张图片，请耐心等待...`);
+  const hasGif = pendingTasks.some(isGifTask);
+  message.info(`开始处理 ${pendingTasks.length} 个素材，请耐心等待...`);
 
-  // 并发控制：最大 3 个同时进行
-  const MAX_CONCURRENT = 3;
+  // GIF 会逐帧调用云端抠图，混合队列中降为串行，避免请求风暴。
+  const MAX_CONCURRENT = hasGif ? 1 : 3;
   let i = 0;
   
   const worker = async () => {
@@ -111,12 +207,12 @@ const startAll = async () => {
   await Promise.all(workers);
 
   isProcessingAll.value = false;
-  const successCount = tasks.value.filter(t => t.status === 'success').length;
-  trackAction('batch_matting', successCount === tasks.value.length ? 'success' : 'fail', { total: tasks.value.length, success: successCount });
-  if (successCount === tasks.value.length) {
+  const completedCount = tasks.value.filter(t => t.status === 'success').length;
+  trackAction('batch_matting', completedCount === tasks.value.length ? 'success' : 'fail', { total: tasks.value.length, success: completedCount });
+  if (completedCount === tasks.value.length) {
     message.success('全部抠图处理完成！');
   } else {
-    message.warning(`处理结束，成功 ${successCount}，失败 ${tasks.value.length - successCount}`);
+    message.warning(`处理结束，成功 ${completedCount}，失败 ${tasks.value.length - completedCount}`);
   }
 };
 
@@ -136,9 +232,9 @@ function needsResizing(file: File): Promise<boolean> {
 const handleDownloadSingle = (task: MattingTask) => {
   if (!task.resultUrl) return;
   const a = document.createElement('a');
-  // 利用自建 proxy 回避跨域，可强制下载
-  a.href = `/api/image-matting/proxy-image?url=${encodeURIComponent(task.resultUrl)}`;
-  a.download = `matting_result_${task.file.name}.png`;
+  a.href = getResultDownloadUrl(task.resultUrl);
+  const baseName = task.file.name.replace(/\.[^/.]+$/, '');
+  a.download = `${baseName}_nobg.${getResultExtension(task)}`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -157,11 +253,11 @@ const handleDownloadZip = async () => {
     
     // Batch fetch over proxy to avoid CORS
     const fetchPromises = successTasks.map(async (task, _index) => {
-      const proxyUrl = `/api/image-matting/proxy-image?url=${encodeURIComponent(task.resultUrl)}`;
-      const res = await axios.get(proxyUrl, { responseType: 'blob' });
+      const resultUrl = getResultDownloadUrl(task.resultUrl);
+      const res = await axios.get(resultUrl, { responseType: 'blob', headers: getAuthHeaders() });
       // 生成安全的文件名
       const baseName = task.file.name.replace(/\.[^/.]+$/, '');
-      folder?.file(`${baseName}_nobg.png`, res.data);
+      folder?.file(`${baseName}_nobg.${getResultExtension(task)}`, res.data);
     });
     
     await Promise.all(fetchPromises);
@@ -185,166 +281,270 @@ const handleDownloadZip = async () => {
 };
 
 const openCompareModal = (task: MattingTask) => {
+  if (task.resultType === 'gif') {
+    message.info('GIF 结果可直接在卡片中预览和下载');
+    return;
+  }
+
   activeCompareTask.value = task;
   showCompareModal.value = true;
 };
 </script>
 
 <template>
-  <div class="image-matting-container p-6 w-full h-full flex flex-col gap-6 overflow-y-auto">
-    <div class="header">
-      <h2 class="text-2xl font-bold mb-2">图片去背景 <NTag type="primary" size="small" round>智能抠图</NTag></h2>
-      <p class="text-gray-500">将多张含有任意主体的照片拖入，一键全自动批量分离背景与前景内容。</p>
-    </div>
-    
-    <div class="content flex-1 flex flex-col gap-6">
-      <!-- 统一的上传入口 -->
-      <div 
-        class="upload-zone transition-all duration-300" 
-        :class="tasks.length === 0 ? 'w-full max-w-2xl mx-auto mt-20' : 'w-full'"
-      >
-        <NUpload
-          multiple
-          directory-dnd
-          action=""
-          :default-upload="false"
-          :show-file-list="false"
-          accept="image/*"
-          @update:file-list="handleUploadChange"
-        >
-          <NUploadDragger>
-            <div class="flex flex-col items-center py-4">
-              <NIcon size="48" :depth="3" class="mb-2 transition-transform scale-hover">
-                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5c0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5l5 5h-3z" /></svg>
-              </NIcon>
-              <NText style="font-size: 16px; font-weight: 500;">
-                {{ tasks.length === 0 ? '点击或者拖动多张图片到此处排队处理' : '继续追加图片到任务队列...' }}
-              </NText>
-              <NP depth="3" class="mt-2 mb-0 text-sm">
-                超出 3MB 的大图将自动在本地等比极速压缩，同时最高并发处理 3 张
-              </NP>
-            </div>
-          </NUploadDragger>
-        </NUpload>
-      </div>
-
-      <!-- 操作栏 -->
-      <div v-if="tasks.length > 0" class="action-bar flex flex-wrap justify-between items-center bg-gray-50 dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="text-base font-medium flex items-center gap-2">
-          任务队列 ({{ tasks.length }})
-          <NTag v-if="tasks.filter(t => t.status === 'success').length" type="success" size="small">
-            成功: {{ tasks.filter(t => t.status === 'success').length }}
-          </NTag>
+  <div class="image-matting-page" :class="{ 'image-matting-page--empty': tasks.length === 0 }">
+    <section v-if="tasks.length === 0" class="empty-workspace">
+      <div class="empty-panel">
+        <div class="empty-copy">
+          <span class="empty-icon">
+            <SvgIcon icon="mdi:image-multiple-outline" />
+          </span>
+          <div>
+            <p class="eyebrow">Image Matting</p>
+            <h1>图片去背景</h1>
+            <p class="empty-desc">拖入图片或 GIF，生成透明背景素材。</p>
+          </div>
         </div>
-        <div class="flex flex-wrap gap-3">
-          <NButton ghost size="small" @click="() => tasks = []">清空列表</NButton>
-          <NButton 
-            v-if="tasks.filter(t => t.status === 'success').length > 1" 
-            type="success" size="small" tertiary 
-            :loading="isDownloadingZip" 
-            @click="handleDownloadZip"
+
+        <div class="upload-zone upload-zone--empty">
+          <NUpload
+            multiple
+            directory-dnd
+            action=""
+            :default-upload="false"
+            :show-file-list="false"
+            accept="image/*,.gif"
+            @update:file-list="handleUploadChange"
           >
-            <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7l7-7zm-8 2V5h2v6h1.17L12 13.17L9.83 11zM5 19v-2h14v2z" /></svg></template>
-            图集 ZIP 打包下载
-          </NButton>
-          <NButton type="primary" size="small" :loading="isProcessingAll" @click="startAll">
-            <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z" /></svg></template>
-            一键批量处理
-          </NButton>
+            <NUploadDragger>
+              <div class="dragger-content dragger-content--empty">
+                <span class="dragger-icon">
+                  <SvgIcon icon="mdi:cloud-upload-outline" />
+                </span>
+                <NText class="dragger-title">点击或者拖动图片 / GIF 到此处</NText>
+                <NText depth="3" class="dragger-hint">
+                  静态图超出 3MB 会先本地压缩，GIF 最多 30 帧
+                </NText>
+              </div>
+            </NUploadDragger>
+          </NUpload>
         </div>
       </div>
+    </section>
 
-      <!-- 单图模式全屏对比 -->
-      <div v-if="tasks.length === 1 && tasks[0].status === 'success'" class="single-task-view flex-1 min-h-[500px] w-full max-w-5xl mx-auto fade-in">
-        <NCard class="h-[600px] shadow-sm rounded-xl overflow-hidden flex flex-col" :content-style="{ padding: 0, flex: 1, display: 'flex' }">
-          <ImageCompare 
-            :original-src="tasks[0].originalUrl"
-            :result-src="tasks[0].resultUrl"
-          />
-          <template #action>
-            <div class="flex justify-end p-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-              <NButton type="success" size="large" @click="handleDownloadSingle(tasks[0])">
-                <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z" /></svg></template>
-                下载此图片
+    <template v-else>
+      <main class="matting-workspace">
+        <aside class="pool-panel">
+          <div class="pool-header">
+            <div class="pool-heading">
+              <div class="title-row">
+                <span class="title-icon">
+                  <SvgIcon icon="mdi:image-multiple-outline" />
+                </span>
+                <h1>图片池</h1>
+              </div>
+              <div class="status-line">
+                <span>{{ tasks.length }} 个素材</span>
+                <NTag v-if="pendingCount" size="small" round>{{ pendingCount }} 待处理</NTag>
+                <NTag v-if="processingCount" type="info" size="small" round>{{ processingCount }} 处理中</NTag>
+                <NTag v-if="successCount" type="success" size="small" round>{{ successCount }} 已完成</NTag>
+                <NTag v-if="errorCount" type="error" size="small" round>{{ errorCount }} 失败</NTag>
+                <NTag v-if="gifCount" type="info" size="small" round>GIF {{ gifCount }}</NTag>
+              </div>
+            </div>
+
+            <div class="pool-actions">
+              <NButton ghost size="small" @click="clearTasks">清空</NButton>
+              <NButton
+                v-if="tasks.filter(t => t.status === 'success').length > 1"
+                type="success"
+                size="small"
+                tertiary
+                :loading="isDownloadingZip"
+                @click="handleDownloadZip"
+              >
+                <template #icon><SvgIcon icon="mdi:download-outline" /></template>
+                ZIP 下载
+              </NButton>
+              <NButton type="primary" size="small" :loading="isProcessingAll" @click="startAll">
+                <template #icon><SvgIcon icon="mdi:play-outline" /></template>
+                批量处理
               </NButton>
             </div>
-          </template>
-        </NCard>
-      </div>
+          </div>
 
-      <!-- 任务网格 -->
-      <div v-if="tasks.length > 0 && !(tasks.length === 1 && tasks[0].status === 'success')" class="tasks-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        <div 
-          v-for="task in tasks" 
-          :key="task.id" 
-          class="task-card group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm border hover:shadow-md transition-shadow"
-          :class="[
-            task.status === 'success' ? 'border-green-400 border-2' : 
-            task.status === 'error' ? 'border-red-400 border-2' : 
-            task.status === 'processing' ? 'border-blue-400' : 'border-gray-200 dark:border-gray-700'
-          ]"
-        >
-          <!-- 图片主体 -->
-          <div class="aspect-square relative w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden" :class="task.status === 'success' ? 'bg-pattern' : ''">
-            <img 
-              :src="task.status === 'success' ? task.resultUrl : task.originalUrl" 
-              class="max-w-full max-h-full object-contain transition-opacity duration-300" 
-              :class="task.status === 'pending' || task.status === 'processing' ? 'opacity-40 blur-[1px]' : ''"
-            />
-            
-            <!-- 遮罩层状态提示 -->
-            <div v-if="task.status !== 'success'" class="absolute inset-0 flex flex-col items-center justify-center bg-black/10 text-white p-4 text-center">
-              <template v-if="task.status === 'processing'">
-                <NSpin size="medium" />
-                <span class="mt-2 text-xs font-bold text-gray-800 dark:text-gray-100">云端推理中...</span>
-              </template>
-              <template v-else-if="task.status === 'error'">
-                <div class="bg-red-500 rounded-full w-8 h-8 flex items-center justify-center mb-1 text-white">!</div>
-                <span class="text-xs font-bold leading-tight drop-shadow-md text-red-500">{{ task.errorMsg || '失败' }}</span>
-                <NButton size="tiny" type="primary" class="mt-2" @click="processTask(task)">重试</NButton>
-              </template>
-              <template v-else>
-                <NButton size="tiny" type="info" ghost @click="processTask(task)">处理</NButton>
-              </template>
+          <div class="upload-zone upload-zone--pool">
+            <NUpload
+              multiple
+              directory-dnd
+              action=""
+              :default-upload="false"
+              :show-file-list="false"
+              accept="image/*,.gif"
+              @update:file-list="handleUploadChange"
+            >
+              <NUploadDragger>
+                <div class="dragger-content dragger-content--pool">
+                  <SvgIcon icon="mdi:plus-box-outline" />
+                  <span>追加图片 / GIF</span>
+                </div>
+              </NUploadDragger>
+            </NUpload>
+          </div>
+
+          <div class="pool-list">
+            <article
+              v-for="task in tasks"
+              :key="task.id"
+              class="pool-item"
+              :class="[`pool-item--${task.status}`, { 'pool-item--active': activeTask?.id === task.id }]"
+              role="button"
+              tabindex="0"
+              @click="selectTask(task)"
+              @keydown.enter.prevent="selectTask(task)"
+              @keydown.space.prevent="selectTask(task)"
+            >
+              <div class="pool-thumb" :class="{ 'bg-pattern': task.status === 'success' }">
+                <img
+                  :src="task.status === 'success' ? getResultDisplayUrl(task.resultUrl) : task.originalUrl"
+                  :alt="task.file.name"
+                  class="pool-thumb__image"
+                />
+                <span v-if="task.status === 'processing'" class="pool-thumb__veil">
+                  <NSpin size="small" />
+                </span>
+              </div>
+
+              <div class="pool-info">
+                <div class="pool-name" :title="task.file.name">{{ task.file.name }}</div>
+                <div class="pool-meta">
+                  <NTag :type="getTaskStatusType(task.status)" size="tiny" round>
+                    {{ getTaskStatusLabel(task.status) }}
+                  </NTag>
+                  <NTag v-if="task.resultType === 'gif' || isGifTask(task)" type="info" size="tiny" round>
+                    GIF{{ task.frameCount ? ` · ${task.frameCount} 帧` : '' }}
+                  </NTag>
+                </div>
+              </div>
+
+              <NButton class="pool-remove" circle size="tiny" tertiary @click.stop="removeTask(task.id)">
+                <template #icon><SvgIcon icon="mdi:close" /></template>
+              </NButton>
+            </article>
+          </div>
+        </aside>
+
+        <section v-if="activeTask" class="preview-panel">
+          <div class="preview-header">
+            <div class="preview-heading">
+              <div class="preview-kicker">效果展示</div>
+              <div class="preview-title" :title="activeTask.file.name">{{ activeTask.file.name }}</div>
+              <div class="preview-meta">
+                <NTag :type="getTaskStatusType(activeTask.status)" size="small" round>
+                  {{ getTaskStatusLabel(activeTask.status) }}
+                </NTag>
+                <NTag
+                  v-if="activeTask.resultType === 'gif' || isGifTask(activeTask)"
+                  type="info"
+                  size="small"
+                  round
+                >
+                  GIF{{ activeTask.frameCount ? ` · ${activeTask.frameCount} 帧` : '' }}
+                </NTag>
+              </div>
             </div>
-            
-            <!-- 成功后的对比/下载操作悬浮按钮 -->
-            <div v-if="task.status === 'success'" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 backdrop-blur-sm">
-              <NTooltip placement="top" trigger="hover">
-                <template #trigger>
-                  <NButton circle type="primary" @click="openCompareModal(task)">
-                    <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5 5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3" /></svg></template>
-                  </NButton>
-                </template>
+
+            <div class="preview-actions">
+              <NButton
+                v-if="activeTask.status === 'success' && activeTask.resultType !== 'gif'"
+                secondary
+                @click="openCompareModal(activeTask)"
+              >
+                <template #icon><SvgIcon icon="mdi:eye-outline" /></template>
                 精细对比
-              </NTooltip>
-              <NTooltip placement="top" trigger="hover">
-                <template #trigger>
-                  <NButton circle type="success" @click="handleDownloadSingle(task)">
-                    <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7l7-7z" /></svg></template>
-                  </NButton>
-                </template>
-                单图下载
-              </NTooltip>
+              </NButton>
+              <NButton v-if="activeTask.status === 'success'" type="success" @click="handleDownloadSingle(activeTask)">
+                <template #icon><SvgIcon icon="mdi:download-outline" /></template>
+                下载结果
+              </NButton>
             </div>
           </div>
-          
-          <!-- 右上角移除按钮 -->
-          <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-            <NButton circle size="tiny" type="error" @click.stop="removeTask(task.id)">
-              <template #icon><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z" /></svg></template>
+
+          <div class="preview-stage" :class="{ 'bg-pattern': activeTask.status === 'success' }">
+            <ImageCompare
+              v-if="activeTask.status === 'success' && activeTask.resultType !== 'gif'"
+              :original-src="activeTask.originalUrl"
+              :result-src="getResultDisplayUrl(activeTask.resultUrl)"
+            />
+
+            <div v-else-if="activeTask.status === 'success'" class="gif-compare-grid">
+              <div class="gif-preview-pane">
+                <NTag size="small" round>原始 GIF</NTag>
+                <img :src="activeTask.originalUrl" alt="original gif" />
+              </div>
+              <div class="gif-preview-pane bg-pattern">
+                <NTag type="success" size="small" round>去背 GIF</NTag>
+                <img :src="getResultDisplayUrl(activeTask.resultUrl)" alt="matting gif" />
+              </div>
+            </div>
+
+            <div v-else class="source-preview">
+              <img
+                :src="activeTask.originalUrl"
+                :alt="activeTask.file.name"
+                :class="{ 'source-preview__image--muted': activeTask.status !== 'pending' }"
+                class="source-preview__image"
+              />
+              <div v-if="activeTask.status !== 'pending'" class="source-state">
+                <template v-if="activeTask.status === 'processing'">
+                  <NSpin size="large" />
+                  <div>
+                    <div class="source-state__title">云端推理中</div>
+                    <div class="source-state__desc">正在生成透明背景结果</div>
+                  </div>
+                </template>
+                <template v-else-if="activeTask.status === 'error'">
+                  <span class="error-icon">
+                    <SvgIcon icon="mdi:alert-circle-outline" />
+                  </span>
+                  <div>
+                    <div class="source-state__title">处理失败</div>
+                    <div class="source-state__desc">{{ activeTask.errorMsg || '请求出错' }}</div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeTask.status !== 'success'" class="preview-bottom-actions">
+            <NButton
+              type="primary"
+              size="large"
+              class="preview-primary-action"
+              :loading="activeTask.status === 'processing'"
+              :disabled="activeTask.status === 'processing'"
+              @click="processTask(activeTask)"
+            >
+              <template #icon><SvgIcon icon="mdi:play-outline" /></template>
+              {{ activeTask.status === 'error' ? '重新抠图' : activeTask.status === 'processing' ? '处理中' : '开始抠图' }}
             </NButton>
           </div>
-        </div>
-      </div>
-    </div>
+        </section>
+      </main>
+    </template>
 
     <!-- 弹窗对比视图（多图模式下点击查看详情用） -->
-    <NModal v-model:show="showCompareModal" preset="card" class="w-11/12 max-w-5xl" :title="'细节对比: ' + (activeCompareTask?.file.name || '')">
-      <div v-if="activeCompareTask" class="h-[70vh] min-h-[500px] w-full rounded-lg overflow-hidden relative">
-        <ImageCompare 
+    <NModal
+      v-model:show="showCompareModal"
+      preset="card"
+      class="compare-modal"
+      style="width: 90vw; max-width: 1100px;"
+      :title="'细节对比: ' + (activeCompareTask?.file.name || '')"
+    >
+      <div v-if="activeCompareTask" class="compare-modal__body">
+        <ImageCompare
           :original-src="activeCompareTask.originalUrl"
-          :result-src="activeCompareTask.resultUrl"
+          :result-src="getResultDisplayUrl(activeCompareTask.resultUrl)"
         />
       </div>
     </NModal>
@@ -352,31 +552,640 @@ const openCompareModal = (task: MattingTask) => {
 </template>
 
 <style scoped>
-.upload-zone :deep(.n-upload-dragger) {
-  padding: 24px;
-  background-color: var(--n-color-modal);
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.image-matting-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 24px;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.06), transparent 32%),
+    linear-gradient(315deg, rgba(59, 130, 246, 0.05), transparent 38%);
 }
+
+.image-matting-page--empty {
+  justify-content: center;
+}
+
+.empty-workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.empty-panel {
+  width: min(720px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.empty-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.empty-icon,
+.title-icon {
+  color: #0f766e;
+}
+
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(15, 118, 110, 0.1);
+}
+
+.empty-icon :deep(svg) {
+  width: 30px;
+  height: 30px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--n-text-color-3);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: var(--n-text-color);
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.empty-desc {
+  margin: 10px 0 0;
+  color: var(--n-text-color-2);
+  font-size: 15px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-row h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.title-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-icon :deep(svg) {
+  width: 24px;
+  height: 24px;
+}
+
+.status-line,
+.result-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.status-line {
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--n-text-color-2);
+  font-size: 13px;
+}
+
+.upload-zone {
+  flex-shrink: 0;
+}
+
+.upload-zone :deep(.n-upload-dragger) {
+  background: var(--n-color-modal);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
 .upload-zone :deep(.n-upload-dragger:hover) {
   border-color: var(--primary-color);
-  background-color: var(--n-action-color);
+  background: var(--n-action-color);
 }
-.scale-hover {
-  transition: transform 0.3s;
+
+.upload-zone--empty :deep(.n-upload-dragger) {
+  padding: 48px 24px;
 }
-.upload-zone :deep(.n-upload-dragger:hover) .scale-hover {
-  transform: translateY(-5px) scale(1.1);
+
+.dragger-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--n-text-color-2);
 }
+
+.dragger-content--empty {
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.dragger-icon {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f766e;
+}
+
+.dragger-icon :deep(svg) {
+  width: 46px;
+  height: 46px;
+}
+
+.dragger-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dragger-hint {
+  font-size: 13px;
+}
+
+.matting-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+
+.pool-panel,
+.preview-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(10px);
+}
+
+.pool-panel {
+  width: clamp(560px, 44vw, 720px);
+  flex: 0 0 clamp(560px, 44vw, 720px);
+  padding: 16px;
+  gap: 12px;
+}
+
+.pool-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pool-heading {
+  min-width: 0;
+}
+
+.pool-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.upload-zone--pool :deep(.n-upload-dragger) {
+  padding: 12px 14px;
+}
+
+.dragger-content--pool {
+  gap: 8px;
+  justify-content: flex-start;
+  font-size: 13px;
+}
+
+.dragger-content--pool :deep(svg) {
+  width: 18px;
+  height: 18px;
+  color: #0f766e;
+}
+
+.pool-list {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-items: start;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.pool-item {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  color: inherit;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pool-item:hover {
+  border-color: rgba(15, 118, 110, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pool-item:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.42);
+  outline-offset: 2px;
+}
+
+.pool-item--success {
+  border-color: rgba(22, 163, 74, 0.34);
+}
+
+.pool-item--error {
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.pool-item--processing {
+  border-color: rgba(59, 130, 246, 0.46);
+}
+
+.pool-item--active,
+.pool-item--active:hover {
+  border-color: rgba(15, 118, 110, 0.62);
+  background: rgba(240, 253, 250, 0.78);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.08);
+}
+
+.pool-thumb {
+  position: relative;
+  width: 100%;
+  height: clamp(160px, 12vw, 210px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.pool-thumb__image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pool-thumb__veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.pool-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pool-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--n-text-color);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pool-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pool-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.pool-item:hover .pool-remove,
+.pool-item--active .pool-remove {
+  opacity: 1;
+}
+
+.preview-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 16px;
+  gap: 14px;
+}
+
+.preview-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.preview-heading {
+  min-width: 0;
+}
+
+.preview-kicker {
+  margin-bottom: 6px;
+  color: var(--n-text-color-3);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preview-title {
+  max-width: min(38vw, 680px);
+  overflow: hidden;
+  color: var(--n-text-color);
+  font-size: 18px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preview-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  background: var(--n-color);
+}
+
+.preview-bottom-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.preview-primary-action {
+  min-width: min(360px, 100%);
+  height: 48px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.preview-bottom-actions :deep(.n-button__content) {
+  font-weight: 700;
+}
+
+.source-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 22px;
+}
+
+.source-preview__image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.source-preview__image--muted {
+  opacity: 0.42;
+  filter: blur(1px);
+}
+
+.source-state {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  width: min(420px, calc(100% - 56px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 12px;
+  color: var(--n-text-color);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.dark .pool-panel,
+.dark .preview-panel,
+.dark .pool-item,
+.dark .gif-preview-pane,
+.dark .source-state {
+  background: rgba(24, 24, 28, 0.74);
+}
+
+.source-state__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.source-state__desc {
+  margin-top: 3px;
+  color: var(--n-text-color-3);
+  font-size: 12px;
+}
+
+.error-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+  color: #ef4444;
+}
+
+.error-icon :deep(svg) {
+  width: 26px;
+  height: 26px;
+}
+
+.gif-compare-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+
+.gif-preview-pane {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 42px 16px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.gif-preview-pane :deep(.n-tag) {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
+.gif-preview-pane img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.compare-modal {
+  width: 90vw;
+  max-width: 1100px;
+}
+
+.compare-modal__body {
+  width: 100%;
+  height: 70vh;
+  min-height: 500px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
 .bg-pattern {
+  background-color: #f8fafc;
   background-image: repeating-conic-gradient(#e5e7eb 0 25%, transparent 0 50%);
   background-size: 20px 20px;
 }
+
 .fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.28s ease-out both;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 860px) {
+  .image-matting-page {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .preview-header {
+    flex-direction: column;
+  }
+
+  .pool-header {
+    flex-direction: column;
+  }
+
+  .pool-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .matting-workspace {
+    min-height: auto;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .pool-panel {
+    width: 100%;
+    max-height: 360px;
+    flex: none;
+  }
+
+  .preview-panel {
+    min-height: 560px;
+    flex: none;
+  }
+
+  .preview-title {
+    max-width: 100%;
+  }
+
+  .preview-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .source-state {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    transform: none;
+    flex-wrap: wrap;
+  }
+
+  .gif-compare-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

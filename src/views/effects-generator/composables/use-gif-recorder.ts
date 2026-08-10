@@ -4,6 +4,7 @@
  */
 import { ref, computed } from 'vue';
 import { encode } from 'modern-gif';
+import JSZip from 'jszip';
 
 // ============================================================
 // 类型定义
@@ -49,7 +50,7 @@ const DEFAULT_CONFIG: RecordingConfig = {
 };
 
 /** GIF 输出最大边长限制（超出则自动缩放） */
-const MAX_GIF_DIMENSION = 600;
+const MAX_GIF_DIMENSION = 480;
 
 // ============================================================
 // Composable
@@ -63,7 +64,9 @@ export function useGifRecorder() {
   const elapsed = ref(0);
   const progress = ref(0);
   const previewUrl = ref<string | null>(null);
+  const pngSequenceUrl = ref<string | null>(null);
   const fileSize = ref(0);
+  const pngSequenceSize = ref(0);
   const errorMsg = ref<string | null>(null);
 
   // ---- 非响应式内部变量 ----
@@ -71,6 +74,8 @@ export function useGifRecorder() {
   let captureTimer: ReturnType<typeof setInterval> | null = null;
   let startTime = 0;
   let sourceCanvas: HTMLCanvasElement | null = null;
+  let captureCanvas: HTMLCanvasElement | null = null;
+  let captureCtx: CanvasRenderingContext2D | null = null;
 
   /** 录制帧的实际像素尺寸（经过下采样后） */
   let gifWidth = 0;
@@ -183,11 +188,15 @@ export function useGifRecorder() {
 
     if (sw <= 0 || sh <= 0) return;
 
-    // 使用离屏 Canvas 裁剪 + 缩放
-    const offscreen = document.createElement('canvas');
-    offscreen.width = gifWidth;
-    offscreen.height = gifHeight;
-    const ctx = offscreen.getContext('2d')!;
+    // 使用复用的离屏 Canvas 裁剪 + 缩放，避免每帧创建 DOM canvas
+    if (!captureCanvas || captureCanvas.width !== gifWidth || captureCanvas.height !== gifHeight) {
+      captureCanvas = document.createElement('canvas');
+      captureCanvas.width = gifWidth;
+      captureCanvas.height = gifHeight;
+      captureCtx = captureCanvas.getContext('2d')!;
+    }
+    const ctx = captureCtx!;
+    ctx.clearRect(0, 0, gifWidth, gifHeight);
 
     // 关闭图像平滑以提升性能（GIF 本身就是像素化的）
     ctx.imageSmoothingEnabled = true;
@@ -250,6 +259,14 @@ export function useGifRecorder() {
         URL.revokeObjectURL(previewUrl.value);
       }
       previewUrl.value = URL.createObjectURL(blob);
+
+      if (pngSequenceUrl.value) {
+        URL.revokeObjectURL(pngSequenceUrl.value);
+      }
+      const pngZip = await createPngSequenceZip(frameBuffer);
+      pngSequenceSize.value = pngZip.size;
+      pngSequenceUrl.value = URL.createObjectURL(pngZip);
+
       state.value = 'done';
       progress.value = 1;
 
@@ -261,6 +278,25 @@ export function useGifRecorder() {
       state.value = 'ready';
       frameBuffer = [];
     }
+  }
+
+  async function createPngSequenceZip(frames: FrameData[]) {
+    const zip = new JSZip();
+    const canvas = document.createElement('canvas');
+    canvas.width = gifWidth;
+    canvas.height = gifHeight;
+    const ctx = canvas.getContext('2d')!;
+
+    for (let i = 0; i < frames.length; i++) {
+      const imageData = new ImageData(new Uint8ClampedArray(frames[i].data), gifWidth, gifHeight);
+      ctx.putImageData(imageData, 0, 0);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (blob) {
+        zip.file(`frame_${String(i + 1).padStart(3, '0')}.png`, blob);
+      }
+    }
+
+    return zip.generateAsync({ type: 'blob' });
   }
 
   /** 取消录制 */
@@ -291,8 +327,13 @@ export function useGifRecorder() {
       URL.revokeObjectURL(previewUrl.value);
       previewUrl.value = null;
     }
+    if (pngSequenceUrl.value) {
+      URL.revokeObjectURL(pngSequenceUrl.value);
+      pngSequenceUrl.value = null;
+    }
     frameBuffer = [];
     fileSize.value = 0;
+    pngSequenceSize.value = 0;
     elapsed.value = 0;
     progress.value = 0;
     state.value = cropRegion.value ? 'ready' : 'idle';
@@ -305,9 +346,14 @@ export function useGifRecorder() {
       URL.revokeObjectURL(previewUrl.value);
       previewUrl.value = null;
     }
+    if (pngSequenceUrl.value) {
+      URL.revokeObjectURL(pngSequenceUrl.value);
+      pngSequenceUrl.value = null;
+    }
     cropRegion.value = null;
     frameBuffer = [];
     fileSize.value = 0;
+    pngSequenceSize.value = 0;
     errorMsg.value = null;
     state.value = 'idle';
   }
@@ -319,6 +365,16 @@ export function useGifRecorder() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  /** 下载 PNG 序列 ZIP */
+  function downloadPngSequence(filename?: string) {
+    if (!pngSequenceUrl.value) return;
+
+    const a = document.createElement('a');
+    a.href = pngSequenceUrl.value;
+    a.download = filename || `effect-frames-${Date.now()}.zip`;
+    a.click();
+  }
+
   return {
     // 状态
     state,
@@ -327,7 +383,9 @@ export function useGifRecorder() {
     elapsed,
     progress,
     previewUrl,
+    pngSequenceUrl,
     fileSize,
+    pngSequenceSize,
     errorMsg,
     // 计算属性
     isRecording,
@@ -343,6 +401,7 @@ export function useGifRecorder() {
     stopRecording,
     cancelRecording,
     downloadGif,
+    downloadPngSequence,
     reRecord,
     cleanup,
     formatFileSize

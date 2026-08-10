@@ -100,6 +100,13 @@ router.post('/proxy/test', async (req, res) => {
       return res.status(400).json(fail(CODE.FAIL, '缺少 key 或 url'));
     }
 
+    // SSRF 防护：禁止访问内网地址
+    const { isSafeUrl } = await import('../utils/security.js');
+    const check = isSafeUrl(url);
+    if (!check.safe) {
+      return res.status(403).json(fail(CODE.FAIL, `URL 校验失败: ${check.reason}`));
+    }
+
     const startTime = Date.now();
     let testResult = { ok: false, latency: 0, message: '' };
 

@@ -5,9 +5,7 @@ defineOptions({
 </script>
 
 <template>
-  <DarkModeContainer class="h-full flex-center">
-    <span>体验课产品部内部使用</span>
-  </DarkModeContainer>
+  <div />
 </template>
 
 <style scoped></style>

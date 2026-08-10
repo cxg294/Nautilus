@@ -16,6 +16,11 @@ export interface RoleRecord {
 export interface PermissionRecord {
   key: string;
   description: string | null;
+  label: string;
+  category: string;
+  group: string;
+  parentKey: string | null;
+  risk: '普通' | '管理';
 }
 
 /** 获取所有角色（含权限列表） */

@@ -59,3 +59,21 @@ export async function removeBackground(localFilePath) {
     throw new Error(error.message || '抠图服务调用失败', { cause: error });
   }
 }
+
+/**
+ * 通用分割抠图，并下载阿里云返回的临时 PNG 结果。
+ * GIF 逐帧处理需要把每一帧的去背结果重新编码，因此使用这个封装。
+ * @param {string} localFilePath - 本地缓存的图片文件路径
+ * @returns {Promise<Buffer>} 返回去背景后的 PNG 图片二进制
+ */
+export async function removeBackgroundToBuffer(localFilePath) {
+  const resultUrl = await removeBackground(localFilePath);
+  const response = await fetch(resultUrl);
+
+  if (!response.ok) {
+    throw new Error(`去背结果下载失败: ${response.status}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}

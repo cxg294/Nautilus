@@ -168,25 +168,26 @@ const routeMap: RouteMap = {
   "500": "/500",
   "analytics-dashboard": "/analytics-dashboard",
   "base64-converter": "/base64-converter",
-  "btc-course-flow": "/btc-course-flow",
   "effects-generator": "/effects-generator",
   "home": "/home",
+  "icon-explorer": "/icon-explorer",
   "iframe-page": "/iframe-page/:url",
   "image-compressor": "/image-compressor",
   "image-matting": "/image-matting",
   "locked": "/locked",
   "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?",
-  "material-studio": "/material-studio",
+  "mid-price-course": "/mid-price-course",
   "proxy-settings": "/proxy-settings",
   "qrcode-generator": "/qrcode-generator",
   "quick-links": "/quick-links",
+  "regex-workflow": "/regex-workflow",
   "role-manager": "/role-manager",
   "sb3-compressor": "/sb3-compressor",
   "sb3-studio": "/sb3-studio",
   "timestamp-converter": "/timestamp-converter",
-  "tts-studio": "/tts-studio",
   "user-manager": "/user-manager",
-  "video-frame-extractor": "/video-frame-extractor"
+  "video-frame-extractor": "/video-frame-extractor",
+  "voice-lab": "/voice-lab"
 };
 
 /**

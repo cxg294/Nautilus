@@ -139,6 +139,10 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     if (pass) {
       token.value = loginToken.token;
 
+      // 3. 重置路由初始化状态，让路由守卫根据新权限重新初始化路由和菜单
+      // 解决 guest→登录 场景下 isInitAuthRoute 已为 true 导致菜单不刷新的问题
+      routeStore.resetStore();
+
       return true;
     }
 

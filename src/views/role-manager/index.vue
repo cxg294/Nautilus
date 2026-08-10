@@ -4,7 +4,7 @@
  * 管理角色及其可访问的应用/工具权限配置
  */
 import { ref, computed, onMounted, h } from 'vue';
-import { NButton, NTag, NSpace, NPopconfirm, NSwitch, useMessage } from 'naive-ui';
+import { NButton, NTag, NSpace, NPopconfirm, useMessage } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import {
   fetchRoleList,
@@ -30,6 +30,8 @@ const showCreateModal = ref(false);
 const showPermModal = ref(false);
 const editingRole = ref<RoleRecord | null>(null);
 const permSaving = ref(false);
+const permissionKeyword = ref('');
+const showSelectedOnly = ref(false);
 
 // 选中的权限 keys
 const selectedPerms = ref<string[]>([]);
@@ -38,9 +40,24 @@ const selectedPerms = ref<string[]>([]);
 const createForm = ref({ name: '', displayName: '', description: '' });
 const creating = ref(false);
 
-// === 工具权限（module:开头）和系统权限分类 ===
-const toolPermissions = computed(() => allPermissions.value.filter(p => p.key.startsWith('module:')));
-const systemPermissions = computed(() => allPermissions.value.filter(p => p.key.startsWith('system:')));
+// === 权限分类 ===
+const permissionGroups = computed(() => {
+  const keyword = permissionKeyword.value.trim().toLowerCase();
+  const groups = new Map<string, { category: string; group: string; permissions: PermissionRecord[] }>();
+  for (const permission of allPermissions.value) {
+    const matches = !keyword || [permission.label, permission.description, permission.key, permission.group]
+      .some(value => String(value || '').toLowerCase().includes(keyword));
+    if (!matches || (showSelectedOnly.value && !isPermSelected(permission.key))) continue;
+    const groupKey = `${permission.category}:${permission.group}`;
+    if (!groups.has(groupKey)) groups.set(groupKey, { category: permission.category, group: permission.group, permissions: [] });
+    groups.get(groupKey)!.permissions.push(permission);
+  }
+  const categoryOrder = ['账号与系统', '数据与课程', '内容制作', '轻量工具', '其他'];
+  return [...groups.values()].sort((a, b) => {
+    const categoryDiff = categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
+    return categoryDiff || a.group.localeCompare(b.group, 'zh-CN');
+  });
+});
 
 // === Data Loading ===
 async function loadData() {
@@ -94,6 +111,8 @@ function openPermEditor(role: RoleRecord) {
   editingRole.value = role;
   selectedPerms.value = [...role.permissions];
   showPermModal.value = true;
+  permissionKeyword.value = '';
+  showSelectedOnly.value = false;
 }
 
 function isPermSelected(key: string) {
@@ -101,11 +120,18 @@ function isPermSelected(key: string) {
 }
 
 function togglePerm(key: string) {
+  const permission = allPermissions.value.find(item => item.key === key);
   const idx = selectedPerms.value.indexOf(key);
   if (idx >= 0) {
     selectedPerms.value.splice(idx, 1);
+    // 撤销应用访问时，撤销依赖该应用的功能权限。
+    selectedPerms.value = selectedPerms.value.filter(item => allPermissions.value.find(p => p.key === item)?.parentKey !== key);
   } else {
     selectedPerms.value.push(key);
+    // 功能权限依赖其所属应用的访问权限。
+    if (permission?.parentKey && !selectedPerms.value.includes(permission.parentKey)) {
+      selectedPerms.value.push(permission.parentKey);
+    }
   }
 }
 
@@ -169,27 +195,25 @@ const columns: DataTableColumns<RoleRecord> = [
     ellipsis: { tooltip: true }
   },
   {
-    title: '已授权应用',
+    title: '权限摘要',
     key: 'permissions',
     width: 320,
     render(row) {
       const toolPerms = row.permissions.filter(p => p.startsWith('module:'));
+      const systemPermCount = row.permissions.filter(p => p.startsWith('system:')).length;
       if (row.name === 'owner') {
         return h(NTag, { size: 'small', type: 'success', round: true }, { default: () => '全部权限' });
       }
-      if (toolPerms.length === 0) {
+      if (toolPerms.length === 0 && systemPermCount === 0) {
         return h('span', { style: 'color:#999;font-size:12px' }, '无');
       }
-      return h(
-        NSpace,
-        { size: 4 },
-        {
-          default: () =>
-            toolPerms.map(p =>
-              h(NTag, { size: 'small', round: true }, { default: () => permShortName(p) })
-            )
-        }
-      );
+      return h(NSpace, { size: 4 }, {
+        default: () => [
+          ...toolPerms.slice(0, 3).map(p => h(NTag, { size: 'small', round: true }, { default: () => permShortName(p) })),
+          toolPerms.length > 3 ? h(NTag, { size: 'small', round: true }, { default: () => `另 ${toolPerms.length - 3} 个应用` }) : null,
+          systemPermCount ? h(NTag, { size: 'small', type: 'warning', round: true }, { default: () => `${systemPermCount} 项管理权限` }) : null
+        ].filter(Boolean)
+      });
     }
   },
   {
@@ -247,7 +271,7 @@ const columns: DataTableColumns<RoleRecord> = [
           </NButton>
         </NSpace>
       </div>
-      <p class="role-manager__desc">管理系统角色及其可访问的应用。管理员拥有全部权限不可修改。</p>
+      <p class="role-manager__desc">管理角色、应用访问和细分能力。系统管理员拥有全部权限且不可修改。</p>
     </div>
 
     <!-- 角色列表 -->
@@ -295,42 +319,32 @@ const columns: DataTableColumns<RoleRecord> = [
       preset="dialog"
       :title="`配置「${editingRole?.display_name}」的权限`"
       :mask-closable="false"
-      style="width: 560px"
+      style="width: min(760px, calc(100vw - 32px))"
     >
       <div class="perm-editor">
-        <!-- 工具权限 -->
-        <div v-if="toolPermissions.length" class="perm-section">
-          <h4 class="perm-section__title">应用/工具权限</h4>
+        <div class="perm-toolbar">
+          <NInput v-model:value="permissionKeyword" clearable placeholder="搜索应用、能力或权限标识" />
+          <NCheckbox v-model:checked="showSelectedOnly">仅看已授权（{{ selectedPerms.length }}）</NCheckbox>
+        </div>
+        <div v-for="group in permissionGroups" :key="`${group.category}:${group.group}`" class="perm-section">
+          <div class="perm-section__heading">
+            <h4 class="perm-section__title">{{ group.group }}</h4>
+            <NTag size="tiny" :type="group.category === '系统管理' ? 'warning' : 'default'">{{ group.category }}</NTag>
+          </div>
           <div class="perm-grid">
-            <div
-              v-for="perm in toolPermissions"
-              :key="perm.key"
-              class="perm-item"
-              :class="{ 'perm-item--active': isPermSelected(perm.key) }"
-              @click="togglePerm(perm.key)"
-            >
-              <NSwitch :value="isPermSelected(perm.key)" size="small" @click.stop @update:value="() => togglePerm(perm.key)" />
-              <span class="perm-item__label">{{ perm.description || perm.key }}</span>
+            <div v-for="perm in group.permissions" :key="perm.key" class="perm-item" :class="{ 'perm-item--active': isPermSelected(perm.key), 'perm-item--child': perm.parentKey }" @click="togglePerm(perm.key)">
+              <NCheckbox :checked="isPermSelected(perm.key)" @click.stop @update:checked="() => togglePerm(perm.key)" />
+              <div class="perm-item__content">
+                <div class="perm-item__name">
+                  {{ perm.label }}
+                  <NTag v-if="perm.risk === '管理'" size="tiny" type="warning" round>管理</NTag>
+                </div>
+                <div class="perm-item__desc">{{ perm.description || perm.key }}</div>
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- 系统权限 -->
-        <div v-if="systemPermissions.length" class="perm-section">
-          <h4 class="perm-section__title">系统权限</h4>
-          <div class="perm-grid">
-            <div
-              v-for="perm in systemPermissions"
-              :key="perm.key"
-              class="perm-item"
-              :class="{ 'perm-item--active': isPermSelected(perm.key) }"
-              @click="togglePerm(perm.key)"
-            >
-              <NSwitch :value="isPermSelected(perm.key)" size="small" @click.stop @update:value="() => togglePerm(perm.key)" />
-              <span class="perm-item__label">{{ perm.description || perm.key }}</span>
-            </div>
-          </div>
-        </div>
+        <NEmpty v-if="permissionGroups.length === 0" description="没有匹配的权限" size="small" />
       </div>
       <template #action>
         <NSpace>
@@ -398,6 +412,16 @@ const columns: DataTableColumns<RoleRecord> = [
 /* 权限配置编辑器 */
 .perm-editor {
   margin-top: 8px;
+  max-height: min(62vh, 640px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.perm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .perm-section {
@@ -409,6 +433,17 @@ const columns: DataTableColumns<RoleRecord> = [
   font-size: 14px;
   font-weight: 500;
   color: #666;
+}
+
+.perm-section__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.perm-section__heading .perm-section__title {
+  margin: 0;
 }
 
 .dark .perm-section__title {
@@ -432,6 +467,10 @@ const columns: DataTableColumns<RoleRecord> = [
   transition: all 0.15s;
 }
 
+.perm-item--child {
+  margin-left: 24px;
+}
+
 .perm-item:hover {
   background: rgba(128, 128, 128, 0.12);
 }
@@ -452,7 +491,29 @@ const columns: DataTableColumns<RoleRecord> = [
   background: rgba(99, 226, 183, 0.1);
 }
 
-.perm-item__label {
+.perm-item__content {
+  min-width: 0;
+}
+
+.perm-item__name {
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.perm-item__desc {
+  margin-top: 2px;
+  color: #999;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .perm-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 </style>

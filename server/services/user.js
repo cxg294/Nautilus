@@ -88,6 +88,16 @@ export function updateRole(userId, role) {
 }
 
 /**
+ * 更新用户可展示资料。用户名是登录标识，不在此处允许修改。
+ * @param {number} userId
+ * @param {{displayName: string}} params
+ */
+export function updateProfile(userId, { displayName }) {
+  db.prepare('UPDATE users SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .run(displayName, userId);
+}
+
+/**
  * 获取用户列表（排除密码哈希）
  * @param {object} [options]
  * @param {string} [options.status] - 按状态筛选

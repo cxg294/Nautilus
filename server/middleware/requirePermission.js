@@ -5,7 +5,7 @@
  * owner 角色自动拥有全部权限，无需查表。
  *
  * @example
- * router.get('/sensitive', requireAuth, requirePermission('module:btc-course-flow:access'), handler);
+ * router.get('/sensitive', requireAuth, requirePermission('module:tool-name:access'), handler);
  * router.post('/admin-op', requireAuth, requirePermission('system:user:manage', 'system:settings:edit'), handler);
  */
 import { fail, CODE } from '../utils/response.js';

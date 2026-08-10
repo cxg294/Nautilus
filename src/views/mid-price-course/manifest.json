@@ -1,0 +1,10 @@
+{
+  "name": "mid-price-course",
+  "category": "data-dashboard",
+  "icon": "mdi:chart-line-variant",
+  "order": 1,
+  "categoryOrder": 5,
+  "locked": false,
+  "i18n": { "zh-CN": { "route": "中价课课程看板", "category": "数据看板", "categoryIcon": "mdi:chart-areaspline" }, "en-US": { "route": "Mid-price Course Dashboard", "category": "Data Dashboard", "categoryIcon": "mdi:chart-areaspline" } },
+  "guestAccessible": false
+}

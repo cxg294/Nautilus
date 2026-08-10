@@ -615,6 +615,7 @@ declare namespace App {
           preview: string;
           prevFrame: string;
           nextFrame: string;
+          generateGif: string;
         };
         effectsGenerator: {
           pageTitle: string;
@@ -640,8 +641,27 @@ declare namespace App {
           fullscreen: string;
           exitFullscreen: string;
           background: string;
+          backgroundModes: {
+            solid: string;
+            transparent: string;
+          };
+          quality: {
+            label: string;
+            preview: string;
+            standard: string;
+            export: string;
+          };
+          exportFormat: string;
           categoryBurst: string;
           categoryAmbient: string;
+          categories: {
+            emphasis: string;
+            celebration: string;
+            transition: string;
+            emotion: string;
+            character: string;
+            ambient: string;
+          };
           clickHint: string;
           presets: {
             'star-burst': string;
@@ -658,6 +678,18 @@ declare namespace App {
             'cyber-bubbles': string;
             'fire-rise': string;
             fountain: string;
+            'corner-salute-center': string;
+            'center-confetti-bloom': string;
+            'star-rain': string;
+            'spotlight-focus': string;
+            'important-flash-ring': string;
+            'arrow-pop': string;
+            'white-flash-transition': string;
+            'curtain-sweep': string;
+            'speed-lines': string;
+            'surprise-impact-lines': string;
+            'character-entry-smoke': string;
+            'dialogue-sparkle': string;
           };
           styleParams: string;
           softness: string;
@@ -691,6 +723,9 @@ declare namespace App {
             stop: string;
             cancel: string;
             download: string;
+            pngSequence: string;
+            downloadPngSequence: string;
+            pngSequenceDownloaded: string;
             reRecord: string;
             fileSize: string;
             stateIdle: string;

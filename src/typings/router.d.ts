@@ -42,7 +42,7 @@ declare module 'vue-router' {
      * If set, the user must have this permission key in their buttons[] to access the route.
      * Used by the route guard and route filtering logic.
      *
-     * @example 'module:tts-studio:access'
+     * @example 'module:image-matting:access'
      */
     permissionKey?: string;
     /**

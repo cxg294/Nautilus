@@ -10,6 +10,19 @@ import type { RequestInstanceState } from './type';
 const isHttpProxy = import.meta.env.DEV && import.meta.env.VITE_HTTP_PROXY === 'Y';
 const { baseURL, otherBaseURL } = getServiceBaseURL(import.meta.env, isHttpProxy);
 
+const defaultLogoutCodes = ['8888'];
+const defaultModalLogoutCodes = ['7777'];
+const defaultExpiredTokenCodes = ['9999', '3333'];
+
+function getServiceCodes(value: string | undefined, defaults: string[]) {
+  const codes = value?.split(',').map(code => code.trim()).filter(Boolean) || [];
+  return codes.length > 0 ? codes : defaults;
+}
+
+const logoutCodes = getServiceCodes(import.meta.env.VITE_SERVICE_LOGOUT_CODES, defaultLogoutCodes);
+const modalLogoutCodes = getServiceCodes(import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES, defaultModalLogoutCodes);
+const expiredTokenCodes = getServiceCodes(import.meta.env.VITE_SERVICE_EXPIRED_TOKEN_CODES, defaultExpiredTokenCodes);
+
 export const request = createFlatRequest(
   {
     baseURL,
@@ -52,14 +65,12 @@ export const request = createFlatRequest(
       }
 
       // when the backend response code is in `logoutCodes`, it means the user will be logged out and redirected to login page
-      const logoutCodes = import.meta.env.VITE_SERVICE_LOGOUT_CODES?.split(',') || [];
       if (logoutCodes.includes(responseCode)) {
         handleLogout();
         return null;
       }
 
       // when the backend response code is in `modalLogoutCodes`, it means the user will be logged out by displaying a modal
-      const modalLogoutCodes = import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES?.split(',') || [];
       if (modalLogoutCodes.includes(responseCode) && !request.state.errMsgStack?.includes(response.data.msg)) {
         request.state.errMsgStack = [...(request.state.errMsgStack || []), response.data.msg];
 
@@ -85,7 +96,6 @@ export const request = createFlatRequest(
 
       // when the backend response code is in `expiredTokenCodes`, it means the token is expired, and refresh token
       // the api `refreshToken` can not return error code in `expiredTokenCodes`, otherwise it will be a dead loop, should return `logoutCodes` or `modalLogoutCodes`
-      const expiredTokenCodes = import.meta.env.VITE_SERVICE_EXPIRED_TOKEN_CODES?.split(',') || [];
       if (expiredTokenCodes.includes(responseCode)) {
         const success = await handleExpiredRequest(request.state);
         if (success) {
@@ -111,13 +121,11 @@ export const request = createFlatRequest(
       }
 
       // the error message is displayed in the modal
-      const modalLogoutCodes = import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES?.split(',') || [];
       if (modalLogoutCodes.includes(backendErrorCode)) {
         return;
       }
 
       // when the token is expired, refresh token and retry request, so no need to show error message
-      const expiredTokenCodes = import.meta.env.VITE_SERVICE_EXPIRED_TOKEN_CODES?.split(',') || [];
       if (expiredTokenCodes.includes(backendErrorCode)) {
         return;
       }

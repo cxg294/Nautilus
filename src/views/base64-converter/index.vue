@@ -173,7 +173,7 @@ function clearAll() {
       <NCard :bordered="false" class="card-wrapper" size="small">
         <template #header>
           <div class="panel-header">
-            <span class="icon mdi mdi-code-braces header-icon" />
+            <SvgIcon icon="mdi:code-braces" class="header-icon" />
             <span>Base64 {{ t('page.base64Converter.converter') }}</span>
           </div>
         </template>
@@ -186,7 +186,7 @@ function clearAll() {
                 <div class="text-area-header">
                   <span class="area-label">{{ t('page.base64Converter.plainText') }}</span>
                   <NButton quaternary size="tiny" @click="copyToClipboard(textInput)">
-                    <template #icon><span class="icon mdi mdi-content-copy" /></template>
+                    <template #icon><SvgIcon icon="mdi:content-copy" /></template>
                   </NButton>
                 </div>
                 <NInput
@@ -227,7 +227,7 @@ function clearAll() {
                     {{ base64Input.length }} chars
                   </NTag>
                   <NButton quaternary size="tiny" @click="copyToClipboard(base64Input)">
-                    <template #icon><span class="icon mdi mdi-content-copy" /></template>
+                    <template #icon><SvgIcon icon="mdi:content-copy" /></template>
                   </NButton>
                 </div>
                 <NInput
@@ -253,7 +253,7 @@ function clearAll() {
                 @drop="handleFileDrop"
                 @click="($refs.fileInput as HTMLInputElement)?.click()"
               >
-                <span class="icon mdi mdi-cloud-upload drop-icon" />
+                <SvgIcon icon="mdi:cloud-upload-outline" class="drop-icon" />
                 <p class="drop-title">{{ t('page.base64Converter.dropFile') }}</p>
                 <p class="drop-hint">{{ t('page.base64Converter.dropHint') }}</p>
                 <input ref="fileInput" type="file" class="hidden-input" @change="handleFileInput" />
@@ -262,7 +262,7 @@ function clearAll() {
               <!-- 文件信息 -->
               <NAlert v-if="fileName" type="info" :show-icon="false" class="file-info">
                 <div class="file-info-row">
-                  <span class="icon mdi mdi-file-outline file-icon" />
+                  <SvgIcon icon="mdi:file-outline" class="file-icon" />
                   <div class="file-details">
                     <span class="file-name">{{ fileName }}</span>
                     <span class="file-meta">{{ fileType || 'unknown' }} · {{ formatSize(fileSize) }}</span>
@@ -283,14 +283,14 @@ function clearAll() {
                 <div class="text-area-header">
                   <span class="area-label">Base64 {{ t('page.base64Converter.output') }}</span>
                   <NButton size="small" type="primary" ghost @click="copyToClipboard(fileBase64)">
-                    <template #icon><span class="icon mdi mdi-content-copy" /></template>
+                    <template #icon><SvgIcon icon="mdi:content-copy" /></template>
                     {{ t('page.base64Converter.copyBase64') }}
                   </NButton>
                   <NButton size="small" type="info" ghost @click="copyToClipboard(fileDataUrl)">
                     {{ t('page.base64Converter.copyDataUrl') }}
                   </NButton>
                   <NButton size="small" ghost @click="downloadFromBase64">
-                    <template #icon><span class="icon mdi mdi-download" /></template>
+                    <template #icon><SvgIcon icon="mdi:download-outline" /></template>
                     {{ t('page.base64Converter.download') }}
                   </NButton>
                 </div>
@@ -313,13 +313,53 @@ function clearAll() {
 <style scoped>
 .base64-converter {
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
+  padding: 20px 24px;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.06), transparent 32%),
+    linear-gradient(315deg, rgba(15, 118, 110, 0.05), transparent 38%);
 }
 
 .main-layout {
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+}
+
+.card-wrapper {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(10px);
+}
+
+.card-wrapper :deep(.n-card__content) {
+  height: calc(100% - 54px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-wrapper :deep(.n-tabs) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-wrapper :deep(.n-tab-pane) {
+  height: 100%;
+  min-height: 0;
+}
+
+.card-wrapper :deep(.n-tabs-pane-wrapper) {
+  flex: 1;
+  min-height: 0;
 }
 
 .panel-header {
@@ -331,22 +371,38 @@ function clearAll() {
 }
 
 .header-icon {
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
   opacity: 0.7;
 }
 
 /* ── 文本模式 ── */
 .text-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "actions actions"
+    "plain base64";
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
   margin-top: 12px;
 }
 
 .text-area-group {
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.text-mode .text-area-group:first-child {
+  grid-area: plain;
+}
+
+.text-mode .text-area-group:last-child {
+  grid-area: base64;
 }
 
 .text-area-header {
@@ -366,13 +422,26 @@ function clearAll() {
   font-size: 13px;
 }
 
+.text-mode :deep(.mono-input) {
+  flex: 1;
+  min-height: clamp(360px, 52vh, 560px);
+}
+
+.text-mode :deep(.mono-input .n-input-wrapper),
+.text-mode :deep(.mono-input textarea) {
+  min-height: clamp(360px, 52vh, 560px);
+}
+
 .action-row {
+  grid-area: actions;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-top: 1px solid rgba(128, 128, 128, 0.1);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .action-options {
@@ -388,9 +457,12 @@ function clearAll() {
 
 /* ── 文件模式 ── */
 .file-mode {
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
   margin-top: 12px;
 }
 
@@ -414,7 +486,8 @@ function clearAll() {
 }
 
 .drop-icon {
-  font-size: 48px;
+  width: 48px;
+  height: 48px;
   opacity: 0.3;
   margin-bottom: 8px;
 }
@@ -443,7 +516,8 @@ function clearAll() {
 }
 
 .file-icon {
-  font-size: 24px;
+  width: 24px;
+  height: 24px;
   opacity: 0.5;
 }
 
@@ -482,6 +556,28 @@ function clearAll() {
 
 /* ── 响应式 ── */
 @media (max-width: 768px) {
+  .base64-converter {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .card-wrapper,
+  .card-wrapper :deep(.n-card__content),
+  .card-wrapper :deep(.n-tabs),
+  .card-wrapper :deep(.n-tab-pane),
+  .card-wrapper :deep(.n-tabs-pane-wrapper) {
+    height: auto;
+  }
+
+  .text-mode {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "actions"
+      "plain"
+      "base64";
+  }
+
   .action-row {
     flex-direction: column;
     gap: 8px;

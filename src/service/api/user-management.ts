@@ -7,10 +7,17 @@ export interface UserRecord {
   username: string;
   email: string | null;
   display_name: string;
-  role: 'owner' | 'user' | 'guest';
+  /** 角色标识（动态，不再限制为固定枚举） */
+  role: string;
   status: 'pending' | 'active' | 'disabled';
   created_at: string;
   updated_at: string;
+}
+
+/** 角色选项（仅用于下拉框） */
+export interface RoleOption {
+  name: string;
+  displayName: string;
 }
 
 /** 获取用户列表 */
@@ -24,6 +31,11 @@ export function fetchUserList(status?: string) {
 /** 获取待审批用户列表 */
 export function fetchPendingUsers() {
   return request<UserRecord[]>({ url: '/users/pending' });
+}
+
+/** 获取可分配的角色选项列表 */
+export function fetchRoleOptions() {
+  return request<RoleOption[]>({ url: '/users/role-options' });
 }
 
 /** 管理员直接创建用户 */
@@ -63,6 +75,15 @@ export function fetchUpdateUserRole(id: number, role: string) {
     url: `/users/${id}/role`,
     method: 'put',
     data: { role }
+  });
+}
+
+/** 修改用户昵称 */
+export function fetchUpdateUserProfile(id: number, data: { displayName: string }) {
+  return request({
+    url: `/users/${id}/profile`,
+    method: 'put',
+    data
   });
 }
 
