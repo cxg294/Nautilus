@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 410" role="img" aria-labelledby="title desc">
+  <title id="title">未配置角色立绘</title>
+  <desc id="desc">带问号的中性人物剪影，用于角色或姿态素材缺失时的舞台占位。</desc>
+  <circle cx="205" cy="205" r="177" fill="#e8edf5" stroke="#cbd5e1" stroke-width="6" stroke-dasharray="10 12"/>
+  <circle cx="205" cy="143" r="55" fill="#718096"/>
+  <path d="M92 342c10-73 57-114 113-114s103 41 113 114" fill="#718096"/>
+  <circle cx="286" cy="119" r="54" fill="#ffffff" stroke="#a9b7ca" stroke-width="6"/>
+  <text x="286" y="140" text-anchor="middle" fill="#52657f" font-family="Arial, 'PingFang SC', sans-serif" font-size="72" font-weight="700">?</text>
+</svg>

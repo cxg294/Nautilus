@@ -1,11 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config/env.js';
-import { runMigrations } from './db/index.js';
+import db, { runMigrations } from './db/index.js';
+import { requireAuth } from './middleware/auth.js';
+import { requirePermission } from './middleware/requirePermission.js';
 import { syncToolPermissions } from './services/permission-sync.js';
 import authRoutes from './routes/auth.js';
 
@@ -17,7 +19,11 @@ import { requireApiKey } from './middleware/apiKey.js';
 import imageMattingRoutes from './routes/image-matting.js';
 import analyticsRoutes from './routes/analytics.js';
 import systemSettingsRoutes from './routes/system-settings.js';
+import sequencePlayerRoutes from './routes/sequence-player.js';
+import { createCharacterLibraryRouter } from './routes/character-library.js';
 import midPriceCourseRoutes from './routes/mid-price-course.js';
+import courseAssetsRoutes from './routes/course-assets.js';
+import courseStructureRoutes from './routes/course-structure.js';
 import voiceLabRoutes from './routes/voice-lab.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -69,6 +75,7 @@ app.use(cors({
     }
   },
   credentials: true,
+  exposedHeaders: ['X-Nautilus-Authorization'],
 }));
 
 // 登录接口速率限制：15 分钟内最多 15 次
@@ -126,8 +133,16 @@ app.use('/api/image-matting', imageMattingRoutes);
 // 埋点分析
 app.use('/api/analytics', analyticsRoutes);
 
+// 逐字稿播放器
+app.use('/api/sequence-player', sequencePlayerRoutes);
+app.use('/api/character-library', requireAuth, requirePermission('module:character-library:access'), createCharacterLibraryRouter({ db }));
+
 // 中价课课程看板
 app.use('/api/mid-price-course', midPriceCourseRoutes);
+
+// 课程内容结构
+app.use('/api/course-assets', courseAssetsRoutes);
+app.use('/api/course-structure', courseStructureRoutes);
 
 // 语音合成与声音复刻
 app.use('/api/voice-lab', voiceLabRoutes);

@@ -1,0 +1,21 @@
+{
+  "name": "sequence-player",
+  "category": "copywriting",
+  "icon": "mdi:script-text-play-outline",
+  "order": 1,
+  "categoryOrder": 6,
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "逐字稿播放器",
+      "category": "文案创意",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    },
+    "en-US": {
+      "route": "Transcript Player",
+      "category": "Copywriting",
+      "categoryIcon": "mdi:text-box-edit-outline"
+    }
+  },
+  "guestAccessible": false
+}

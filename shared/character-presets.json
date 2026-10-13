@@ -1,0 +1,274 @@
+[
+  {
+    "id": "wulahu",
+    "name": "乌拉乎",
+    "displayName": "乌拉乎",
+    "aliases": [],
+    "referencePreset": "wulahu",
+    "color": "#d99443",
+    "position": "right",
+    "scale": 1,
+    "defaultPoseId": "wulahu-default",
+    "poses": [
+      {
+        "id": "wulahu-default",
+        "name": "默认",
+        "imageUrl": "/sequence-player/characters/wulahu.png",
+        "layout": {
+          "x": 80.0,
+          "y": 93.0,
+          "height": 60
+        }
+      },
+      {
+        "id": "wulahu-开心",
+        "name": "开心",
+        "imageUrl": "/characters/%E4%B9%8C%E6%8B%89%E4%B9%8E/%E5%BC%80%E5%BF%83.png",
+        "layout": {
+          "x": 80.9,
+          "y": 93.0,
+          "height": 77
+        }
+      },
+      {
+        "id": "wulahu-惊讶",
+        "name": "惊讶",
+        "imageUrl": "/characters/%E4%B9%8C%E6%8B%89%E4%B9%8E/%E6%83%8A%E8%AE%B6.png",
+        "layout": {
+          "x": 81.0,
+          "y": 93.0,
+          "height": 77
+        }
+      },
+      {
+        "id": "wulahu-疑惑",
+        "name": "疑惑",
+        "imageUrl": "/characters/%E4%B9%8C%E6%8B%89%E4%B9%8E/%E7%96%91%E6%83%91.png",
+        "layout": {
+          "x": 81.1,
+          "y": 93.0,
+          "height": 78
+        }
+      }
+    ],
+    "ttsConfig": {
+      "engine": "external",
+      "provider": "nautilus",
+      "voiceId": "",
+      "rate": 1,
+      "pitch": 1
+    }
+  },
+  {
+    "id": "taozi",
+    "name": "桃子",
+    "displayName": "桃子",
+    "aliases": [],
+    "referencePreset": "taozi",
+    "color": "#d85e63",
+    "position": "left",
+    "scale": 1,
+    "defaultPoseId": "taozi-default",
+    "poses": [
+      {
+        "id": "taozi-default",
+        "name": "默认",
+        "imageUrl": "/sequence-player/characters/taozi.png",
+        "layout": {
+          "x": 19.9,
+          "y": 93.0,
+          "height": 60
+        }
+      },
+      {
+        "id": "taozi-激动",
+        "name": "激动",
+        "imageUrl": "/characters/%E6%A1%83%E5%AD%90/%E6%BF%80%E5%8A%A8.png",
+        "layout": {
+          "x": 21.8,
+          "y": 93.0,
+          "height": 70
+        }
+      },
+      {
+        "id": "taozi-思考",
+        "name": "思考",
+        "imageUrl": "/characters/%E6%A1%83%E5%AD%90/%E6%80%9D%E8%80%83.png",
+        "layout": {
+          "x": 20.3,
+          "y": 93.0,
+          "height": 70
+        }
+      },
+      {
+        "id": "taozi-星星眼",
+        "name": "星星眼",
+        "imageUrl": "/characters/%E6%A1%83%E5%AD%90/%E6%98%9F%E6%98%9F%E7%9C%BC.png",
+        "layout": {
+          "x": 20.3,
+          "y": 93.0,
+          "height": 70
+        }
+      }
+    ],
+    "ttsConfig": {
+      "engine": "external",
+      "provider": "nautilus",
+      "voiceId": "",
+      "rate": 1,
+      "pitch": 1
+    }
+  },
+  {
+    "id": "hemu",
+    "name": "禾木",
+    "displayName": "禾木",
+    "aliases": [],
+    "referencePreset": "hemu",
+    "color": "#2d85b3",
+    "position": "right",
+    "scale": 1,
+    "defaultPoseId": "hemu-default",
+    "poses": [
+      {
+        "id": "hemu-default",
+        "name": "默认",
+        "imageUrl": "/sequence-player/characters/hemu.png",
+        "layout": {
+          "x": 80.9,
+          "y": 94.7,
+          "height": 63
+        }
+      }
+    ],
+    "ttsConfig": {
+      "engine": "external",
+      "provider": "nautilus",
+      "voiceId": "",
+      "rate": 1,
+      "pitch": 1
+    }
+  },
+  {
+    "id": "xiaohetao",
+    "name": "小核桃",
+    "displayName": "小核桃",
+    "aliases": [],
+    "referencePreset": "xiaohetao",
+    "color": "#e39542",
+    "position": "right",
+    "scale": 1,
+    "defaultPoseId": "xiaohetao-default",
+    "poses": [
+      {
+        "id": "xiaohetao-default",
+        "name": "默认",
+        "imageUrl": "/sequence-player/characters/xiaohetao.png",
+        "layout": {
+          "x": 79.6,
+          "y": 93.0,
+          "height": 58
+        }
+      }
+    ],
+    "ttsConfig": {
+      "engine": "external",
+      "provider": "nautilus",
+      "voiceId": "",
+      "rate": 1,
+      "pitch": 1
+    }
+  },
+  {
+    "id": "yuhang-teacher",
+    "name": "宇航老师",
+    "displayName": "宇航老师",
+    "aliases": [],
+    "referencePreset": "yuhang-teacher",
+    "color": "#6176bb",
+    "position": "left",
+    "scale": 1,
+    "defaultPoseId": "yuhang-teacher-default",
+    "poses": [
+      {
+        "id": "yuhang-teacher-default",
+        "name": "默认",
+        "imageUrl": "/sequence-player/characters/yuhang-teacher.png",
+        "layout": {
+          "x": 20.1,
+          "y": 93.0,
+          "height": 72
+        }
+      }
+    ],
+    "ttsConfig": {
+      "engine": "external",
+      "provider": "nautilus",
+      "voiceId": "",
+      "rate": 1,
+      "pitch": 1
+    }
+  },
+  {
+    "id": "doctor",
+    "name": "艾博士",
+    "displayName": "艾博士",
+    "aliases": [
+      "博士"
+    ],
+    "referencePreset": "doctor",
+    "color": "#18a874",
+    "position": "left",
+    "scale": 1,
+    "defaultPoseId": "doctor-default",
+    "poses": [
+      {
+        "id": "doctor-default",
+        "name": "默认",
+        "imageUrl": "/sequence-player/characters/doctor.png",
+        "layout": {
+          "x": 24.3,
+          "y": 93.0,
+          "height": 72
+        }
+      },
+      {
+        "id": "doctor-严肃",
+        "name": "严肃",
+        "imageUrl": "/characters/%E8%89%BE%E5%8D%9A%E5%A3%AB/%E4%B8%A5%E8%82%83.png",
+        "layout": {
+          "x": 19.7,
+          "y": 93.0,
+          "height": 94
+        }
+      },
+      {
+        "id": "doctor-微笑",
+        "name": "微笑",
+        "imageUrl": "/characters/%E8%89%BE%E5%8D%9A%E5%A3%AB/%E5%BE%AE%E7%AC%91.png",
+        "layout": {
+          "x": 20.5,
+          "y": 93.0,
+          "height": 90
+        }
+      },
+      {
+        "id": "doctor-思考",
+        "name": "思考",
+        "imageUrl": "/characters/%E8%89%BE%E5%8D%9A%E5%A3%AB/%E6%80%9D%E8%80%83.png",
+        "layout": {
+          "x": 20.9,
+          "y": 93.0,
+          "height": 90
+        }
+      }
+    ],
+    "ttsConfig": {
+      "engine": "external",
+      "provider": "nautilus",
+      "voiceId": "",
+      "rate": 1,
+      "pitch": 1
+    }
+  }
+]
