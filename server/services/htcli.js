@@ -175,9 +175,25 @@ export function runHetaoCli(args, options = {}) {
 
 export async function runHetaoCliJson(args, options = {}) {
   const result = await runHetaoCli(args, options);
+  const json = tryParseJson(result.stdout);
+  // CLI 进程可能以 0 退出，但上游在 JSON 内返回业务错误。
+  // 必须先检查错误码，避免调用方把参数/权限错误误报成空数据。
+  const failedCode = [
+    [json?.code, [0, 200]],
+    [json?.errcode, [0]],
+  ].find(([code, successCodes]) => code !== undefined && code !== null && !successCodes.includes(Number(code)));
+  if (failedCode || json?.success === false || json?.error) {
+    const code = failedCode?.[0];
+    const message = maskSensitiveText(json?.message || json?.msg || json?.errmsg || (typeof json?.error === 'string' ? json.error : json?.error?.message) || '请求失败');
+    throw createCliError(`hetao-cli 上游接口报错${code !== undefined ? `（${code}）` : ''}：${message}`, {
+      reason: 'HTCLI_API_ERROR',
+      code,
+      args: result.args,
+    });
+  }
   return {
     ...result,
-    json: tryParseJson(result.stdout),
+    json,
   };
 }
 

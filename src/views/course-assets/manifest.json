@@ -1,0 +1,21 @@
+{
+  "name": "course-assets",
+  "category": "course-assets",
+  "icon": "mdi:bookshelf",
+  "order": 1,
+  "categoryOrder": 1,
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "课程资产中心",
+      "category": "课程资产",
+      "categoryIcon": "mdi:bookshelf"
+    },
+    "en-US": {
+      "route": "Course Assets",
+      "category": "Course Assets",
+      "categoryIcon": "mdi:bookshelf"
+    }
+  },
+  "guestAccessible": false
+}

@@ -1,0 +1,21 @@
+{
+  "name": "course-structure",
+  "category": "course-assets",
+  "icon": "mdi:source-branch",
+  "order": 2,
+  "categoryOrder": 1,
+  "locked": false,
+  "i18n": {
+    "zh-CN": {
+      "route": "课程结构解析",
+      "category": "课程资产",
+      "categoryIcon": "mdi:bookshelf"
+    },
+    "en-US": {
+      "route": "Course Structure",
+      "category": "Course Assets",
+      "categoryIcon": "mdi:bookshelf"
+    }
+  },
+  "guestAccessible": false
+}

@@ -92,6 +92,11 @@ const gradeColumns: DataTableColumns<any> = [
 
 function percent(value: number | null | undefined) { return value == null ? '-' : `${(value * 100).toFixed(1)}%`; }
 function minutes(value: number | null | undefined) { return value == null ? '-' : `${(value / 60000).toFixed(1)} 分`; }
+function durationTooltip(value: number | null | undefined) {
+  if (value == null) return '-';
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? `${numberValue.toFixed(1)} 分` : '-';
+}
 function courseLabel(sequence: string) {
   const [stageText, lessonText] = sequence.split('_');
   const stage = Number(stageText);
@@ -157,7 +162,7 @@ function durationChartOption(subject: '图形化' | 'Python') {
   const max = values.length ? Math.ceil(Math.max(...values) / 5) * 5 + 5 : 60;
   return {
     title: { text: `${subject} · 完课时长中位数`, subtext: '各年级按完课人数加权 · 分钟', left: 'center', top: 6, textStyle: { fontSize: 15, fontWeight: 600 }, subtextStyle: { fontSize: 12 } },
-    tooltip: { trigger: 'axis', valueFormatter: (value: number) => `${value.toFixed(1)} 分` }, legend: { top: 54 }, grid: { left: 52, right: 28, top: 112, bottom: 52 },
+    tooltip: { trigger: 'axis', valueFormatter: durationTooltip }, legend: { top: 54 }, grid: { left: 52, right: 28, top: 112, bottom: 52 },
     xAxis: { type: 'category', data: lessons.map(courseLabel), name: '课程', axisLabel: { interval: 0, rotate: 28 } },
     yAxis: { type: 'value', min, max, name: '分钟', axisLabel: { formatter: (value: number) => `${value} 分` } },
     series: series.map(item => ({ name: item.termName, type: 'line', smooth: false, connectNulls: false, data: lessons.map(lesson => { const value = item.lessons.find(row => row.lesson === lesson)?.durationMedianMs; return value == null ? null : value / 60000; }) })),
@@ -174,7 +179,7 @@ function gradeCourseChartOption(metric: 'attendRate' | 'completionRate' | 't7Att
   const isByGrade = gradeComparisonMode.value === 'by-grade';
   const isAttend = metric === 'attendRate' || metric === 't7AttendRate';
   const isT7 = metric === 't7AttendRate' || metric === 't7CompletionRate';
-  return { title: { text: title, textStyle: { fontSize: 15, fontWeight: 600 } }, tooltip: { trigger: 'axis', valueFormatter: (value: number) => isDuration ? `${value.toFixed(1)} 分` : percent(value) }, legend: { top: 30 }, grid: { left: 52, right: 28, top: 72, bottom: 52 }, xAxis: { type: 'category', data: lessons.map(courseLabel), name: '课程', axisLabel: { interval: 0, rotate: 28 } }, yAxis: { type: 'value', min, max, name: isDuration ? '分钟' : '比例', axisLabel: { formatter: (value: number) => isDuration ? `${value} 分` : percent(value) } }, series: groups.map(name => ({ name, type: 'line', smooth: false, data: lessons.map(lesson => { const matched = rows.filter(row => row.lesson === lesson && (isByGrade ? row.grade === name : row.termName === name)); if (isDuration) { const value = matched[0]?.durationMedianMs; return value == null ? null : value / 60000; } const unlocked = matched.reduce((sum, row) => sum + row.unlocked, 0); const attend = matched.reduce((sum, row) => sum + (isT7 ? row.t7Attend : row.attend), 0); const complete = matched.reduce((sum, row) => sum + (isT7 ? row.t7Complete : row.complete), 0); return (isAttend ? unlocked : attend) ? (isAttend ? attend : complete) / (isAttend ? unlocked : attend) : null; }) })) };
+  return { title: { text: title, textStyle: { fontSize: 15, fontWeight: 600 } }, tooltip: { trigger: 'axis', valueFormatter: isDuration ? durationTooltip : percent }, legend: { top: 30 }, grid: { left: 52, right: 28, top: 72, bottom: 52 }, xAxis: { type: 'category', data: lessons.map(courseLabel), name: '课程', axisLabel: { interval: 0, rotate: 28 } }, yAxis: { type: 'value', min, max, name: isDuration ? '分钟' : '比例', axisLabel: { formatter: (value: number) => isDuration ? `${value} 分` : percent(value) } }, series: groups.map(name => ({ name, type: 'line', smooth: false, data: lessons.map(lesson => { const matched = rows.filter(row => row.lesson === lesson && (isByGrade ? row.grade === name : row.termName === name)); if (isDuration) { const value = matched[0]?.durationMedianMs; return value == null ? null : value / 60000; } const unlocked = matched.reduce((sum, row) => sum + row.unlocked, 0); const attend = matched.reduce((sum, row) => sum + (isT7 ? row.t7Attend : row.attend), 0); const complete = matched.reduce((sum, row) => sum + (isT7 ? row.t7Complete : row.complete), 0); return (isAttend ? unlocked : attend) ? (isAttend ? attend : complete) / (isAttend ? unlocked : attend) : null; }) })) };
 }
 function gradeMixChartOption(subject: '图形化' | 'Python') {
   const rows = filteredGradeRows.value.filter(row => row.subject === subject);
