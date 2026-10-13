@@ -345,6 +345,12 @@ export const useTabStore = defineStore(SetupStoreId.Tab, () => {
     }
   }
 
+  /** 移除已撤销页面的标签，并同步本地缓存。 */
+  function pruneUnauthorizedTabs() {
+    tabs.value = tabs.value.filter(tab => router.hasRoute(tab.routeKey));
+    cacheTabs();
+  }
+
   /** Cache tabs */
   function cacheTabs() {
     if (!themeStore.tab.cache) return;
@@ -380,6 +386,7 @@ export const useTabStore = defineStore(SetupStoreId.Tab, () => {
     isTabRetain,
     updateTabsByLocale,
     getTabIdByRoute,
+    pruneUnauthorizedTabs,
     cacheTabs
   };
 });

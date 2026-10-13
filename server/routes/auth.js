@@ -20,7 +20,6 @@ import {
   createRefreshToken,
   findValidRefreshToken,
   revokeRefreshToken,
-  revokeAllUserTokens,
 } from '../services/user.js';
 import { listAllPermissions } from '../services/role.js';
 
@@ -61,7 +60,7 @@ router.post('/login', (req, res) => {
   }
 
   // 签发 Access Token
-  const tokenPayload = { id: user.id, username: user.username, role: user.role };
+  const tokenPayload = { id: user.id, username: user.username, role: user.role, version: user.auth_version };
   const token = jwt.sign(tokenPayload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
   });
@@ -153,6 +152,8 @@ router.get('/getUserInfo', requireAuth, (req, res) => {
     userName: user.display_name || user.username,
     roles,
     buttons,
+    authorizationVersion: req.user.authorizationVersion,
+    roleName: user.role,
   }));
 });
 
@@ -185,7 +186,7 @@ router.post('/refreshToken', (req, res) => {
   revokeRefreshToken(refreshToken);
 
   // 签发新的 Token 对
-  const tokenPayload = { id: user.id, username: user.username, role: user.role };
+  const tokenPayload = { id: user.id, username: user.username, role: user.role, version: user.auth_version };
   const newToken = jwt.sign(tokenPayload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
   });
@@ -222,9 +223,6 @@ router.post('/changePassword', requireAuth, (req, res) => {
 
   // 更新密码
   updatePassword(user.id, newPassword);
-
-  // 吊销所有 refresh token（强制重新登录）
-  revokeAllUserTokens(user.id);
 
   res.json(success(null, '密码修改成功，请重新登录'));
 });

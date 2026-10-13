@@ -5,6 +5,8 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
 import { fail, CODE } from '../utils/response.js';
+import crypto from 'crypto';
+import { findById, getEffectivePermissions } from '../services/user.js';
 
 /**
  * 验证 Access Token
@@ -26,10 +28,9 @@ export function requireAuth(req, res, next) {
     return res.json(fail(CODE.FORCE_LOGOUT, '未提供认证令牌'));
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, config.jwt.secret);
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, config.jwt.secret);
   } catch (err) {
     // 区分 token 过期和 token 无效
     if (err.name === 'TokenExpiredError') {
@@ -37,4 +38,14 @@ export function requireAuth(req, res, next) {
     }
     return res.json(fail(CODE.TOKEN_INVALID, '无效的认证令牌'));
   }
+  const user = findById(decoded.id);
+  if (!user || user.status !== 'active' || (decoded.version ?? 0) !== user.auth_version) {
+    return res.json(fail(CODE.FORCE_LOGOUT, '账号或会话已失效，请重新登录'));
+  }
+  const permissions = getEffectivePermissions(user.role);
+  const authorizationVersion = crypto.createHash('sha256')
+    .update(JSON.stringify([user.role, [...permissions].sort()])).digest('hex');
+  req.user = { id: user.id, username: user.username, role: user.role, permissions, authorizationVersion };
+  res.setHeader('X-Nautilus-Authorization', authorizationVersion);
+  next();
 }

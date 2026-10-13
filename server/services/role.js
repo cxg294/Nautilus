@@ -9,7 +9,8 @@ import db from '../db/index.js';
  */
 export function listRoles() {
   return db.prepare(
-    'SELECT id, name, display_name, description, is_system, created_at, updated_at FROM roles ORDER BY is_system DESC, id ASC'
+    `SELECT roles.*, (SELECT COUNT(*) FROM users WHERE users.role = roles.name) AS user_count
+     FROM roles ORDER BY is_system DESC, id ASC`
   ).all();
 }
 
@@ -55,12 +56,18 @@ export function updateRoleInfo(id, { displayName, description }) {
  * 删除角色（仅非 is_system 可删除）
  */
 export function deleteRole(id) {
-  // 先删除关联的权限
-  const role = findRoleById(id);
-  if (role) {
+  db.transaction(() => {
+    const role = findRoleById(id);
+    if (!role || role.is_system) throw new Error('内置角色不可删除');
+    const count = db.prepare('SELECT COUNT(*) count FROM users WHERE role = ?').get(role.name).count;
+    if (count) throw new Error(`该角色仍有 ${count} 位成员，请先调整成员角色`);
     db.prepare('DELETE FROM role_permissions WHERE role = ?').run(role.name);
-  }
-  db.prepare('DELETE FROM roles WHERE id = ? AND is_system = 0').run(id);
+    db.prepare('DELETE FROM roles WHERE id = ? AND is_system = 0').run(id);
+  })();
+}
+
+export function listRoleMembers(roleName) {
+  return db.prepare('SELECT id, username, display_name, status FROM users WHERE role = ? ORDER BY id').all(roleName);
 }
 
 /**

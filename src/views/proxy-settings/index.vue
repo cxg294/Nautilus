@@ -3,9 +3,9 @@
  * 服务代理设置 — 配置外部服务的代理地址
  *
  * 支持服务：Gemini API、TTS 系列服务
- * 仅 owner 角色可访问
+ * 需要系统设置管理权限
  */
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useMessage } from 'naive-ui';
 import {
   fetchProxySettings,
@@ -14,11 +14,14 @@ import {
   type ProxyConfigMap,
 } from '@/service/api/system-settings';
 import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
+import { useAuth } from '@/hooks/business/auth';
 
 usePageTracker('proxy-settings');
 const { trackAction } = useActionTracker('proxy-settings');
 
 const message = useMessage();
+const { hasAuth } = useAuth();
+const canEdit = computed(() => hasAuth('system:settings:edit'));
 const loading = ref(false);
 const saving = ref(false);
 
@@ -71,10 +74,11 @@ for (const s of services) {
 
 // 加载配置
 async function loadSettings() {
+  if (!canEdit.value) return;
   loading.value = true;
   try {
     const { data, error } = await fetchProxySettings();
-    if (!error && data) {
+    if (!error && data && canEdit.value) {
       for (const s of services) {
         const item = (data as ProxyConfigMap)[s.key];
         if (item) {
@@ -90,6 +94,7 @@ async function loadSettings() {
 
 // 保存
 async function handleSave() {
+  if (!canEdit.value) return;
   saving.value = true;
   try {
     const settings: Record<string, string> = {};
@@ -111,6 +116,7 @@ async function handleSave() {
 
 // 测试连通性
 async function handleTest(key: string) {
+  if (!canEdit.value) return;
   const url = formValues[key];
   if (!url) {
     message.warning('请先填写代理地址');
@@ -141,13 +147,21 @@ function handleClear(key: string) {
 }
 
 onMounted(loadSettings);
+watch(canEdit, allowed => {
+  if (allowed) void loadSettings();
+  else for (const service of services) {
+    formValues[service.key] = '';
+    updatedAtMap[service.key] = null;
+    testStates[service.key].result = null;
+  }
+});
 </script>
 
 <template>
   <div class="proxy-page">
     <div class="page-header">
       <h2 class="page-title">⚙️ 服务代理设置</h2>
-      <NButton type="primary" :loading="saving" @click="handleSave">
+      <NButton v-if="canEdit" type="primary" :loading="saving" @click="handleSave">
         💾 保存全部
       </NButton>
     </div>
@@ -156,7 +170,8 @@ onMounted(loadSettings);
       为需要代理访问的外部 AI 服务配置转发地址。保存后立即生效，无需重启服务。
     </p>
 
-    <NSpin :show="loading">
+    <NAlert v-if="!canEdit" type="info">当前角色仅有页面入口权限，请授权系统设置管理后使用。</NAlert>
+    <NSpin v-else :show="loading">
       <div class="services-grid">
         <div
           v-for="s in services"

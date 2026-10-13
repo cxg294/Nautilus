@@ -11,7 +11,7 @@
  *   <SomeProtectedFeature />
  * </AuthGate>
  *
- * <AuthGate :require-permission="['module:sb3-studio:access']">
+ * <AuthGate :require-permission="['module:voice-lab:access']">
  *   <SomeAdminFeature />
  * </AuthGate>
  */

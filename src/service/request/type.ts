@@ -5,3 +5,10 @@ export interface RequestInstanceState {
   errMsgStack: string[];
   [key: string]: unknown;
 }
+
+// Background checks report failures inline instead of interrupting the current page.
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    silentError?: boolean;
+  }
+}

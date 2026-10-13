@@ -1,6 +1,6 @@
 import { request } from '../request';
 
-/** 系统设置 — 服务代理配置 API（需 owner 权限） */
+/** 系统设置 — 服务代理配置 API（需 system:settings:edit 权限） */
 
 export interface ProxyConfigItem {
   value: string;

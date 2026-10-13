@@ -63,8 +63,11 @@ export function createUser({ username, password, displayName, email, role = 'use
  */
 export function updatePassword(userId, newPassword) {
   const passwordHash = hashSync(newPassword, 10);
-  db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .run(passwordHash, userId);
+  db.transaction(() => {
+    db.prepare('UPDATE users SET password_hash = ?, auth_version = auth_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(passwordHash, userId);
+    revokeAllUserTokens(userId);
+  })();
 }
 
 /**
@@ -73,8 +76,11 @@ export function updatePassword(userId, newPassword) {
  * @param {string} status - pending/active/disabled
  */
 export function updateStatus(userId, status) {
-  db.prepare('UPDATE users SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .run(status, userId);
+  db.transaction(() => {
+    db.prepare(`UPDATE users SET status = ?, auth_version = auth_version + CASE WHEN status != ? THEN 1 ELSE 0 END,
+      updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(status, status, userId);
+    if (status !== 'active') revokeAllUserTokens(userId);
+  })();
 }
 
 /**
@@ -130,9 +136,11 @@ export function listPendingUsers() {
  * @param {number} userId
  */
 export function deleteUser(userId) {
-  // 先吊销所有 refresh token
-  revokeAllUserTokens(userId);
-  db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  db.transaction(() => {
+    // 已删除账号不再保留刷新会话；先清理外键引用再删除账号。
+    db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  })();
 }
 
 /**
@@ -145,6 +153,25 @@ export function getRolePermissions(role) {
     'SELECT permission_key FROM role_permissions WHERE role = ?'
   ).all(role);
   return rows.map(r => r.permission_key);
+}
+
+export function getEffectivePermissions(role) {
+  return role === 'owner'
+    ? db.prepare('SELECT key FROM permissions ORDER BY key').all().map(row => row.key)
+    : getRolePermissions(role);
+}
+
+/** 所有用户写操作共同使用的 owner 边界。放在写事务中检查。 */
+export function assertUserManagement(actor, user, { role = user?.role, status = user?.status, deleting = false } = {}) {
+  if ((role === 'owner' || user?.role === 'owner') && actor.role !== 'owner') {
+    const error = new Error('只有系统所有者可以创建或调整 owner 账号');
+    error.status = 403;
+    throw error;
+  }
+  if (user?.role === 'owner' && user.status === 'active' && (role !== 'owner' || status !== 'active' || deleting)) {
+    const count = db.prepare("SELECT COUNT(*) count FROM users WHERE role = 'owner' AND status = 'active'").get().count;
+    if (count <= 1) throw new Error('必须保留至少一个启用的 owner 账号');
+  }
 }
 
 /**
@@ -190,7 +217,7 @@ export function createRefreshToken(userId) {
  */
 export function findValidRefreshToken(token) {
   return db.prepare(
-    'SELECT * FROM refresh_tokens WHERE token = ? AND revoked = 0 AND expires_at > datetime(\'now\')'
+    "SELECT * FROM refresh_tokens WHERE token = ? AND revoked = 0 AND julianday(expires_at) > julianday('now')"
   ).get(token);
 }
 

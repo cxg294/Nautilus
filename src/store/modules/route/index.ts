@@ -17,7 +17,6 @@ import {
   getCacheRouteNames,
   getGlobalMenusByAuthRoutes,
   getSelectedMenuKeyPathByKey,
-  isRouteExistByRouteName,
   sortRoutesByOrder,
   transformMenuToSearchMenus,
   updateLocaleOfGlobalMenus
@@ -315,15 +314,19 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
    * @param routePath Route path
    */
   async function getIsAuthRouteExist(routePath: string) {
+    if (authRouteMode.value === 'static') {
+      // 插件分组路由及旧地址不在 Elegant Router 的静态 routeMap 中。
+      const { authRoutes: staticAuthRoutes } = createStaticRoutes();
+      const hasPath = (routes: ElegantConstRoute[]): boolean => routes.some(route =>
+        route.path === routePath || Boolean(route.children && hasPath(route.children))
+      );
+      return hasPath(staticAuthRoutes);
+    }
+
     const routeName = getRouteName(routePath as RoutePath);
 
     if (!routeName) {
       return false;
-    }
-
-    if (authRouteMode.value === 'static') {
-      const { authRoutes: staticAuthRoutes } = createStaticRoutes();
-      return isRouteExistByRouteName(routeName, staticAuthRoutes);
     }
 
     const { data } = await fetchIsRouteExist(routeName);
@@ -342,6 +345,18 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
 
   async function onRouteSwitchWhenLoggedIn() {
     // some global init logic when logged in and switch route
+  }
+
+  async function refreshAuthRoutes() {
+    const current = router.currentRoute.value;
+    const permissionKey = (current.meta as any).permissionKey as string | undefined;
+    if (authRouteMode.value === 'static') initStaticAuthRoute();
+    else await initDynamicAuthRoute();
+    if (!current.meta.constant && !current.meta.guestAccessible && permissionKey
+      && !authStore.userInfo.buttons.includes(permissionKey)) {
+      await router.replace({ name: '403' });
+    }
+    tabStore.pruneUnauthorizedTabs();
   }
 
   async function onRouteSwitchWhenNotLoggedIn() {
@@ -367,6 +382,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     getIsAuthRouteExist,
     getSelectedMenuKeyPath,
     onRouteSwitchWhenLoggedIn,
-    onRouteSwitchWhenNotLoggedIn
+    onRouteSwitchWhenNotLoggedIn,
+    refreshAuthRoutes
   };
 });

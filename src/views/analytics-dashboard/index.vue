@@ -3,7 +3,7 @@
  * 系统运行看板 — 埋点分析可视化
  *
  * 展示工具使用排行、用户活跃度、每日趋势、事件流水
- * 仅 owner 角色可访问
+ * 按系统运行看板访问权限授权
  */
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import * as echarts from 'echarts';

@@ -5,24 +5,17 @@
  * PUT    /proxy       — 更新代理配置
  * POST   /proxy/test  — 测试代理连通性
  *
- * 所有接口仅限 owner 角色访问
+ * 所有接口需要 system:settings:edit 权限
  */
 import express from 'express';
 import db from '../db/index.js';
 import { success, fail, CODE } from '../utils/response.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/requirePermission.js';
+import { recordAdminAction } from '../services/admin-audit.js';
 
 const router = express.Router();
-router.use(requireAuth);
-
-// owner 权限检查
-function requireOwner(req, res, next) {
-  if (req.user.role !== 'owner') {
-    return res.status(403).json(fail(CODE.FAIL, '权限不足'));
-  }
-  next();
-}
-router.use(requireOwner);
+router.use(requireAuth, requirePermission('system:settings:edit'));
 
 // 代理配置的 key 列表（白名单）
 const PROXY_KEYS = [
@@ -77,13 +70,13 @@ router.put('/proxy', (req, res) => {
       return res.status(400).json(fail(CODE.FAIL, '参数格式错误'));
     }
 
-    let updated = 0;
-    for (const [key, value] of Object.entries(settings)) {
-      if (!PROXY_KEYS.includes(key)) continue;
-      if (typeof value !== 'string') continue;
-      upsertStmt.run(key, value.trim());
-      updated++;
-    }
+    const updated = db.transaction(() => {
+      const keys = Object.keys(settings).filter(key => PROXY_KEYS.includes(key) && typeof settings[key] === 'string');
+      for (const key of keys) upsertStmt.run(key, settings[key].trim());
+      // 代理 URL 可能含凭据，日志只记录修改了哪些设置项。
+      recordAdminAction(req.user, 'settings.update', { type: 'settings', id: 'proxy', name: '服务代理设置' }, null, { keys });
+      return keys.length;
+    })();
 
     res.json(success({ updated }));
   } catch (err) {
@@ -93,6 +86,7 @@ router.put('/proxy', (req, res) => {
 });
 
 // ═══ POST /proxy/test — 测试连通性 ═══
+// oxlint-disable-next-line oxc/no-async-endpoint-handlers -- Express 5 自动转发异步路由的拒绝错误。
 router.post('/proxy/test', async (req, res) => {
   try {
     const { key, url } = req.body;

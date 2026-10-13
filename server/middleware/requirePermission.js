@@ -27,7 +27,7 @@ export function requirePermission(...keys) {
       return next();
     }
 
-    const userPerms = getRolePermissions(req.user.role);
+    const userPerms = req.user.permissions || getRolePermissions(req.user.role);
     const hasAll = keys.every(k => userPerms.includes(k));
 
     if (!hasAll) {

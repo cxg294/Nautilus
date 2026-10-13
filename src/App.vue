@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, onBeforeUnmount } from 'vue';
 import { NConfigProvider, darkTheme } from 'naive-ui';
 import type { WatermarkProps } from 'naive-ui';
 import { useAppStore } from './store/modules/app';
 import { useThemeStore } from './store/modules/theme';
 import { naiveDateLocales, naiveLocales } from './locales/naive';
+import { useAuthStore } from './store/modules/auth';
 
 defineOptions({
   name: 'App'
@@ -12,6 +13,21 @@ defineOptions({
 
 const appStore = useAppStore();
 const themeStore = useThemeStore();
+const authStore = useAuthStore();
+let authorizationTimer: ReturnType<typeof setInterval>;
+function syncAuthorization() {
+  if (document.visibilityState === 'visible') void authStore.refreshAuthorization();
+}
+onMounted(() => {
+  authorizationTimer = setInterval(syncAuthorization, 30000);
+  window.addEventListener('focus', syncAuthorization);
+  document.addEventListener('visibilitychange', syncAuthorization);
+});
+onBeforeUnmount(() => {
+  clearInterval(authorizationTimer);
+  window.removeEventListener('focus', syncAuthorization);
+  document.removeEventListener('visibilitychange', syncAuthorization);
+});
 
 const naiveDarkTheme = computed(() => (themeStore.darkMode ? darkTheme : undefined));
 

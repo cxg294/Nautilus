@@ -2,13 +2,14 @@
  * 埋点分析 API 路由
  *
  * POST /events    — 批量上报事件（需登录）
- * GET  /summary   — 聚合统计（需 owner 权限，预留给看板）
- * GET  /recent    — 最近事件流水（需 owner 权限，预留给看板）
+ * GET  /summary   — 聚合统计（需看板访问权限）
+ * GET  /recent    — 最近事件流水（需看板访问权限）
  */
 import express from 'express';
 import db from '../db/index.js';
 import { success, fail, CODE } from '../utils/response.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/requirePermission.js';
 
 const router = express.Router();
 
@@ -68,13 +69,8 @@ router.post('/events', (req, res) => {
 // ═══════════════════════════════════════════
 // GET /summary — 聚合统计（看板用）
 // ═══════════════════════════════════════════
-router.get('/summary', (req, res) => {
+router.get('/summary', requirePermission('module:analytics-dashboard:access'), (req, res) => {
   try {
-    // 仅 owner 可访问
-    if (req.user.role !== 'owner') {
-      return res.status(403).json(fail(CODE.FAIL, '权限不足'));
-    }
-
     const { days = 30 } = req.query;
     const daysNum = Math.min(parseInt(days, 10) || 30, 365);
     // 使用参数化查询代替字符串拼接，防止 SQL 注入
@@ -139,12 +135,8 @@ router.get('/summary', (req, res) => {
 // ═══════════════════════════════════════════
 // GET /recent — 最近事件流水（看板用）
 // ═══════════════════════════════════════════
-router.get('/recent', (req, res) => {
+router.get('/recent', requirePermission('module:analytics-dashboard:access'), (req, res) => {
   try {
-    if (req.user.role !== 'owner') {
-      return res.status(403).json(fail(CODE.FAIL, '权限不足'));
-    }
-
     const { limit = 50, offset = 0, tool, user_id: filterUserId } = req.query;
     const limitNum = Math.min(parseInt(limit, 10) || 50, 200);
     const offsetNum = parseInt(offset, 10) || 0;

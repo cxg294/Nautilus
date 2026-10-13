@@ -15,6 +15,8 @@ declare namespace Api {
       userName: string;
       roles: string[];
       buttons: string[];
+      authorizationVersion?: string;
+      roleName?: string;
     }
 
     interface RegisterParams {

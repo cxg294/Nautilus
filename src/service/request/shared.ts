@@ -16,9 +16,13 @@ async function handleRefreshToken() {
 
   const rToken = localStg.get('refreshToken') || '';
   const { error, data } = await fetchRefreshToken(rToken);
+  // 续期期间退出或换账号时，旧会话的响应不能重新写回登录凭据。
+  if (localStg.get('refreshToken') !== rToken) return false;
   if (!error) {
     localStg.set('token', data.token);
     localStg.set('refreshToken', data.refreshToken);
+    // 延后到原请求完成后再同步，避免 getUserInfo 续期时等待自身。
+    setTimeout(() => { void useAuthStore().refreshAuthorization(true); }, 0);
     return true;
   }
 

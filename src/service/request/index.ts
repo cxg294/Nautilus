@@ -23,6 +23,15 @@ const logoutCodes = getServiceCodes(import.meta.env.VITE_SERVICE_LOGOUT_CODES, d
 const modalLogoutCodes = getServiceCodes(import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES, defaultModalLogoutCodes);
 const expiredTokenCodes = getServiceCodes(import.meta.env.VITE_SERVICE_EXPIRED_TOKEN_CODES, defaultExpiredTokenCodes);
 
+function syncAuthorization(response?: AxiosResponse) {
+  const version = response?.headers['x-nautilus-authorization'];
+  const authStore = useAuthStore();
+  if (version && authStore.userInfo.authorizationVersion && version !== authStore.userInfo.authorizationVersion
+    && !String(response?.config.url).includes('/auth/getUserInfo')) {
+    setTimeout(() => { void authStore.refreshAuthorization(true); }, 0);
+  }
+}
+
 export const request = createFlatRequest(
   {
     baseURL,
@@ -45,6 +54,7 @@ export const request = createFlatRequest(
       return config;
     },
     isBackendSuccess(response) {
+      syncAuthorization(response);
       // when the backend response code is "0000"(default), it means the request is success
       // to change this logic by yourself, you can modify the `VITE_SERVICE_SUCCESS_CODE` in `.env` file
       return String(response.data.code) === import.meta.env.VITE_SERVICE_SUCCESS_CODE;
@@ -109,9 +119,11 @@ export const request = createFlatRequest(
       return null;
     },
     onError(error) {
+      syncAuthorization(error.response);
+      if (error.config?.silentError) return;
       // when the request is fail, you can show error message
 
-      let message = error.message;
+      let message = error.response?.data?.msg || error.message;
       let backendErrorCode = '';
 
       // get backend error message and code

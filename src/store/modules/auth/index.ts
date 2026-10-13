@@ -20,6 +20,9 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const { loading: loginLoading, startLoading, endLoading } = useLoading();
 
   const token = ref('');
+  let authGeneration = 0;
+  let lastAuthorizationSync = 0;
+  let authorizationSyncPromise: Promise<boolean> | null = null;
 
   const userInfo: Api.Auth.UserInfo = reactive({
     userId: '',
@@ -40,6 +43,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
 
   /** Reset auth store */
   async function resetStore() {
+    authGeneration += 1;
+    lastAuthorizationSync = 0;
     recordUserId();
 
     clearAuthStorage();
@@ -129,6 +134,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   }
 
   async function loginByToken(loginToken: Api.Auth.LoginToken) {
+    authGeneration += 1;
     // 1. stored in the localStorage, the later requests need it in headers
     localStg.set('token', loginToken.token);
     localStg.set('refreshToken', loginToken.refreshToken);
@@ -150,9 +156,10 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   }
 
   async function getUserInfo() {
+    const generation = authGeneration;
     const { data: info, error } = await fetchGetUserInfo();
 
-    if (!error) {
+    if (!error && generation === authGeneration) {
       // update store
       Object.assign(userInfo, info);
 
@@ -160,6 +167,26 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     }
 
     return false;
+  }
+
+  /** 合并并发同步；权限改变时刷新菜单与当前页面，不打断正常登录会话。 */
+  async function refreshAuthorization(force = false) {
+    if (!isLogin.value) return false;
+    if (authorizationSyncPromise) return authorizationSyncPromise;
+    if (!force && Date.now() - lastAuthorizationSync < 5000) return true;
+    const generation = authGeneration;
+    const before = JSON.stringify([userInfo.roles, [...userInfo.buttons].sort()]);
+    authorizationSyncPromise = (async () => {
+      const pass = await getUserInfo();
+      if (!pass || generation !== authGeneration) return false;
+      token.value = localStg.get('token') || '';
+      lastAuthorizationSync = Date.now();
+      const after = JSON.stringify([userInfo.roles, [...userInfo.buttons].sort()]);
+      if (before !== after && routeStore.isInitAuthRoute) await routeStore.refreshAuthRoutes();
+      return true;
+    })();
+    try { return await authorizationSyncPromise; }
+    finally { authorizationSyncPromise = null; }
   }
 
   async function initUserInfo() {
@@ -183,6 +210,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     loginLoading,
     resetStore,
     login,
-    initUserInfo
+    initUserInfo,
+    refreshAuthorization
   };
 });

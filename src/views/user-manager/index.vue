@@ -9,7 +9,7 @@
  * - 角色修改操作 → NSelect 下拉直接切换
  * - 新增搜索筛选功能
  */
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { NButton, NTag, NSpace, NPopconfirm, NSelect, useMessage } from 'naive-ui';
 import type { DataTableColumns, SelectOption } from 'naive-ui';
 import {
@@ -26,16 +26,28 @@ import {
 } from '@/service/api/user-management';
 import type { UserRecord, RoleOption } from '@/service/api/user-management';
 import { usePageTracker } from '@/hooks/common/use-tracker';
+import { useAuth } from '@/hooks/business/auth';
+import { useAuthStore } from '@/store/modules/auth';
 
 defineOptions({ name: 'UserManager' });
 
 usePageTracker('user-manager');
 
 const message = useMessage();
+const authStore = useAuthStore();
+const { hasAuth } = useAuth();
+const canManage = computed(() => hasAuth('system:user:manage'));
+const canApprove = computed(() => hasAuth('system:user:approve'));
+const isOwner = computed(() => authStore.userInfo.roleName === 'owner');
+const users = ref<UserRecord[]>([]);
+const canEditAccount = (user: UserRecord) => canManage.value && (user.role !== 'owner' || isOwner.value);
+const canChangeAccount = (user: UserRecord) => canEditAccount(user)
+  && String(user.id) !== authStore.userInfo.userId
+  && !(user.role === 'owner' && user.status === 'active'
+    && users.value.filter(item => item.role === 'owner' && item.status === 'active').length <= 1);
 
 // === State ===
 const loading = ref(false);
-const users = ref<UserRecord[]>([]);
 const pendingUsers = ref<UserRecord[]>([]);
 const activeTab = ref<string>('all');
 const showCreateModal = ref(false);
@@ -69,35 +81,42 @@ const creating = ref(false);
 
 // === Data Loading ===
 async function loadRoleOptions() {
+  if (!canManage.value) return;
   const { data, error } = await fetchRoleOptions();
-  if (!error) roleOptions.value = data;
+  if (!error && canManage.value) roleOptions.value = data;
 }
 
 async function loadUsers() {
-  loading.value = true;
-  try {
-    const { data, error } = await fetchUserList();
-    if (!error) users.value = data;
-  } finally {
-    loading.value = false;
-  }
+  if (!canManage.value) return;
+  const { data, error } = await fetchUserList();
+  if (!error && canManage.value) users.value = data;
 }
 
 async function loadPendingUsers() {
-  loading.value = true;
-  try {
-    const { data, error } = await fetchPendingUsers();
-    if (!error) pendingUsers.value = data;
-  } finally {
-    loading.value = false;
-  }
+  if (!canApprove.value) return;
+  const { data, error } = await fetchPendingUsers();
+  if (!error && canApprove.value) pendingUsers.value = data;
 }
 
 async function refreshData() {
-  await Promise.all([loadUsers(), loadPendingUsers(), loadRoleOptions()]);
+  loading.value = true;
+  try { await Promise.all([loadUsers(), loadPendingUsers(), loadRoleOptions()]); }
+  finally { loading.value = false; }
 }
 
-onMounted(refreshData);
+function syncAccess() {
+  if (!canManage.value) {
+    users.value = [];
+    roleOptions.value = [];
+    showCreateModal.value = false;
+    showProfileModal.value = false;
+  }
+  if (!canApprove.value) pendingUsers.value = [];
+  if (activeTab.value === 'all' && !canManage.value) activeTab.value = 'pending';
+  if (activeTab.value === 'pending' && !canApprove.value) activeTab.value = 'all';
+}
+onMounted(() => { syncAccess(); void refreshData(); });
+watch([canManage, canApprove], () => { syncAccess(); void refreshData(); });
 
 // === 搜索筛选 ===
 const filteredUsers = computed(() => {
@@ -245,11 +264,10 @@ const allColumns: DataTableColumns<UserRecord> = [
     key: 'role',
     width: 160,
     render(row) {
-      // owner 角色不允许修改，只显示 Tag
-      if (row.role === 'owner') {
+      if (!canChangeAccount(row) || row.status === 'pending') {
         return h(
           NTag,
-          { type: 'error', size: 'small', round: true },
+          { type: getRoleTagType(row.role), size: 'small', round: true },
           { default: () => roleDisplayMap.value[row.role] || row.role }
         );
       }
@@ -295,7 +313,7 @@ const allColumns: DataTableColumns<UserRecord> = [
     render(row) {
       const buttons: any[] = [];
 
-      buttons.push(
+      if (canEditAccount(row)) buttons.push(
         h(
           NButton,
           { size: 'small', quaternary: true, onClick: () => openProfileEditor(row) },
@@ -303,7 +321,7 @@ const allColumns: DataTableColumns<UserRecord> = [
         )
       );
 
-      if (row.status === 'pending') {
+      if (row.status === 'pending' && canApprove.value && (row.role !== 'owner' || isOwner.value)) {
         buttons.push(
           h(
             NButton,
@@ -319,7 +337,7 @@ const allColumns: DataTableColumns<UserRecord> = [
             }
           )
         );
-      } else if (row.role !== 'owner') {
+      } else if (row.status !== 'pending' && canChangeAccount(row)) {
         // 禁用/启用
         buttons.push(
           h(
@@ -348,7 +366,7 @@ const allColumns: DataTableColumns<UserRecord> = [
         );
       }
 
-      return h(NSpace, { size: 4 }, { default: () => buttons });
+      return buttons.length ? h(NSpace, { size: 4 }, { default: () => buttons }) : '—';
     }
   }
 ];
@@ -370,6 +388,7 @@ const pendingColumns: DataTableColumns<UserRecord> = [
     key: 'actions',
     width: 180,
     render(row) {
+      if (!canApprove.value || (row.role === 'owner' && !isOwner.value)) return '—';
       return h(NSpace, { size: 8 }, {
         default: () => [
           h(NButton, { size: 'small', type: 'success', onClick: () => handleApprove(row) }, { default: () => '通过' }),
@@ -399,7 +418,7 @@ const displayedColumns = computed(() => (activeTab.value === 'pending' ? pending
         <p class="user-manager__desc">管理账号、注册审批、角色与启停状态。</p>
       </div>
       <NSpace>
-        <NButton type="primary" @click="showCreateModal = true">
+        <NButton v-if="canManage" type="primary" @click="showCreateModal = true">
           <template #icon>
             <span class="i-mdi-account-plus-outline" />
           </template>
@@ -414,7 +433,8 @@ const displayedColumns = computed(() => (activeTab.value === 'pending' ? pending
       </NSpace>
     </div>
 
-    <div class="user-manager__header">
+    <NAlert v-if="!canManage && !canApprove" type="info">当前角色仅有页面入口权限，请授权账号管理或注册审批后使用。</NAlert>
+    <div v-else class="user-manager__header">
       <!-- NTabs 替代手写 tab -->
       <NTabs
         v-model:value="activeTab"
@@ -422,8 +442,8 @@ const displayedColumns = computed(() => (activeTab.value === 'pending' ? pending
         animated
         size="medium"
       >
-        <NTabPane name="all" :tab="`全部用户 (${users.length})`" />
-        <NTabPane name="pending">
+        <NTabPane v-if="canManage" name="all" :tab="`全部用户 (${users.length})`" />
+        <NTabPane v-if="canApprove" name="pending">
           <template #tab>
             <NSpace :size="6" align="center" :wrap="false">
               <span>待审批</span>
@@ -435,7 +455,7 @@ const displayedColumns = computed(() => (activeTab.value === 'pending' ? pending
     </div>
 
     <!-- 搜索栏（全部用户视图下显示） -->
-    <div v-if="activeTab === 'all'" class="user-manager__search">
+    <div v-if="canManage && activeTab === 'all'" class="user-manager__search">
       <NInput
         v-model:value="searchKeyword"
         placeholder="搜索用户名、昵称或邮箱…"
@@ -451,6 +471,7 @@ const displayedColumns = computed(() => (activeTab.value === 'pending' ? pending
 
     <!-- Table -->
     <NDataTable
+      v-if="canManage || canApprove"
       :columns="displayedColumns"
       :data="displayedUsers"
       :loading="loading"

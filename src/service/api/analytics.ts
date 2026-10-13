@@ -1,6 +1,6 @@
 import { request } from '../request';
 
-/** 埋点分析看板 API（需 owner 权限） */
+/** 埋点分析看板 API（需 module:analytics-dashboard:access 权限） */
 
 export interface AnalyticsTotals {
   total_events: number;

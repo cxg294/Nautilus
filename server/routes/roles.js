@@ -1,166 +1,93 @@
-/**
- * 角色/权限管理路由
- * 提供角色 CRUD 和角色-工具权限配置
- * 所有接口需要 system:role:manage 权限；owner 自动拥有全部权限。
- */
+/** 角色、权限、成员与管理变更记录。 */
 import { Router } from 'express';
+import db from '../db/index.js';
 import { success, fail, CODE } from '../utils/response.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/requirePermission.js';
 import {
-  listRoles,
-  findRoleByName,
-  findRoleById,
-  createRole,
-  updateRoleInfo,
-  deleteRole,
-  roleNameExists,
-  getRoleToolPermissions,
-  setRoleToolPermissions,
-  listAllPermissions,
+  listRoles, findRoleByName, findRoleById, createRole, updateRoleInfo, deleteRole,
+  roleNameExists, getRoleToolPermissions, setRoleToolPermissions, listAllPermissions, listRoleMembers
 } from '../services/role.js';
-import { catalogPermissions } from '../services/permission-catalog.js';
+import { catalogPermissions, normalizePermissions } from '../services/permission-catalog.js';
+import { recordAdminAction, listAdminActions } from '../services/admin-audit.js';
 
 const router = Router();
-
-// 所有接口需要角色与权限管理能力
 router.use(requireAuth, requirePermission('system:role:manage'));
+const target = role => ({ type: 'role', id: role.name, name: role.display_name });
+function mutate(res, work) {
+  try { res.json(success(db.transaction(work)())); }
+  catch (error) { res.status(error.status || 200).json(fail(CODE.VALIDATION, error.message)); }
+}
+function roleById(id) {
+  const role = Number.isSafeInteger(Number(id)) && findRoleById(Number(id));
+  if (!role) throw new Error('角色不存在');
+  return role;
+}
+router.get('/', (_req, res) => res.json(success(listRoles().map(role => ({ ...role, permissions: getRoleToolPermissions(role.name) })))));
+router.get('/permissions', (_req, res) => res.json(success(catalogPermissions(listAllPermissions()))));
+router.get('/audit', (req, res) => res.json(success(listAdminActions(req.query.limit))));
 
-/**
- * GET /api/roles
- * 获取所有角色（含其工具权限）
- */
-router.get('/', (req, res) => {
-  const roles = listRoles();
-  // 附加每个角色的权限列表
-  const result = roles.map(role => ({
-    ...role,
-    permissions: getRoleToolPermissions(role.name),
-  }));
-  res.json(success(result));
-});
-
-/**
- * GET /api/roles/permissions
- * 获取所有可分配的工具权限列表
- */
-router.get('/permissions', (req, res) => {
-  const permissions = catalogPermissions(listAllPermissions());
-  res.json(success(permissions));
-});
-
-/**
- * POST /api/roles
- * 创建新角色
- * 请求体: { name, displayName, description? }
- */
 router.post('/', (req, res) => {
-  const { name, displayName, description } = req.body;
-
-  if (!name || !displayName) {
-    return res.json(fail(CODE.VALIDATION, '角色标识和显示名称不能为空'));
+  const { name, displayName, description = '' } = req.body;
+  if (typeof name !== 'string' || !/^[a-zA-Z0-9_-]{1,32}$/.test(name)
+    || typeof displayName !== 'string' || !displayName.trim() || displayName.trim().length > 50
+    || typeof description !== 'string' || description.length > 500) {
+    return res.json(fail(CODE.VALIDATION, '角色标识最多 32 位；名称需为 1-50 字；说明最多 500 字'));
   }
-
-  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-    return res.json(fail(CODE.VALIDATION, '角色标识只能包含字母、数字、下划线和短横线'));
-  }
-
-  if (roleNameExists(name)) {
-    return res.json(fail(CODE.VALIDATION, '角色标识已存在'));
-  }
-
-  const role = createRole({ name, displayName, description });
-  res.json(success(role, '角色创建成功'));
+  mutate(res, () => {
+    if (roleNameExists(name)) throw new Error('角色标识已存在');
+    const role = createRole({ name, displayName: displayName.trim(), description });
+    recordAdminAction(req.user, 'role.create', target(role), null, { displayName: role.display_name, description: role.description });
+    return role;
+  });
 });
-
-/**
- * PUT /api/roles/:id
- * 更新角色信息
- * 请求体: { displayName, description? }
- */
 router.put('/:id', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const { displayName, description } = req.body;
-
-  const role = findRoleById(id);
-  if (!role) {
-    return res.json(fail(CODE.FAIL, '角色不存在'));
+  const { displayName, description = '' } = req.body;
+  if (typeof displayName !== 'string' || !displayName.trim() || displayName.trim().length > 50
+    || typeof description !== 'string' || description.length > 500) {
+    return res.json(fail(CODE.VALIDATION, '名称需为 1-50 字；说明最多 500 字'));
   }
-
-  if (!displayName) {
-    return res.json(fail(CODE.VALIDATION, '显示名称不能为空'));
-  }
-
-  updateRoleInfo(id, { displayName, description });
-  res.json(success(null, '角色信息已更新'));
+  mutate(res, () => {
+    const role = roleById(req.params.id);
+    if (role.name === 'owner') throw new Error('owner 角色信息不可修改');
+    updateRoleInfo(role.id, { displayName: displayName.trim(), description });
+    recordAdminAction(req.user, 'role.update', target(role), { displayName: role.display_name, description: role.description }, { displayName: displayName.trim(), description });
+    return null;
+  });
 });
-
-/**
- * DELETE /api/roles/:id
- * 删除角色（系统内置角色不可删除）
- */
 router.delete('/:id', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const role = findRoleById(id);
-
-  if (!role) {
-    return res.json(fail(CODE.FAIL, '角色不存在'));
-  }
-
-  if (role.is_system) {
-    return res.json(fail(CODE.FAIL, '系统内置角色不可删除'));
-  }
-
-  deleteRole(id);
-  res.json(success(null, '角色已删除'));
+  mutate(res, () => {
+    const role = roleById(req.params.id);
+    const permissions = getRoleToolPermissions(role.name);
+    deleteRole(role.id);
+    recordAdminAction(req.user, 'role.delete', target(role), { permissions }, null);
+    return null;
+  });
 });
-
-/**
- * GET /api/roles/:name/permissions
- * 获取指定角色的权限列表
- */
+router.get('/:name/members', (req, res) => {
+  if (!findRoleByName(req.params.name)) return res.json(fail(CODE.VALIDATION, '角色不存在'));
+  res.json(success(listRoleMembers(req.params.name)));
+});
 router.get('/:name/permissions', (req, res) => {
-  const { name } = req.params;
-  const role = findRoleByName(name);
-
-  if (!role) {
-    return res.json(fail(CODE.FAIL, '角色不存在'));
-  }
-
-  const permissions = getRoleToolPermissions(name);
-  res.json(success(permissions));
+  if (!findRoleByName(req.params.name)) return res.json(fail(CODE.VALIDATION, '角色不存在'));
+  res.json(success(getRoleToolPermissions(req.params.name)));
 });
-
-/**
- * PUT /api/roles/:name/permissions
- * 设置角色的权限（全量替换）
- * 请求体: { permissions: string[] }
- */
 router.put('/:name/permissions', (req, res) => {
-  const { name } = req.params;
-  const { permissions } = req.body;
-
-  const role = findRoleByName(name);
-  if (!role) {
-    return res.json(fail(CODE.FAIL, '角色不存在'));
-  }
-
-  if (role.name === 'owner') {
-    return res.json(fail(CODE.FAIL, '管理员角色的权限不可修改'));
-  }
-
-  if (!Array.isArray(permissions)) {
-    return res.json(fail(CODE.VALIDATION, 'permissions 必须为数组'));
-  }
-
-  const validKeys = new Set(listAllPermissions().map(permission => permission.key));
-  const invalidKeys = permissions.filter(key => typeof key !== 'string' || !validKeys.has(key));
-  if (invalidKeys.length > 0) {
-    return res.json(fail(CODE.VALIDATION, '包含不存在的权限项'));
-  }
-
-  setRoleToolPermissions(name, permissions);
-  res.json(success(null, '权限已更新'));
+  mutate(res, () => {
+    const role = findRoleByName(req.params.name);
+    if (!role) throw new Error('角色不存在');
+    if (role.name === 'owner') throw new Error('owner 始终拥有全部权限，不可修改');
+    const before = getRoleToolPermissions(role.name).sort();
+    const expected = req.body.expectedPermissions;
+    if (expected !== undefined && (!Array.isArray(expected) || JSON.stringify([...expected].sort()) !== JSON.stringify(before))) {
+      const error = new Error('该角色权限已被其他管理员修改，请重新打开配置');
+      error.status = 409;
+      throw error;
+    }
+    const permissions = normalizePermissions(req.body.permissions, listAllPermissions());
+    setRoleToolPermissions(role.name, permissions);
+    recordAdminAction(req.user, 'role.permissions', target(role), { permissions: before }, { permissions });
+    return { permissions, affectedUsers: listRoleMembers(role.name).length };
+  });
 });
-
 export default router;
