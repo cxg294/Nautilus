@@ -36,6 +36,13 @@ import {
 } from '../services/voice-lab-names.js';
 import { listVoiceEffectPresets, renderVoiceEffect } from '../services/voice-effects.js';
 import { makeSourceDownloadName, makeSynthesisDownloadName } from '../services/audio-download-names.js';
+import { attachVoiceUsage, recordVoiceGeneration } from '../services/voice-lab-usage.js';
+
+import { VOICE_MODELS, requireVoiceModel } from '../services/voice-models.js';
+import { listCatalogVoices, requireCustomVoice } from '../services/voice-catalog.js';
+import { normalizeSpeechControls } from '../../shared/speech-controls.js';
+import db from '../db/index.js';
+import { attachVoiceBindings, resolveVoiceModel, saveVoiceBinding, preserveVoiceSource, getVoiceBinding, canReadVoiceSource, VOICE_SOURCE_DIR } from '../services/voice-bindings.js';
 
 const router = Router();
 
@@ -43,10 +50,7 @@ const VOICE_UPLOAD_DIR = path.join(process.cwd(), 'server', 'voice-lab-upload');
 const MAX_AUDIO_BYTES = 30 * 1024 * 1024;
 const COSY_LANGUAGES = new Set(['zh', 'en', 'fr', 'de', 'ja', 'ko', 'ru', 'pt', 'th', 'id', 'vi']);
 const DESIGN_LANGUAGES = new Set(['zh', 'en']);
-const TTS_MODELS = new Set([
-  DEFAULT_COSYVOICE_MODEL,
-  'cosyvoice-v3.5-plus',
-]);
+
 
 const PERMISSION = {
   clone: 'feature:voice-lab:clone',
@@ -78,8 +82,24 @@ function asSafeDesignLanguage(value) {
   return DESIGN_LANGUAGES.has(value) ? value : 'zh';
 }
 
-function asSafeTtsModel(value) {
-  return TTS_MODELS.has(value) ? value : DEFAULT_COSYVOICE_MODEL;
+function cloneModel(value) {
+  return requireVoiceModel(value || DEFAULT_COSYVOICE_MODEL, { clone: true }).id;
+}
+
+async function saveCreatedClone(result, req, file) {
+  try {
+    saveVoiceBinding(result.voice, result.targetModel);
+    result.displayName = upsertVoiceDisplayName({ voiceId: result.voice, displayName: req.body?.displayName, source: 'clone', userId: req.user.id }).displayName;
+    await preserveVoiceSource({ voice: result.voice, model: result.targetModel, file, userId: req.user.id,
+      params: { model: result.targetModel, languageHint: asSafeLanguage(req.body?.languageHint),
+        maxPromptAudioLength: Math.min(Math.max(Number(req.body?.maxPromptAudioLength) || 10, 3), 30),
+        enablePreprocess: req.body?.enablePreprocess === true || req.body?.enablePreprocess === 'true', enableVolumeNormalization: false } });
+    result.sourceSaved = true;
+  } catch (error) {
+    console.error('[voice-lab] preserve source error:', error.message);
+    result.warning = '音色已创建，但本地信息或原始录音留存失败，请保留音色 ID 和本地原件；无需重复克隆。';
+    result.sourceSaved = false;
+  }
 }
 
 function asSafeRate(value) {
@@ -88,7 +108,7 @@ function asSafeRate(value) {
 
 function toClientError(res, error, fallback = '语音服务调用失败') {
   const message = error?.message || fallback;
-  const status = /不能为空|仅支持|过长|缺少|无效|公网|文件过大|File too large/.test(message) ? 400 : 500;
+  const status = /不能为空|仅支持|过长|缺少|无效|不支持|不匹配|暂不可用|公网|文件过大|File too large|停顿|读法|朗读|现成音色/.test(message) ? 400 : 500;
   return res.status(status).json(fail(status === 400 ? CODE.VALIDATION : CODE.FAIL, message));
 }
 
@@ -111,8 +131,9 @@ router.get('/status', (req, res) => {
       cloneModel: DEFAULT_COSYVOICE_MODEL,
       designModel: DEFAULT_COSYVOICE_MODEL,
       pricePer10k: 0.8,
-      hasSystemVoices: false,
+      hasSystemVoices: true,
     },
+    models: VOICE_MODELS,
     oss: getOssPublicConfig(),
   }));
 });
@@ -128,8 +149,11 @@ router.get('/oss/probe', asyncHandler(async (_req, res) => {
 }));
 
 router.post('/estimate', (req, res) => {
-  const estimate = estimateTtsCost(req.body?.text || '', req.body?.instruction || '');
-  res.json(success(estimate));
+  try {
+    const model = requireVoiceModel(req.body?.model || DEFAULT_COSYVOICE_MODEL);
+    const estimate = estimateTtsCost(req.body?.text || '', req.body?.instruction || '', model.pricePer10k);
+    res.json(success(estimate));
+  } catch (error) { toClientError(res, error); }
 });
 
 router.get('/effects/presets', (_req, res) => {
@@ -200,7 +224,7 @@ router.post('/synthesize', asyncHandler(async (req, res) => {
     if (Array.from(text).length > 5000) {
       return res.status(400).json(fail(CODE.VALIDATION, '单次合成文本不能超过 5000 字符'));
     }
-    if (!voice) return res.status(400).json(fail(CODE.VALIDATION, '请选择或填写 CosyVoice 音色 ID'));
+    if (!voice) return res.status(400).json(fail(CODE.VALIDATION, '请选择或填写音色 ID'));
     if (countTtsBillingCharacters(instruction) > 100) {
       return res.status(400).json(fail(CODE.VALIDATION, '指令文本不能超过 100 字符'));
     }
@@ -208,14 +232,23 @@ router.post('/synthesize', asyncHandler(async (req, res) => {
     const result = await synthesizeSpeech({
       text,
       voice,
-      model: asSafeTtsModel(req.body?.model),
+      model: await resolveVoiceModel(voice, req.body?.model),
       languageHint: asSafeLanguage(req.body?.languageHint),
       instruction,
+      speechControls: normalizeSpeechControls(req.body?.speechControls),
       rate: asSafeRate(req.body?.rate),
       format: 'wav',
       sampleRate: 24000,
       download: true,
+      enableWordTimestamps: req.body?.enableWordTimestamps === true,
     });
+
+    try {
+      recordVoiceGeneration({ user: req.user, result, kind: 'synthesize', origin: req.body?.origin });
+    } catch (error) {
+      // 上游已经完成合成，埋点异常不能导致客户端重试并重复计费。
+      console.error('[voice-lab] record synthesis error:', error);
+    }
 
     if (result.audio) {
       const voiceMeta = getVoiceMetadata(result.voice);
@@ -243,6 +276,11 @@ router.post('/synthesize', asyncHandler(async (req, res) => {
   }
 }));
 
+router.get('/catalog', (req, res) => {
+  const voices = attachVoiceBindings(attachVoiceUsage(mergeVoiceDisplayNames(listCatalogVoices())), req.user);
+  res.json(success({ voices, totalCount: voices.length }));
+});
+
 router.get('/voices', asyncHandler(async (req, res) => {
   try {
     const result = await listCosyVoiceVoices({
@@ -251,17 +289,27 @@ router.get('/voices', asyncHandler(async (req, res) => {
       prefix: req.query.prefix,
     });
     const onlyMine = String(req.query.onlyMine || '').toLowerCase() === 'true';
-    result.voices = mergeVoiceDisplayNames(result.voices, {
+    result.voices = attachVoiceBindings(attachVoiceUsage(mergeVoiceDisplayNames(result.voices, {
       onlyMine,
       userId: req.user?.id,
-    });
-    result.totalCount = result.voices.length;
+    })), req.user);
+    result.visibleCount = result.voices.length;
     res.json(success(result));
   } catch (error) {
     console.error('[voice-lab] list voices error:', error);
     toClientError(res, error, '获取音色列表失败');
   }
 }));
+
+router.get('/voices/:voice/source', (req, res) => {
+  const binding = getVoiceBinding(req.params.voice);
+  if (!canReadVoiceSource(binding, req.user)) return res.status(404).json(fail(CODE.FAIL, '原始录音不可用'));
+  if (binding.source_file !== path.basename(binding.source_file)) return res.status(400).json(fail(CODE.VALIDATION, '无效的原始录音'));
+  const file = path.join(VOICE_SOURCE_DIR, binding.source_file);
+  if (!fs.existsSync(file)) return res.status(404).json(fail(CODE.FAIL, '原始录音不存在'));
+  res.type(binding.source_type || 'application/octet-stream');
+  res.sendFile(file);
+});
 
 router.post('/voices/:voice/audition', asyncHandler(async (req, res) => {
   try {
@@ -281,7 +329,7 @@ router.post('/voices/:voice/audition', asyncHandler(async (req, res) => {
     const result = await synthesizeSpeech({
       text,
       voice,
-      model: asSafeTtsModel(req.body?.model),
+      model: await resolveVoiceModel(voice, req.body?.model),
       languageHint: asSafeLanguage(req.body?.languageHint),
       instruction,
       rate: asSafeRate(req.body?.rate),
@@ -289,6 +337,12 @@ router.post('/voices/:voice/audition', asyncHandler(async (req, res) => {
       sampleRate: 24000,
       download: true,
     });
+
+    try {
+      recordVoiceGeneration({ user: req.user, result, kind: 'audition' });
+    } catch (error) {
+      console.error('[voice-lab] record audition error:', error);
+    }
 
     const audition = upsertVoiceAudition({
       voiceId: voice,
@@ -315,32 +369,13 @@ router.post('/voices/clone', requirePermission(PERMISSION.clone), asyncHandler(a
     const result = await createCosyVoiceClone({
       audioUrl: req.body?.audioUrl,
       prefix: req.body?.prefix,
-      targetModel: DEFAULT_COSYVOICE_MODEL,
+      targetModel: cloneModel(req.body?.targetModel),
       languageHint: asSafeLanguage(req.body?.languageHint),
       maxPromptAudioLength: req.body?.maxPromptAudioLength,
       enablePreprocess: req.body?.enablePreprocess,
     });
 
-    const displayName = normalizeVoiceDisplayName(req.body?.displayName);
-    if (displayName && result.voice) {
-      result.displayName = upsertVoiceDisplayName({
-        voiceId: result.voice,
-        displayName,
-        source: 'clone',
-        userId: req.user?.id,
-      }).displayName;
-    }
-    if (result.previewAudio && result.voice) {
-      const audition = upsertVoiceAudition({
-        voiceId: result.voice,
-        audio: result.previewAudio,
-        auditionText: previewText,
-        source: 'design',
-        userId: req.user?.id,
-        overwrite: false,
-      });
-      result.auditionAudio = audition.auditionAudio;
-    }
+    await saveCreatedClone(result, req);
 
     res.json(success(result));
   } catch (error) {
@@ -354,25 +389,18 @@ router.post('/voices/clone-upload', requirePermission(PERMISSION.clone), handleA
   try {
     if (!req.file) return res.status(400).json(fail(CODE.VALIDATION, '请上传音频文件'));
 
+    cloneModel(req.body?.targetModel);
     ossUpload = await uploadVoicePromptToOss(req.file);
     const result = await createCosyVoiceClone({
       audioUrl: ossUpload.signedUrl,
       prefix: req.body?.prefix,
-      targetModel: DEFAULT_COSYVOICE_MODEL,
+      targetModel: cloneModel(req.body?.targetModel),
       languageHint: asSafeLanguage(req.body?.languageHint),
       maxPromptAudioLength: req.body?.maxPromptAudioLength,
       enablePreprocess: req.body?.enablePreprocess,
     });
 
-    const displayName = normalizeVoiceDisplayName(req.body?.displayName);
-    if (displayName && result.voice) {
-      result.displayName = upsertVoiceDisplayName({
-        voiceId: result.voice,
-        displayName,
-        source: 'clone',
-        userId: req.user?.id,
-      }).displayName;
-    }
+    await saveCreatedClone(result, req, req.file);
 
     scheduleOssObjectCleanup(ossUpload.objectName, ossUpload.expires);
 
@@ -411,14 +439,18 @@ router.post('/voices/design', requirePermission(PERMISSION.design), asyncHandler
       voicePrompt,
       previewText,
       prefix: req.body?.prefix,
-      targetModel: DEFAULT_COSYVOICE_MODEL,
+      targetModel: requireVoiceModel(req.body?.targetModel || DEFAULT_COSYVOICE_MODEL, { design: true }).id,
       languageHint: asSafeDesignLanguage(req.body?.languageHint),
       responseFormat: 'wav',
       sampleRate: 24000,
     });
 
+    saveVoiceBinding(result.voice, result.targetModel);
+    db.prepare('UPDATE voice_lab_voice_bindings SET clone_params=? WHERE voice_id=?')
+      .run(JSON.stringify({ kind: 'design', voicePrompt, previewText }), result.voice);
+
     const displayName = normalizeVoiceDisplayName(req.body?.displayName);
-    if (displayName && result.voice) {
+    if (result.voice) {
       result.displayName = upsertVoiceDisplayName({
         voiceId: result.voice,
         displayName,
@@ -426,6 +458,8 @@ router.post('/voices/design', requirePermission(PERMISSION.design), asyncHandler
         userId: req.user?.id,
       }).displayName;
     }
+    if (result.previewAudio) upsertVoiceAudition({ voiceId: result.voice, audio: result.previewAudio,
+      auditionText: previewText, source: 'design', userId: req.user?.id });
 
     res.json(success(result));
   } catch (error) {
@@ -436,6 +470,7 @@ router.post('/voices/design', requirePermission(PERMISSION.design), asyncHandler
 
 router.delete('/voices/:voice', requirePermission(PERMISSION.manageVoices), asyncHandler(async (req, res) => {
   try {
+    requireCustomVoice(req.params.voice);
     const result = await deleteCosyVoiceVoice(req.params.voice);
     markVoiceDeleted(req.params.voice, req.user?.id);
     res.json(success(result, '音色已删除'));
@@ -447,6 +482,7 @@ router.delete('/voices/:voice', requirePermission(PERMISSION.manageVoices), asyn
 
 router.patch('/voices/:voice/name', requirePermission(PERMISSION.manageVoices), asyncHandler(async (req, res) => {
   try {
+    requireCustomVoice(req.params.voice);
     const result = upsertVoiceDisplayName({
       voiceId: req.params.voice,
       displayName: req.body?.displayName,

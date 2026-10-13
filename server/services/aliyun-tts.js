@@ -2,6 +2,12 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import config from '../config/env.js';
+import { requireVoiceModel } from './voice-models.js';
+import { getCatalogVoice } from './voice-catalog.js';
+import { compileSpeech } from '../../shared/speech-controls.js';
+import { alignControlledSpeech } from './speech-alignment.js';
+import { normalizeWordIndices } from './voice-alignment-indices.js';
+import db from '../db/index.js';
 
 export const DEFAULT_COSYVOICE_MODEL = 'cosyvoice-v3.5-flash';
 export const DEFAULT_VOICE_ENROLLMENT_MODEL = 'voice-enrollment';
@@ -61,6 +67,69 @@ async function readDashScopeResponse(response) {
   return payload;
 }
 
+export function parseSseJsonPayloads(text) {
+  const payloads = [];
+  let dataLines = [];
+
+  const flushEvent = () => {
+    if (!dataLines.length) return;
+
+    const data = dataLines.join('\n').trim();
+    dataLines = [];
+    if (!data || data === '[DONE]') return;
+
+    try {
+      payloads.push(JSON.parse(data));
+    } catch {
+      throw new Error('百炼语音服务返回了无法解析的流式事件');
+    }
+  };
+
+  for (const line of String(text || '').split(/\r?\n/)) {
+    if (!line.trim()) {
+      flushEvent();
+      continue;
+    }
+
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+
+  flushEvent();
+  return payloads;
+}
+
+async function readDashScopeSseResponse(response) {
+  const text = await response.text();
+  let payloads;
+
+  try {
+    payloads = parseSseJsonPayloads(text);
+  } catch (error) {
+    if (!response.ok) {
+      let payload;
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch {
+        payload = { raw: text };
+      }
+      throw new Error(normalizeDashScopeError(payload, response.status), { cause: error });
+    }
+    throw error;
+  }
+
+  const errorPayload = payloads.find(payload => payload?.code || payload?.error);
+  if (!response.ok || errorPayload) {
+    throw new Error(normalizeDashScopeError(errorPayload || { raw: text }, response.status));
+  }
+  if (!payloads.length) {
+    throw new Error('百炼语音服务没有返回有效的流式事件');
+  }
+
+  return payloads;
+}
+
 export async function callDashScope(apiPath, body) {
   ensureDashScopeConfigured();
 
@@ -76,8 +145,78 @@ export async function callDashScope(apiPath, body) {
   return readDashScopeResponse(response);
 }
 
+export async function callDashScopeSse(apiPath, body) {
+  ensureDashScopeConfigured();
+
+  const response = await fetch(getDashScopeUrl(apiPath), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.dashscope.apiKey}`,
+      'Content-Type': 'application/json',
+      'X-DashScope-SSE': 'enable',
+    },
+    body: JSON.stringify(body),
+  });
+
+  return readDashScopeSseResponse(response);
+}
+
 function getAudioUrlFromSynthesis(payload) {
   return payload?.output?.audio?.url || payload?.output?.url || '';
+}
+
+export function collectWordAlignment(payloads) {
+  const sentences = [];
+  let originalOffset = 0;
+
+  for (const payload of payloads || []) {
+    const output = payload?.output || payload?.payload?.output;
+    if (output?.type !== 'sentence-end' || !Array.isArray(output?.sentence?.words)) continue;
+
+    const words = output.sentence.words.map(word => ({
+      text: String(word?.text || ''),
+      beginIndex: Number(word?.begin_index) || 0,
+      endIndex: Number(word?.end_index) || 0,
+      beginTimeMs: Number(word?.begin_time) || 0,
+      endTimeMs: Number(word?.end_time) || 0,
+    })).filter(word => word.text && word.endTimeMs >= word.beginTimeMs);
+
+    const sentenceText = String(output.original_text || '');
+    sentences.push({
+      index: Number(output.sentence.index) || 0,
+      text: sentenceText,
+      words: normalizeWordIndices(sentenceText, words, originalOffset),
+    });
+    originalOffset += Array.from(sentenceText).length;
+  }
+
+  sentences.sort((left, right) => left.index - right.index);
+  return {
+    requested: true,
+    available: sentences.some(sentence => sentence.words.length > 0),
+    unit: 'ms',
+    granularity: 'word',
+    sentences,
+  };
+}
+
+// 上游有句内字符索引、全文字符索引和全文 token 索引三种实际返回。
+// Audio 的 token 可含尾随标点（如“好，”），所以不能只减去分句偏移量。
+// 对齐到 original_text 后，对外统一为句内字符索引，时间仍相对整段音频。
+
+function findLastSynthesisPayload(payloads) {
+  for (let index = payloads.length - 1; index >= 0; index -= 1) {
+    if (getAudioUrlFromSynthesis(payloads[index])) return payloads[index];
+  }
+  return payloads[payloads.length - 1] || {};
+}
+
+function getLastUsage(payloads) {
+  for (let index = payloads.length - 1; index >= 0; index -= 1) {
+    const usage = payloads[index]?.usage || payloads[index]?.payload?.usage;
+    if (usage) return usage;
+  }
+  return {};
 }
 
 function getExtensionFromContentType(contentType, fallback = 'wav') {
@@ -187,29 +326,58 @@ export async function synthesizeSpeech(options) {
     format = 'wav',
     sampleRate = 24000,
     download = true,
+    enableWordTimestamps = false,
+    speechControls = [],
   } = options;
 
+  const modelInfo = requireVoiceModel(model);
   const trimmedText = String(text || '').trim();
   if (!trimmedText) throw new Error('合成文本不能为空');
   if (!voice) throw new Error('音色不能为空');
+  const compiled = compileSpeech(trimmedText, speechControls);
+  const catalogVoice = getCatalogVoice(voice);
+  if (compiled.enabled) {
+    const binding = db.prepare('SELECT clone_params FROM voice_lab_voice_bindings WHERE voice_id=?').get(voice);
+    const name = db.prepare('SELECT source FROM voice_lab_voice_names WHERE voice_id=?').get(voice);
+    if (catalogVoice?.ssmlSupported === false || name?.source === 'design' || JSON.parse(binding?.clone_params || '{}').kind === 'design') {
+      throw new Error('此音色不支持停顿和指定读法，请选择复刻音色或基础音色');
+    }
+  }
 
   const input = {
-    text: trimmedText,
+    text: compiled.text,
     voice: String(voice).trim(),
     format,
     sample_rate: Number(sampleRate) || 24000,
     rate: Math.min(Math.max(Number(rate) || 1, 0.5), 2),
     language_hints: [normalizeCosyLanguage(languageHint)],
   };
+  if (compiled.enabled) input.enable_ssml = true;
 
   if (instruction?.trim()) {
     input.instruction = instruction.trim();
   }
 
-  const payload = await callDashScope(COSYVOICE_SYNTHESIS_PATH, {
-    model,
-    input,
-  });
+  let payload;
+  let usage;
+  let alignment = {
+    requested: Boolean(enableWordTimestamps),
+    available: false,
+    unit: 'ms',
+    granularity: 'word',
+    sentences: [],
+  };
+
+  if (enableWordTimestamps && catalogVoice?.wordTimestampsSupported !== false) {
+    input.word_timestamp_enabled = true;
+    const payloads = await callDashScopeSse(COSYVOICE_SYNTHESIS_PATH, { model, input });
+    payload = findLastSynthesisPayload(payloads);
+    usage = getLastUsage(payloads);
+    alignment = compiled.enabled ? alignControlledSpeech(payloads, compiled) : collectWordAlignment(payloads);
+  } else {
+    payload = await callDashScope(COSYVOICE_SYNTHESIS_PATH, { model, input });
+    usage = payload.usage || {};
+  }
 
   const audioUrl = getAudioUrlFromSynthesis(payload);
   if (!audioUrl) {
@@ -224,8 +392,11 @@ export async function synthesizeSpeech(options) {
     voice: input.voice,
     sourceAudioUrl: audioUrl,
     audio,
-    usage: payload.usage || {},
-    estimate: estimateTtsCost(trimmedText, instruction),
+    usage,
+    alignment,
+    displayText: trimmedText,
+    spokenText: compiled.spokenText,
+    estimate: estimateTtsCost(trimmedText, instruction, modelInfo.pricePer10k),
   };
 }
 
@@ -241,7 +412,7 @@ export async function createCosyVoiceClone(options) {
 
   const url = String(audioUrl || '').trim();
   if (!/^https?:\/\//i.test(url)) {
-    throw new Error('CosyVoice 复刻需要公网可访问的音频 URL');
+    throw new Error('声音复刻需要公网可访问的音频 URL');
   }
 
   const input = {
@@ -251,7 +422,9 @@ export async function createCosyVoiceClone(options) {
     url,
     language_hints: [normalizeCosyLanguage(languageHint)],
     max_prompt_audio_length: Math.min(Math.max(Number(maxPromptAudioLength) || 10, 3), 30),
-    enable_preprocess: Boolean(enablePreprocess),
+    // multipart/form-data 将复选框值传成字符串；Boolean('false') 会错误开启预处理。
+    enable_preprocess: enablePreprocess === true || enablePreprocess === 'true',
+    enable_volume_normalization: 'false',
   };
 
   const payload = await callDashScope(CUSTOMIZATION_PATH, {
@@ -319,7 +492,7 @@ export async function createCosyVoiceDesign(options) {
 }
 
 export async function listCosyVoiceVoices(options = {}) {
-  const pageSize = Math.min(Math.max(Number(options.pageSize) || 50, 1), 100);
+  const pageSize = Math.min(Math.max(Number(options.pageSize) || 100, 1), 100);
   const pageIndex = Math.max(Number(options.pageIndex) || 0, 0);
   const prefix = String(options.prefix || '').trim();
 
@@ -375,4 +548,13 @@ export async function deleteCosyVoiceVoice(voice) {
     voice: value,
     usage: payload.usage || {},
   };
+}
+
+export async function queryVoice(voice) {
+  const payload = await callDashScope(CUSTOMIZATION_PATH, {
+    model: DEFAULT_VOICE_ENROLLMENT_MODEL,
+    input: { action: 'query_voice', voice_id: voice },
+  });
+  const output = payload.output || {};
+  return { targetModel: output.target_model || '', status: output.status || '', resourceLink: output.resource_link || '' };
 }

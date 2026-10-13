@@ -1,3 +1,5 @@
+import type { AxiosRequestConfig } from 'axios';
+import type { SpeechControl } from '../../../shared/speech-controls';
 import { request } from '../request';
 
 export type VoiceLanguageHint = 'zh' | 'en' | 'fr' | 'de' | 'ja' | 'ko' | 'ru' | 'pt' | 'th' | 'id' | 'vi';
@@ -63,16 +65,43 @@ export interface VoiceEffectResult {
 export interface VoiceSynthesisPayload {
   text: string;
   voice: string;
-  model: string;
+  model?: string;
   languageHint: VoiceLanguageHint;
+  origin?: 'voice-lab' | 'sequence-player';
   instruction?: string;
   rate?: number;
+  enableWordTimestamps?: boolean;
+  speechControls?: SpeechControl[];
+}
+
+export interface VoiceWordTimestamp {
+  text: string;
+  beginIndex: number;
+  endIndex: number;
+  beginTimeMs: number;
+  endTimeMs: number;
+}
+
+export interface VoiceSentenceAlignment {
+  index: number;
+  text: string;
+  words: VoiceWordTimestamp[];
+}
+
+export interface VoiceAlignment {
+  requested: boolean;
+  available: boolean;
+  unit: 'ms';
+  granularity: 'word';
+  sentences: VoiceSentenceAlignment[];
 }
 
 export interface VoiceSynthesisResult {
   requestId: string;
   model: string;
   voice: string;
+  displayText?: string;
+  spokenText?: string;
   sourceAudioUrl: string;
   audio: VoiceLabAudio;
   auditionAudio?: VoiceLabAudio | null;
@@ -80,6 +109,7 @@ export interface VoiceSynthesisResult {
   usage: {
     characters?: number;
   };
+  alignment: VoiceAlignment;
   estimate: VoiceLabEstimate;
 }
 
@@ -89,6 +119,15 @@ export interface VoiceCloneItem {
   displayName?: string;
   language: string;
   targetModel: string;
+  modelLabel?: string;
+  modelSupported?: boolean;
+  readOnly?: boolean;
+  ssmlSupported?: boolean;
+  wordTimestampsSupported?: boolean;
+  gender?: string;
+  description?: string;
+  scene?: string;
+  sourceAudio?: { url: string; bytes: number; contentType: string } | null;
   createdAt: string;
   updatedAt: string;
   status: string;
@@ -97,6 +136,10 @@ export interface VoiceCloneItem {
   creatorUsername?: string;
   /** 没有本地创建记录的云端音色按系统默认处理。 */
   isSystemDefault?: boolean;
+  /** 仅统计服务端埋点上线后的成功合成，历史次数未知。 */
+  synthesisCount?: number;
+  auditionCount?: number;
+  lastSynthesizedAt?: string;
   auditionAudio?: VoiceLabAudio | null;
   auditionText?: string;
   voicePrompt?: string;
@@ -108,10 +151,13 @@ export interface VoiceCloneListResult {
   pageIndex: number;
   pageSize: number;
   totalCount: number;
+  visibleCount?: number;
   voices: VoiceCloneItem[];
 }
 
 export interface VoiceCreateResult {
+  sourceSaved?: boolean;
+  warning?: string;
   requestId: string;
   voice: string;
   displayName?: string;
@@ -139,16 +185,18 @@ export interface DeleteVoiceResult {
   };
 }
 
-export function fetchVoiceLabStatus() {
-  return request<VoiceLabStatus>({ url: '/voice-lab/status' });
+type VoiceRequestOptions = Pick<AxiosRequestConfig, 'signal' | 'timeout' | 'silentError'>;
+
+export function fetchVoiceLabStatus(options: VoiceRequestOptions = {}) {
+  return request<VoiceLabStatus>({ ...options, url: '/voice-lab/status' });
 }
 
-export function estimateVoiceCost(text: string) {
-  return request<VoiceLabEstimate>({ url: '/voice-lab/estimate', method: 'post', data: { text } });
+export function estimateVoiceCost(text: string, model?: string) {
+  return request<VoiceLabEstimate>({ url: '/voice-lab/estimate', method: 'post', data: { text, model } });
 }
 
-export function synthesizeVoice(data: VoiceSynthesisPayload) {
-  return request<VoiceSynthesisResult>({ url: '/voice-lab/synthesize', method: 'post', data, timeout: 120000 });
+export function synthesizeVoice(data: VoiceSynthesisPayload, options: VoiceRequestOptions = {}) {
+  return request<VoiceSynthesisResult>({ url: '/voice-lab/synthesize', method: 'post', data, timeout: 120000, ...options });
 }
 
 export function fetchVoiceEffectPresets() {
@@ -171,7 +219,12 @@ export function fetchVoiceClones(params: { pageSize?: number; pageIndex?: number
   return request<VoiceCloneListResult>({ url: '/voice-lab/voices', params });
 }
 
+export function fetchVoiceCatalog() {
+  return request<{ voices: VoiceCloneItem[]; totalCount: number }>({ url: '/voice-lab/catalog' });
+}
+
 export function createVoiceClone(data: {
+  targetModel?: string;
   audioUrl: string;
   prefix: string;
   displayName?: string;
@@ -202,6 +255,7 @@ export function createVoiceDesign(data: {
   prefix: string;
   displayName?: string;
   languageHint: VoiceDesignLanguage;
+  targetModel?: string;
 }) {
   return request<VoiceCreateResult>({
     url: '/voice-lab/voices/design',
@@ -221,7 +275,7 @@ export function updateVoiceName(voice: string, displayName: string) {
 
 export function generateVoiceAudition(voice: string, data: {
   text?: string;
-  model: string;
+  model?: string;
   languageHint: VoiceLanguageHint;
   instruction?: string;
   rate?: number;

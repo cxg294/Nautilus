@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue';
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { NButton, NInput, NTag, useDialog, useMessage, type DataTableColumns, type UploadFileInfo } from 'naive-ui';
 import {
   createVoiceClone,
@@ -7,6 +7,7 @@ import {
   createVoiceDesign,
   deleteVoiceClone,
   fetchVoiceClones,
+  fetchVoiceCatalog,
   fetchVoiceLabStatus,
   generateVoiceAudition,
   synthesizeVoice,
@@ -22,6 +23,12 @@ import { useActionTracker, usePageTracker } from '@/hooks/common/use-tracker';
 import { useAuth } from '@/hooks/business/auth';
 import { getToken } from '@/store/modules/auth/shared';
 import EffectsPanel from './components/effects-panel.vue';
+import SynthesisPreview from './components/synthesis-preview.vue';
+import SpeechControlsEditor from './components/speech-controls-editor.vue';
+import VoicePicker from './components/voice-picker.vue';
+import { commonVoices } from '@/service/api/voice-selection';
+import { compileSpeech, type SpeechControl } from '../../../shared/speech-controls';
+import { cloneModelOptions, designModelOptions, voiceModelOptions, defaultCloneModel, modelForVoice, voiceModelLabel, voiceModelPrice } from '@/service/api/voice-models';
 
 defineOptions({ name: 'VoiceLab' });
 
@@ -46,8 +53,18 @@ const loadingStatus = ref(false);
 
 const voices = ref<VoiceCloneItem[]>([]);
 const loadingVoices = ref(false);
-// 音色库默认展示所有可见音色；“只看我的”仅作为用户主动收窄列表的筛选项。
+// 常用列表先给已有角色和少量试听候选，完整目录主动展开。
 const onlyMyVoices = ref(false);
+const voiceLibraryMode = ref('common');
+const voiceSearch = ref('');
+const voiceModelFilter = ref<string | null>(null);
+const voiceSourceFilter = ref('all');
+const sourceOptions = [{label:'全部来源', value:'all'}, {label:'复刻 / 设计', value:'custom'}, {label:'系统音色', value:'system'}, {label:'基础音色', value:'basic'}];
+function changeLibraryMode(mode: string) {
+  voiceSearch.value = '';
+  voiceSourceFilter.value = 'all';
+  voiceModelFilter.value = mode === 'all' ? 'qwen-audio-3.0-tts-flash' : null;
+}
 
 const synthesisText = ref('');
 const selectedVoice = ref('');
@@ -55,10 +72,13 @@ const manualVoice = ref('');
 const languageHint = ref<VoiceLanguageHint>('zh');
 const instruction = ref('');
 const speechRate = ref(1);
+const speechControls = ref<SpeechControl[]>([]);
 const synthesizing = ref(false);
 const synthesisResult = ref<VoiceSynthesisResult | null>(null);
+const synthesisResultText = ref('');
 const auditioningVoice = ref('');
 
+const cloneModel = ref(defaultCloneModel);
 const cloneDisplayName = ref('');
 const clonePrefix = ref('nautilus');
 const cloneAudioUrl = ref('');
@@ -67,8 +87,18 @@ const cloneLanguageHint = ref<VoiceLanguageHint>('zh');
 const cloneEnablePreprocess = ref(false);
 const cloneMaxPromptAudioLength = ref(10);
 const cloning = ref(false);
+const recording = ref(false);
+const recordingSeconds = ref(0);
+const recordingAudioUrl = ref('');
+
+let voiceRecorder: MediaRecorder | null = null;
+let voiceStream: MediaStream | null = null;
+let recordingStartedAt = 0;
+let recordingTimer: number | null = null;
+let createCloneAfterRecording = false;
 
 const designDisplayName = ref('温柔老师');
+const designModel = ref(defaultCloneModel);
 const designPrefix = ref('teacher');
 const designPrompt = ref('温柔、清晰、有耐心的年轻女老师，适合少儿编程课程讲解。');
 const designPreviewText = ref('同学们好，我们今天来一起完成一个有趣的小挑战。');
@@ -114,23 +144,40 @@ watch(voiceModeItems, items => {
   }
 }, { immediate: true });
 
-const cloneVoiceOptions = computed(() => voices.value.map(item => ({
-  label: `${getVoiceDisplayLabel(item)}${item.status && item.status !== 'OK' ? ` · ${item.status}` : ''}`,
-  value: item.voice,
-  disabled: Boolean(item.status && item.status !== 'OK'),
-})));
+const selectedVoiceId = computed(() => selectedVoice.value || manualVoice.value.trim());
+const selectedVoiceMeta = computed(() => voices.value.find(item => item.voice === selectedVoiceId.value));
+const synthesisModel = computed(() => modelForVoice(selectedVoiceMeta.value, selectedVoiceId.value)
+  || (synthesisResult.value?.voice === selectedVoiceId.value ? synthesisResult.value?.model : undefined));
+
+const commonVoiceList = computed(() => commonVoices(voices.value, selectedVoiceId.value ? [selectedVoiceId.value] : []));
+const libraryVoices = computed(() => voiceLibraryMode.value === 'common' ? commonVoiceList.value
+  : voiceLibraryMode.value === 'custom' ? voices.value.filter(v => !v.readOnly) : voices.value);
+const filteredVoices = computed(() => libraryVoices.value.filter(v =>
+  (!voiceModelFilter.value || v.targetModel === voiceModelFilter.value) &&
+  (voiceSourceFilter.value === 'all' || (voiceSourceFilter.value === 'custom' ? !v.readOnly : v.source === voiceSourceFilter.value)) &&
+  `${v.displayName} ${v.voice} ${v.voicePrompt || ''}`.toLowerCase().includes(voiceSearch.value.trim().toLowerCase())
+));
 
 const visibleCharacters = computed(() => Array.from(synthesisText.value || '').length);
 const billingCharacters = computed(() => countBillingCharacters(synthesisText.value));
 const instructionBillingCharacters = computed(() => countBillingCharacters(instruction.value));
 const totalBillingCharacters = computed(() => billingCharacters.value + instructionBillingCharacters.value);
-const estimatedCost = computed(() => Number(((totalBillingCharacters.value / 10000) * 0.8).toFixed(4)));
+const estimatedCost = computed(() => {
+  const price = voiceModelPrice(synthesisModel.value);
+  return price === undefined ? '待识别模型' : Number(((totalBillingCharacters.value / 10000) * price).toFixed(4));
+});
 
-const synthesisModel = computed(() => status.value?.defaults.synthesisModel || 'cosyvoice-v3.5-flash');
-const selectedVoiceId = computed(() => selectedVoice.value || manualVoice.value.trim());
+watch(manualVoice, value => {
+  if (value.trim() && value.trim() !== selectedVoice.value) selectedVoice.value = '';
+});
+watch(selectedVoice, value => {
+  if (value && manualVoice.value.trim() !== value) manualVoice.value = '';
+});
+const shouldRequestWordTimestamps = computed(() => selectedVoiceMeta.value?.wordTimestampsSupported ?? selectedVoiceMeta.value?.source !== 'design');
 const selectedCloneFile = computed(() => cloneFileList.value.find(item => item.file)?.file || null);
 const ossBucketName = computed(() => status.value?.oss?.bucket || 'nautilus-audio');
 const ossExplicitlyUnavailable = computed(() => status.value?.oss?.configured === false);
+const alignmentWordCount = computed(() => synthesisResult.value?.alignment?.sentences.reduce((sum, sentence) => sum + sentence.words.length, 0) || 0);
 
 const audioUrl = computed(() => {
   const url = synthesisResult.value?.audio?.url || '';
@@ -158,10 +205,6 @@ function countBillingCharacters(text: string) {
   }, 0);
 }
 
-function getVoiceDisplayLabel(voice: VoiceCloneItem) {
-  return voice.displayName ? `${voice.displayName} · ${voice.voice}` : voice.voice;
-}
-
 async function loadStatus() {
   loadingStatus.value = true;
   try {
@@ -175,12 +218,18 @@ async function loadStatus() {
 async function loadVoices() {
   loadingVoices.value = true;
   try {
-    const { data, error } = await fetchVoiceClones({ pageSize: 50, pageIndex: 0, onlyMine: onlyMyVoices.value });
-    if (!error && data) {
-      voices.value = data.voices || [];
-      const firstReadyVoice = voices.value.find(item => !item.status || item.status === 'OK');
-      if (!selectedVoice.value && firstReadyVoice) selectedVoice.value = firstReadyVoice.voice;
+    const all: VoiceCloneItem[] = [];
+    for (let page = 0; page < 20; page++) {
+      const { data, error } = await fetchVoiceClones({ pageSize: 100, pageIndex: page, onlyMine: onlyMyVoices.value });
+      if (error || !data) return;
+      all.push(...data.voices);
+      if ((page + 1) * 100 >= data.totalCount) break;
     }
+    voices.value = all;
+    const catalog = await fetchVoiceCatalog();
+    if (!catalog.error && catalog.data) voices.value.push(...catalog.data.voices.filter(v => !all.some(existing => existing.voice === v.voice)).sort((a,b) => Number(a.source !== 'system') - Number(b.source !== 'system')));
+    const firstReadyVoice = commonVoices(voices.value).find(item => item.modelSupported !== false && (!item.status || item.status === 'OK'));
+    if (!selectedVoice.value && !manualVoice.value.trim() && firstReadyVoice) selectedVoice.value = firstReadyVoice.voice;
   } finally {
     loadingVoices.value = false;
   }
@@ -188,12 +237,18 @@ async function loadVoices() {
 
 
 async function handleSynthesize() {
+  try { compileSpeech(synthesisText.value.trim(), speechControls.value); }
+  catch (error) { message.warning((error as Error).message); return; }
+  if (speechControls.value.length && selectedVoiceMeta.value?.ssmlSupported === false) {
+    message.warning('此声音暂不支持停顿和指定读法，请选择复刻音色或基础音色');
+    return;
+  }
   if (!synthesisText.value.trim()) {
     message.warning('请填写合成文本');
     return;
   }
   if (!selectedVoiceId.value) {
-    message.warning('请先选择或填写 CosyVoice 音色 ID');
+    message.warning('请先选择或填写音色 ID');
     return;
   }
   if (instructionBillingCharacters.value > 100) {
@@ -203,14 +258,17 @@ async function handleSynthesize() {
 
   synthesizing.value = true;
   synthesisResult.value = null;
+  synthesisResultText.value = synthesisText.value.trim();
   try {
     const { data, error } = await synthesizeVoice({
-      text: synthesisText.value,
+      text: synthesisResultText.value,
       voice: selectedVoiceId.value,
       model: synthesisModel.value,
       languageHint: languageHint.value,
       instruction: instruction.value,
       rate: speechRate.value,
+      enableWordTimestamps: shouldRequestWordTimestamps.value,
+      speechControls: speechControls.value,
     });
 
     if (!error && data) {
@@ -218,11 +276,7 @@ async function handleSynthesize() {
       if (data.auditionSaved && data.auditionAudio) {
         voices.value = voices.value.map(item => (item.voice === data.voice ? { ...item, auditionAudio: data.auditionAudio } : item));
       }
-      trackAction('synthesize', 'success', {
-        model: data.model,
-        characters: data.usage?.characters || totalBillingCharacters.value,
-      });
-      message.success('语音合成完成');
+      message.success(data.alignment?.available ? `语音合成完成，已返回 ${alignmentWordCount.value} 个字/词时间戳` : '语音合成完成');
     }
   } finally {
     synthesizing.value = false;
@@ -230,12 +284,12 @@ async function handleSynthesize() {
 }
 
 
-async function handleCreateClone() {
+async function handleCreateClone(file = selectedCloneFile.value) {
   if (!canCloneVoice.value) {
     message.warning('当前账号没有复刻音色权限');
     return;
   }
-  if (!selectedCloneFile.value && !cloneAudioUrl.value.trim()) {
+  if (!file && !cloneAudioUrl.value.trim()) {
     message.warning('请上传音频，或填写公网可访问的音频 URL');
     return;
   }
@@ -243,17 +297,18 @@ async function handleCreateClone() {
     message.warning('请填写音色前缀');
     return;
   }
-  if (selectedCloneFile.value && ossExplicitlyUnavailable.value) {
+  if (file && ossExplicitlyUnavailable.value) {
     message.warning('OSS 未配置，无法使用本地上传中转');
     return;
   }
 
   cloning.value = true;
   try {
-    const request = selectedCloneFile.value
-      ? createVoiceCloneFromUpload(createCloneFormData(selectedCloneFile.value))
+    const request = file
+      ? createVoiceCloneFromUpload(createCloneFormData(file))
       : createVoiceClone({
           audioUrl: cloneAudioUrl.value,
+          targetModel: cloneModel.value,
           prefix: clonePrefix.value,
           displayName: cloneDisplayName.value,
           languageHint: cloneLanguageHint.value,
@@ -271,7 +326,8 @@ async function handleCreateClone() {
       });
       selectedVoice.value = data.voice;
       manualVoice.value = data.voice;
-      message.success('CosyVoice 复刻音色已创建');
+      if (data.warning) message.warning(data.warning);
+      else message.success(`${voiceModelLabel(data.targetModel)} 音色已创建，原始录音已保存`);
       await loadVoices();
       activeTab.value = 'synthesis';
     }
@@ -283,6 +339,7 @@ async function handleCreateClone() {
 function createCloneFormData(file: File) {
   const formData = new FormData();
   formData.append('audio', file, file.name);
+  formData.append('targetModel', cloneModel.value);
   formData.append('prefix', clonePrefix.value);
   formData.append('displayName', cloneDisplayName.value);
   formData.append('languageHint', cloneLanguageHint.value);
@@ -296,6 +353,122 @@ function handleCloneUploadChange(nextFileList: UploadFileInfo[]) {
   const fileName = cloneFileList.value[0]?.file?.name || '';
   if (!cloneDisplayName.value && fileName) {
     cloneDisplayName.value = fileName.replace(/\.[^.]+$/, '');
+  }
+}
+
+function getRecordingMimeType() {
+  const supportedMimeTypes = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4',
+  ];
+  return supportedMimeTypes.find(mimeType => MediaRecorder.isTypeSupported(mimeType)) || '';
+}
+
+function clearRecordingTimer() {
+  if (recordingTimer) window.clearInterval(recordingTimer);
+  recordingTimer = null;
+}
+
+function releaseRecordingResources() {
+  clearRecordingTimer();
+  voiceStream?.getTracks().forEach(track => track.stop());
+  voiceStream = null;
+  voiceRecorder = null;
+  recording.value = false;
+}
+
+function getRecordingExtension(mimeType: string) {
+  if (mimeType.includes('ogg')) return 'ogg';
+  if (mimeType.includes('mp4')) return 'm4a';
+  return 'webm';
+}
+
+function stopVoiceRecording(createClone = true) {
+  createCloneAfterRecording = createClone;
+  if (voiceRecorder?.state === 'recording') {
+    voiceRecorder.stop();
+    return;
+  }
+  releaseRecordingResources();
+}
+
+async function startVoiceRecording() {
+  if (!status.value?.configured) {
+    message.warning('请先配置百炼服务');
+    return;
+  }
+  if (ossExplicitlyUnavailable.value) {
+    message.warning('OSS 未配置，录音无法自动上传复刻');
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    message.error('当前浏览器不支持麦克风录音，请改用上传音频');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
+    const mimeType = getRecordingMimeType();
+    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    const chunks: BlobPart[] = [];
+
+    voiceStream = stream;
+    voiceRecorder = recorder;
+    recordingStartedAt = Date.now();
+    recordingSeconds.value = 0;
+    createCloneAfterRecording = false;
+
+    recorder.ondataavailable = event => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+    recorder.onerror = () => {
+      releaseRecordingResources();
+      message.error('录音中断，请检查麦克风后重试');
+    };
+    recorder.onstop = async () => {
+      const shouldCreateClone = createCloneAfterRecording;
+      const duration = (Date.now() - recordingStartedAt) / 1000;
+      const recordedMimeType = recorder.mimeType || mimeType || 'audio/webm';
+      releaseRecordingResources();
+
+      if (!shouldCreateClone || duration < 3 || chunks.length === 0) {
+        if (shouldCreateClone && duration < 3) message.warning('录音至少需要 3 秒，请重新录制');
+        return;
+      }
+
+      const extension = getRecordingExtension(recordedMimeType);
+      const file = new File([new Blob(chunks, { type: recordedMimeType })], `voice-sample-${Date.now()}.${extension}`, {
+        type: recordedMimeType,
+      });
+      if (recordingAudioUrl.value) URL.revokeObjectURL(recordingAudioUrl.value);
+      recordingAudioUrl.value = URL.createObjectURL(file);
+      cloneFileList.value = [{ id: `recorded-${Date.now()}`, name: file.name, status: 'finished', file }];
+      cloneAudioUrl.value = '';
+      if (!cloneDisplayName.value.trim()) cloneDisplayName.value = `我的录音 ${new Date().toLocaleDateString()}`;
+
+      message.info('录音完成，正在创建复刻音色…');
+      await handleCreateClone(file);
+    };
+
+    recorder.start();
+    recording.value = true;
+    recordingTimer = window.setInterval(() => {
+      recordingSeconds.value = Math.min(30, (Date.now() - recordingStartedAt) / 1000);
+      if (recordingSeconds.value >= 30) stopVoiceRecording(true);
+    }, 100);
+  } catch (error) {
+    releaseRecordingResources();
+    const errorName = error instanceof DOMException ? error.name : '';
+    message.error(errorName === 'NotAllowedError' ? '未获得麦克风权限，请在浏览器中允许后重试' : '无法开启麦克风，请检查设备后重试');
   }
 }
 
@@ -322,6 +495,7 @@ async function handleCreateDesign() {
       prefix: designPrefix.value,
       displayName: designDisplayName.value,
       languageHint: designLanguageHint.value,
+      targetModel: designModel.value,
     });
 
     if (!error && data) {
@@ -332,7 +506,7 @@ async function handleCreateDesign() {
       selectedVoice.value = data.voice;
       manualVoice.value = data.voice;
       designPreviewAudio.value = data.previewAudio || null;
-      message.success('CosyVoice 设计音色已创建');
+      message.success(`${voiceModelLabel(designModel.value)} 设计音色已创建`);
       await loadVoices();
     }
   } finally {
@@ -352,7 +526,7 @@ async function handleGenerateAudition(row: VoiceCloneItem) {
   auditioningVoice.value = row.voice;
   try {
     const { data, error } = await generateVoiceAudition(row.voice, {
-      model: synthesisModel.value,
+      model: modelForVoice(row) || '',
       languageHint: languageHint.value,
       rate: speechRate.value,
       instruction: '',
@@ -434,6 +608,54 @@ function downloadResult() {
   document.body.removeChild(a);
 }
 
+function downloadAlignment() {
+  if (!synthesisResult.value?.alignment?.available) return;
+
+  const audioName = synthesisResult.value.audio?.downloadName || synthesisResult.value.audio?.fileName || `voice-lab-${Date.now()}.wav`;
+  const fileName = audioName.replace(/\.[^.]+$/, '') + '.alignment.json';
+  const content = {
+    version: 1,
+    text: synthesisResultText.value,
+    requestId: synthesisResult.value.requestId,
+    model: synthesisResult.value.model,
+    voice: synthesisResult.value.voice,
+    audio: synthesisResult.value.audio,
+    alignment: synthesisResult.value.alignment,
+  };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], { type: 'application/json;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function renderVoiceAudition(row: VoiceCloneItem) {
+  if (row.auditionAudio?.url) return h('audio', {
+    class: 'voice-audition-player', controls: true, src: withAuthQuery(row.auditionAudio.url),
+  });
+  return h(NButton, {
+    size: 'small', tertiary: true, loading: auditioningVoice.value === row.voice,
+    disabled: row.modelSupported === false || Boolean(row.status && row.status !== 'OK'),
+    onClick: () => handleGenerateAudition(row),
+  }, { default: () => '生成试听' });
+}
+
+const commonVoiceColumns = computed<DataTableColumns<VoiceCloneItem>>(() => [
+  { title: '声音', key: 'voice', minWidth: 150, render: row => row.displayName?.replace(/ · Audio Flash$/, '') || '未命名声音' },
+  { title: '特点与用途', key: 'description', minWidth: 210, render: row => row.readOnly
+    ? [row.gender, row.description, row.scene, row.language].filter(Boolean).join(' · ')
+    : row.source === 'design' ? row.voicePrompt || '文字设计的声音' : '已有角色复刻声音' },
+  { title: '模型', key: 'targetModel', width: 150, render: row => voiceModelLabel(modelForVoice(row)) },
+  { title: '试听', key: 'audition', minWidth: 220, render: renderVoiceAudition },
+  { title: '选用', key: 'actions', width: 90, render: row => h(NButton, {
+    size: 'small', tertiary: true, disabled: row.modelSupported === false || Boolean(row.status && row.status !== 'OK'),
+    onClick: () => useVoiceForSynthesis(row.voice),
+  }, { default: () => '选用' }) },
+]);
+
 const voiceColumns = computed<DataTableColumns<VoiceCloneItem>>(() => [
   {
     title: '名称 / 音色 ID',
@@ -448,12 +670,20 @@ const voiceColumns = computed<DataTableColumns<VoiceCloneItem>>(() => [
     },
   },
   {
+    title: '模型', key: 'targetModel', width: 180,
+    render: row => voiceModelLabel(modelForVoice(row)),
+  },
+  {
+    title: '原始录音', key: 'sourceAudio', width: 110,
+    render: row => row.sourceAudio ? h(NButton, { tag: 'a', size: 'small', tertiary: true, href: withAuthQuery(row.sourceAudio.url), target: '_blank' }, { default: () => '查看原件' }) : '—',
+  },
+  {
     title: '来源',
     key: 'source',
     width: 92,
     render(row) {
       return h(NTag, { size: 'small', bordered: false, type: row.source === 'design' ? 'info' : 'default' }, {
-        default: () => (row.source === 'design' ? '设计' : '复刻'),
+        default: () => ({design:'设计',system:'系统',basic:'基础'}[row.source] || '复刻'),
       });
     },
   },
@@ -476,28 +706,19 @@ const voiceColumns = computed<DataTableColumns<VoiceCloneItem>>(() => [
     },
   },
   {
+    title: '生成 / 试听',
+    key: 'synthesisCount',
+    width: 120,
+    render(row) {
+      return h('span', { title: row.lastSynthesizedAt ? `最近合成：${row.lastSynthesizedAt}` : '新埋点上线后暂无合成记录；历史次数未知' },
+        `${row.synthesisCount || 0} / ${row.auditionCount || 0}`);
+    },
+  },
+  {
     title: '试听',
     key: 'audition',
     minWidth: 260,
-    render(row) {
-      if (row.auditionAudio?.url) {
-        return h('audio', {
-          class: 'voice-audition-player',
-          controls: true,
-          src: withAuthQuery(row.auditionAudio.url),
-        });
-      }
-
-      return h(NButton, {
-        size: 'small',
-        tertiary: true,
-        loading: auditioningVoice.value === row.voice,
-        disabled: Boolean(row.status && row.status !== 'OK'),
-        onClick: () => handleGenerateAudition(row),
-      }, {
-        default: () => '生成试听',
-      });
-    },
+    render: renderVoiceAudition,
   },
   {
     title: '描述/预览',
@@ -520,12 +741,12 @@ const voiceColumns = computed<DataTableColumns<VoiceCloneItem>>(() => [
     width: 204,
     render(row) {
       const actions = [
-        h(NButton, { size: 'small', tertiary: true, disabled: Boolean(row.status && row.status !== 'OK'), onClick: () => useVoiceForSynthesis(row.voice) }, {
-          default: () => '试音',
+        h(NButton, { size: 'small', tertiary: true, disabled: row.modelSupported === false || Boolean(row.status && row.status !== 'OK'), onClick: () => useVoiceForSynthesis(row.voice) }, {
+          default: () => '选用',
         }),
       ];
 
-      if (canManageVoices.value) {
+      if (canManageVoices.value && !row.readOnly) {
         actions.unshift(
           h(NButton, { size: 'small', tertiary: true, onClick: () => promptRenameVoice(row) }, {
             default: () => '改名',
@@ -547,6 +768,11 @@ onMounted(async () => {
   await loadStatus();
   await loadVoices();
 });
+
+onBeforeUnmount(() => {
+  if (recordingAudioUrl.value) URL.revokeObjectURL(recordingAudioUrl.value);
+  stopVoiceRecording(false);
+});
 </script>
 
 <template>
@@ -562,8 +788,8 @@ onMounted(async () => {
             <NTag size="small" :type="status?.configured ? 'info' : 'error'" :bordered="false">
               {{ status?.configured ? '百炼已配置' : '缺少百炼 Key' }}
             </NTag>
-            <span>{{ status?.defaults.synthesisModel || 'cosyvoice-v3.5-flash' }}</span>
-            <span>无系统音色 · 使用复刻/设计音色</span>
+            <span>CosyVoice / Audio · 模型随音色自动匹配</span>
+            <span>支持现成、复刻与设计音色</span>
           </div>
         </div>
       </div>
@@ -601,7 +827,7 @@ onMounted(async () => {
                   {{ visibleCharacters }} 可见字符，正文 {{ billingCharacters }} + 指令 {{ instructionBillingCharacters }} = {{ totalBillingCharacters }} 计费字符，约 {{ estimatedCost }} 元
                 </p>
               </div>
-              <NTag size="small" :bordered="false">{{ synthesisModel }}</NTag>
+              <NTag size="small" :bordered="false">{{ voiceModelLabel(synthesisModel) }}</NTag>
             </div>
 
             <NInput
@@ -616,13 +842,7 @@ onMounted(async () => {
 
             <div class="form-grid">
               <NFormItem label="音色库">
-                <NSelect
-                  v-model:value="selectedVoice"
-                  filterable
-                  clearable
-                  :options="cloneVoiceOptions"
-                  placeholder="选择 CosyVoice 音色"
-                />
+                <VoicePicker v-model:value="selectedVoice" :voices="voices" :loading="loadingVoices" :disabled="synthesizing" aria-label="合成声音" />
               </NFormItem>
               <NFormItem label="目标语种">
                 <NSelect v-model:value="languageHint" :options="languageHintOptions" />
@@ -631,7 +851,7 @@ onMounted(async () => {
 
             <div class="form-grid">
               <NFormItem label="手动音色 ID">
-                <NInput v-model:value="manualVoice" clearable placeholder="cosyvoice-v3.5-flash-..." />
+                <NInput v-model:value="manualVoice" clearable placeholder="粘贴音色 ID，自动识别模型" />
               </NFormItem>
               <NFormItem label="语速">
                 <div class="speed-field">
@@ -649,6 +869,8 @@ onMounted(async () => {
                 </span>
               </div>
             </NFormItem>
+
+            <SpeechControlsEditor v-model="speechControls" :text="synthesisText" :available="selectedVoiceMeta?.ssmlSupported" :disabled="synthesizing" />
 
             <div class="action-row">
               <NButton type="primary" :loading="synthesizing" :disabled="!status?.configured" @click="handleSynthesize">
@@ -669,19 +891,37 @@ onMounted(async () => {
                 </p>
                 <p v-else>等待生成</p>
               </div>
-              <NButton v-if="audioUrl" tertiary @click="downloadResult">
-                <template #icon>
-                  <SvgIcon icon="mdi:download-outline" />
-                </template>
-                下载
-              </NButton>
+              <NSpace v-if="audioUrl" size="small">
+                <NButton v-if="synthesisResult?.alignment?.available" tertiary @click="downloadAlignment">
+                  <template #icon>
+                    <SvgIcon icon="mdi:timeline-text-outline" />
+                  </template>
+                  时间轴 JSON
+                </NButton>
+                <NButton tertiary @click="downloadResult">
+                  <template #icon>
+                    <SvgIcon icon="mdi:download-outline" />
+                  </template>
+                  下载音频
+                </NButton>
+              </NSpace>
             </div>
 
             <div v-if="audioUrl" class="audio-result">
-              <audio controls :src="audioUrl" />
+              <SynthesisPreview
+                :key="audioUrl"
+                :src="audioUrl"
+                :text="synthesisResultText"
+                :alignment="synthesisResult?.alignment"
+              />
               <div class="result-meta">
                 <span>Request {{ synthesisResult?.requestId || '-' }}</span>
                 <span>{{ synthesisResult?.audio?.downloadName || synthesisResult?.audio?.fileName }}</span>
+                <span v-if="synthesisResult?.alignment?.available">
+                  已返回 {{ alignmentWordCount }} 个字/词时间戳
+                </span>
+                <span v-else-if="synthesisResult?.alignment?.requested">当前音色未返回字级时间轴</span>
+                <span v-else>此音色暂不请求字级时间轴</span>
               </div>
             </div>
             <div v-else class="empty-result">
@@ -702,12 +942,15 @@ onMounted(async () => {
             <div class="panel-header">
               <div>
                 <h2>声音复刻</h2>
-                <p>上传音频到 OSS 临时中转，或粘贴已有公网 URL</p>
+                <p>选择模型并提供原始录音；合成时自动使用该音色对应的模型</p>
               </div>
             </div>
 
             <div class="clone-compact-grid">
               <div class="clone-compact-column">
+                <NFormItem label="克隆模型">
+                  <NSelect v-model:value="cloneModel" :options="cloneModelOptions" :disabled="cloning || recording" aria-label="克隆模型" />
+                </NFormItem>
                 <NFormItem label="音色名称">
                   <NInput v-model:value="cloneDisplayName" maxlength="50" show-count clearable placeholder="例如：桃子老师、旁白男声" />
                 </NFormItem>
@@ -729,6 +972,33 @@ onMounted(async () => {
                     </NUploadDragger>
                   </NUpload>
                 </NFormItem>
+
+                <div class="record-clone-card" :class="{ 'is-recording': recording }">
+                  <div class="record-clone-card__heading">
+                    <span class="record-clone-card__icon">
+                      <SvgIcon :icon="recording ? 'mdi:microphone' : 'mdi:microphone-outline'" />
+                    </span>
+                    <div>
+                      <strong>直接录音复刻</strong>
+                      <p v-if="recording">正在录音 {{ recordingSeconds.toFixed(1) }} 秒 / 30 秒</p>
+                      <p v-else>录制 3–30 秒清晰人声，结束后会自动上传并创建音色</p>
+                    </div>
+                  </div>
+                  <div class="record-clone-card__actions">
+                    <NButton
+                      :type="recording ? 'error' : 'primary'"
+                      :disabled="cloning || !status?.configured || (!recording && ossExplicitlyUnavailable)"
+                      @click="recording ? stopVoiceRecording(true) : startVoiceRecording()"
+                    >
+                      <template #icon>
+                        <SvgIcon :icon="recording ? 'mdi:stop-circle-outline' : 'mdi:microphone'" />
+                      </template>
+                      {{ recording ? '结束并复刻' : '开始录音' }}
+                    </NButton>
+                    <span v-if="recording" class="recording-indicator"><i />录音中</span>
+                  </div>
+                  <audio v-if="recordingAudioUrl && !recording" controls :src="recordingAudioUrl" class="record-clone-card__audio" />
+                </div>
               </div>
 
               <div class="clone-compact-column">
@@ -749,17 +1019,22 @@ onMounted(async () => {
                   <NFormItem label="参考时长">
                     <NInputNumber v-model:value="cloneMaxPromptAudioLength" :min="3" :max="30" :step="1" />
                   </NFormItem>
-                  <NFormItem label="音频预处理">
-                    <NCheckbox v-model:checked="cloneEnablePreprocess">
-                      开启降噪、增强与音量规整
-                    </NCheckbox>
+                  <NFormItem label="音频预处理（默认关闭）">
+                    <div class="flex flex-col gap-8px">
+                      <NCheckbox v-model:checked="cloneEnablePreprocess">
+                        开启降噪、增强与音量规整
+                      </NCheckbox>
+                      <NText depth="3" class="text-12px">
+                        关闭可保留原声细节；样本噪声明显时再尝试开启。仅影响本次新复刻的音色。
+                      </NText>
+                    </div>
                   </NFormItem>
                 </div>
 
                 <div class="notice-box clone-notice-box">
                   <SvgIcon icon="mdi:link-variant" />
                   <span>
-                    本地上传会写入 {{ ossBucketName }} 并生成短期签名 URL；URL 模式仍需公网可访问且无需额外请求头。
+                    通过 {{ ossBucketName }} 临时中转，创建后在 Nautilus 保存原始录音。预处理、样本音量归一化默认关闭。
                   </span>
                 </div>
 
@@ -768,7 +1043,7 @@ onMounted(async () => {
                     type="primary"
                     :loading="cloning"
                     :disabled="!status?.configured || Boolean(selectedCloneFile && ossExplicitlyUnavailable)"
-                    @click="handleCreateClone"
+                    @click="() => handleCreateClone()"
                   >
                     <template #icon>
                       <SvgIcon icon="mdi:account-voice" />
@@ -784,7 +1059,7 @@ onMounted(async () => {
             <div class="panel-header">
               <div>
                 <h2>当前音色</h2>
-                <p>{{ voices.length }} 个 CosyVoice 音色</p>
+                <p>{{ voices.length }} 个音色</p>
               </div>
             </div>
             <div class="voice-list">
@@ -801,7 +1076,7 @@ onMounted(async () => {
               </button>
               <div v-if="voices.length === 0" class="empty-result empty-result--compact">
                 <SvgIcon icon="mdi:account-voice" />
-                <span>暂无 CosyVoice 音色</span>
+                <span>暂无音色</span>
               </div>
             </div>
           </section>
@@ -814,7 +1089,7 @@ onMounted(async () => {
             <div class="panel-header">
               <div>
                 <h2>声音设计</h2>
-                <p>用文字描述生成 CosyVoice 音色</p>
+                <p>描述声音的年龄、特点和用途，生成后试听确认。</p>
               </div>
             </div>
 
@@ -827,6 +1102,9 @@ onMounted(async () => {
               </NFormItem>
             </div>
 
+            <NFormItem label="设计模型">
+              <NSelect v-model:value="designModel" :options="designModelOptions" />
+            </NFormItem>
             <NFormItem label="语言倾向">
               <NSelect v-model:value="designLanguageHint" :options="designLanguageOptions" />
             </NFormItem>
@@ -890,8 +1168,8 @@ onMounted(async () => {
         <section class="panel table-panel">
           <div class="panel-header">
             <div>
-              <h2>CosyVoice 音色</h2>
-              <p>{{ onlyMyVoices ? '仅显示你创建的音色与系统默认音色。' : '显示全部可见音色。' }}</p>
+              <h2>音色库</h2>
+              <p>先试听已有角色和少量候选；需要新声线时再打开更多音色。</p>
             </div>
             <div class="voice-library-actions">
               <NCheckbox v-model:checked="onlyMyVoices" @update:checked="loadVoices">
@@ -905,11 +1183,22 @@ onMounted(async () => {
               </NButton>
             </div>
           </div>
+          <NRadioGroup v-model:value="voiceLibraryMode" size="small" style="margin-bottom: 12px" @update:value="changeLibraryMode">
+            <NRadioButton value="common">常用声音</NRadioButton>
+            <NRadioButton value="custom">复刻与设计</NRadioButton>
+            <NRadioButton value="all">更多音色</NRadioButton>
+          </NRadioGroup>
+          <NSpace style="margin-bottom: 12px" align="center">
+            <NInput v-model:value="voiceSearch" clearable placeholder="搜索名称、性别、特点或用途" style="width: 260px" />
+            <NSelect v-if="voiceLibraryMode !== 'common'" v-model:value="voiceModelFilter" :options="voiceModelOptions" clearable placeholder="全部模型" style="width: 190px" />
+            <NSelect v-if="voiceLibraryMode !== 'common'" v-model:value="voiceSourceFilter" :options="sourceOptions" style="width: 150px" />
+            <span>{{ filteredVoices.length }} 个{{ voiceLibraryMode === 'common' ? '常用声音' : '音色' }}</span>
+          </NSpace>
           <NDataTable
-            :columns="voiceColumns"
-            :data="voices"
+            :columns="voiceLibraryMode === 'common' ? commonVoiceColumns : voiceColumns"
+            :data="filteredVoices"
             :loading="loadingVoices"
-            :pagination="{ pageSize: 10 }"
+            :pagination="{ pageSize: voiceLibraryMode === 'common' ? 16 : 10 }"
             size="small"
             class="voice-table"
           />
@@ -1188,6 +1477,90 @@ onMounted(async () => {
 .clone-compact-column {
   display: grid;
   gap: 10px;
+}
+
+.record-clone-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(32, 128, 240, 0.24);
+  border-radius: 8px;
+  background: rgba(32, 128, 240, 0.045);
+  padding: 11px;
+}
+
+.record-clone-card.is-recording {
+  border-color: rgba(208, 48, 80, 0.48);
+  background: rgba(208, 48, 80, 0.06);
+}
+
+.record-clone-card__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.record-clone-card__icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(32, 128, 240, 0.12);
+  color: #2080f0;
+}
+
+.record-clone-card.is-recording .record-clone-card__icon {
+  background: rgba(208, 48, 80, 0.14);
+  color: #d03050;
+}
+
+.record-clone-card__heading strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.record-clone-card__heading p {
+  margin: 2px 0 0;
+  color: rgba(128, 128, 128, 0.92);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.record-clone-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recording-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #d03050;
+  font-size: 12px;
+}
+
+.recording-indicator i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: record-pulse 1.15s ease-in-out infinite;
+}
+
+.record-clone-card__audio {
+  width: 100%;
+  height: 32px;
+}
+
+@keyframes record-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
 }
 
 .clone-notice-box {

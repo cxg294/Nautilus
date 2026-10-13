@@ -7,7 +7,7 @@ function safePart(value, fallback) {
     .normalize('NFKC')
     .replace(/[\\/:*?"<>|]/g, ' ')
     .replace(/[\r\n\t]+/g, ' ')
-    .replace(/[，。！？、；：“”‘’（）【】《》…·~`!@#$%^&()_+={}\[\];',.]/g, ' ')
+    .replace(/[，。！？、；：“”‘’（）【】《》…·~`!@#$%^&()_+={}[\];',.]/g, ' ')
     .replace(/\s+/g, '')
     .trim();
   return Array.from(normalized || fallback).slice(0, MAX_PART_LENGTH).join('');

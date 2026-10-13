@@ -38,9 +38,9 @@ export function mergeVoiceDisplayNames(voices, { onlyMine = false, userId = null
     const meta = nameMap.get(voice.voice);
     return {
       ...voice,
-      displayName: meta?.displayName || '',
+      displayName: meta?.displayName || voice.displayName || '',
       creatorUsername: meta?.creatorUsername || '',
-      isSystemDefault: !meta?.createdBy,
+      isSystemDefault: Boolean(voice.readOnly) || !meta?.createdBy,
       auditionAudio: getAuditionAudioFromMeta(meta),
       auditionText: meta?.auditionText || '',
     };

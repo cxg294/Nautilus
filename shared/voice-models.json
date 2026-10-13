@@ -1,0 +1,30 @@
+[
+  {
+    "id": "cosyvoice-v3.5-flash",
+    "label": "CosyVoice 3.5 Flash",
+    "pricePer10k": 0.8,
+    "clone": true,
+    "design": true
+  },
+  {
+    "id": "qwen-audio-3.0-tts-flash",
+    "label": "Audio 3.0 Flash",
+    "pricePer10k": 1,
+    "clone": true,
+    "design": true
+  },
+  {
+    "id": "cosyvoice-v3.5-plus",
+    "label": "CosyVoice 3.5 Plus",
+    "pricePer10k": 1.5,
+    "clone": false,
+    "design": true
+  },
+  {
+    "id": "qwen-audio-3.0-tts-plus",
+    "label": "Audio 3.0 Plus",
+    "pricePer10k": 1.4,
+    "clone": false,
+    "design": true
+  }
+]
