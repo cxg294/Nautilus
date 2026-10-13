@@ -101,7 +101,7 @@ onMounted(() => {
     <!-- 数据来源标注 -->
     <template #header-extra>
       <NTag size="tiny" :bordered="false" type="default" class="source-tag">
-        飞书 · AI每日资讯
+        {{ newsList[0]?.providerName || 'AIHOT · 精选' }}
       </NTag>
     </template>
   </NCard>

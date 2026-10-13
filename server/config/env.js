@@ -35,7 +35,7 @@ export default {
   },
 
   // 数据库路径（相对于 server/ 目录）
-  dbPath: path.resolve(__dirname, '../db/nautilus.db'),
+  dbPath: process.env.NAUTILUS_DB_PATH || path.resolve(__dirname, '../db/nautilus.db'),
 
   // migration 目录
   migrationsDir: path.resolve(__dirname, '../db/migrations'),
@@ -49,7 +49,7 @@ export default {
   // 首页 AI 新闻源配置
   news: {
     source: process.env.NEWS_SOURCE || 'hybrid', // rss | lark | hybrid
-    rssUrl: process.env.NEWS_RSS_URL || 'https://llmposts.com/feed/',
+    rssUrl: process.env.NEWS_RSS_URL || 'https://aihot.news/feed.xml',
     refreshMinutes: parseInt(process.env.NEWS_REFRESH_MINUTES || '60', 10),
     requestTimeoutMs: parseInt(process.env.NEWS_REQUEST_TIMEOUT_MS || '8000', 10),
   },

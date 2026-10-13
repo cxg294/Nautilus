@@ -114,7 +114,7 @@ async function fetchWithTimeout(url) {
       signal: controller.signal,
       headers: {
         Accept: 'application/rss+xml, application/xml;q=0.9, text/xml;q=0.8',
-        'User-Agent': 'Nautilus/0.2.0 (+https://llmposts.com/feed/)',
+        'User-Agent': 'Nautilus/0.2.0',
       },
     });
 
@@ -153,6 +153,7 @@ async function fetchNewsFromRss() {
       timeAgo: formatTimeAgo(dateMs),
       date: Number.isNaN(dateMs) ? 0 : dateMs,
       provider: 'rss',
+      providerName: extractValue(channel?.title) || 'RSS',
     };
   });
 
@@ -232,6 +233,7 @@ async function fetchNewsFromLark() {
       rank: fields['排名'] || index + 1,
       date: dateMs || 0,
       provider: 'lark',
+      providerName: '飞书 · AI每日资讯',
     };
   });
 
@@ -264,7 +266,7 @@ async function fetchFreshNews() {
     } catch (error) {
       errors.push(`RSS: ${error.message}`);
       if (source === 'rss') {
-        throw new Error(errors.join('; '));
+        throw new Error(errors.join('; '), { cause: error });
       }
       console.warn(`[News] RSS 获取失败，准备回退飞书: ${error.message}`);
     }

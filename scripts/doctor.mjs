@@ -158,7 +158,7 @@ async function checkHttpServices() {
     if (!items.length) {
       add('warn', 'AI 新闻接口', '返回 0 条新闻');
     } else if (ageHours !== null && ageHours > 36) {
-      add('warn', 'AI 新闻接口', `${items.length} 条，最新约 ${ageHours} 小时前`, '可登录后调用 /api/news/refresh 或检查飞书 Base');
+      add('warn', 'AI 新闻接口', `${items.length} 条，最新约 ${ageHours} 小时前`, '可登录后调用 /api/news/refresh，或检查 AIHOT RSS 与飞书备用源');
     } else {
       add('pass', 'AI 新闻接口', `${items.length} 条，最新约 ${Math.max(0, ageHours ?? 0)} 小时前`);
     }

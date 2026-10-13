@@ -10,9 +10,10 @@ export interface NewsItem {
   timeAgo: string;
   rank: number;
   date: number;
+  providerName?: string;
 }
 
-/** 获取 AI 新闻列表（来自飞书多维表格） */
+/** 获取 AI 新闻列表（默认 AIHOT 精选 RSS，飞书多维表格兜底） */
 export function fetchAINews() {
   return request<NewsItem[]>({
     url: '/news',
@@ -27,4 +28,3 @@ export function refreshAINews() {
     method: 'post',
   });
 }
-
