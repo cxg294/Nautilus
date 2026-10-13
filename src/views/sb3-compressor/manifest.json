@@ -1,21 +1,24 @@
 {
   "name": "sb3-compressor",
-  "category": "sb3-graphical",
+  "category": "image-tools",
   "icon": "mdi:archive-arrow-down",
-  "order": 2,
-  "categoryOrder": 3,
+  "order": 5,
+  "categoryOrder": 2,
   "locked": false,
   "i18n": {
     "zh-CN": {
       "route": "SB3 压缩",
-      "category": "SB3 图形化",
-      "categoryIcon": "mdi:puzzle"
+      "category": "素材工具",
+      "categoryIcon": "mdi:folder-multiple-image"
     },
     "en-US": {
       "route": "SB3 Compressor",
-      "category": "SB3 Graphical",
-      "categoryIcon": "mdi:puzzle"
+      "category": "Asset Tools",
+      "categoryIcon": "mdi:folder-multiple-image"
     }
   },
-  "guestAccessible": true
+  "guestAccessible": true,
+  "legacyPaths": [
+    "/sb3-graphical/sb3-compressor"
+  ]
 }

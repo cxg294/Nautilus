@@ -220,6 +220,7 @@ const local: App.I18n.Schema = {
     }
   },
   route: {
+    'character-library': '人物声音与立绘',
     login: '登录',
     403: '无权限',
     404: '页面不存在',
@@ -228,6 +229,8 @@ const local: App.I18n.Schema = {
     home: '首页',
     'base64-converter': 'Base64 转换',
     'mid-price-course': '中价课课程看板',
+    'course-assets': '课程资产中心',
+    'course-structure': '课程结构解析',
     'effects-generator': '特效生成器',
     'icon-explorer': '图标库',
     'image-compressor': '图片压缩',
@@ -238,7 +241,7 @@ const local: App.I18n.Schema = {
     'regex-workflow': '正则规则工作台',
     'role-manager': '角色管理',
     'sb3-compressor': 'SB3 压缩',
-    'sb3-studio': 'SB3 工作室',
+    'sequence-player': '逐字稿播放器',
     'timestamp-converter': '时间戳转换',
     'user-manager': '用户管理',
     'voice-lab': '语音合成',
@@ -298,7 +301,7 @@ const local: App.I18n.Schema = {
       announcement: {
         title: '🐚 欢迎使用 Nautilus 工作台',
         content:
-          'Nautilus 工作台正在持续建设中，目前已上线图片工具、SB3 图形化、杂货铺等模块。更多功能敬请期待，如有建议欢迎反馈！'
+          'Nautilus 工作台正在持续建设中，目前已上线素材工具、逐字稿播放器、杂货铺等模块。更多功能敬请期待，如有建议欢迎反馈！'
       },
       weather: {
         title: '天气预报',
@@ -332,29 +335,6 @@ const local: App.I18n.Schema = {
         hoursAgo: '{n} 小时前',
         minutesAgo: '{n} 分钟前',
         noNews: '暂无最新新闻'
-      }
-    },
-    sb3Studio: {
-      openFile: '打开文件',
-      loadSample: '加载示例',
-      saveSB3: '导出 .sb3',
-      saveJSON: '导出 project.json',
-      versionDiff: '版本对比',
-      tabOverview: '项目总览',
-      tabAssets: '素材管理',
-      tabData: '变量与广播',
-      tabLogic: '逻辑分析',
-      emptyTitle: '开始分析 SB3 项目',
-      emptyDesc: '上传一个 .sb3 文件或加载示例数据来开始',
-      stats: {
-        sprites: '角色数',
-        blocks: '积木数',
-        scripts: '脚本数',
-        costumes: '造型数',
-        sounds: '声音数',
-        variables: '变量数',
-        lists: '列表数',
-        broadcasts: '广播数'
       }
     },
     videoFrameExtractor: {

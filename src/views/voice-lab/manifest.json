@@ -1,21 +1,24 @@
 {
   "name": "voice-lab",
-  "category": "copywriting",
+  "category": "image-tools",
   "icon": "mdi:waveform",
-  "order": 3,
-  "categoryOrder": 6,
+  "order": 6,
+  "categoryOrder": 2,
   "locked": false,
   "i18n": {
     "zh-CN": {
       "route": "语音合成",
-      "category": "文案创意",
-      "categoryIcon": "mdi:text-box-edit-outline"
+      "category": "素材工具",
+      "categoryIcon": "mdi:folder-multiple-image"
     },
     "en-US": {
       "route": "Voice Lab",
-      "category": "Copywriting",
-      "categoryIcon": "mdi:text-box-edit-outline"
+      "category": "Asset Tools",
+      "categoryIcon": "mdi:folder-multiple-image"
     }
   },
-  "guestAccessible": false
+  "guestAccessible": false,
+  "legacyPaths": [
+    "/copywriting/voice-lab"
+  ]
 }

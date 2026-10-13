@@ -9,7 +9,7 @@
  * - 搜索历史记录（localStorage）
  * - 中文关键词 → 英文映射（内置常用翻译表）
  */
-import { ref, computed, watch, shallowRef } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
 
 // ============================================================
 // 类型定义
@@ -295,7 +295,7 @@ export function useIconSearch() {
         total: data.total || prev.total,
         loaded: merged.length,
         hasMore: merged.length < (data.total || 0),
-        collections: { ...prev.collections, ...(data.collections || {}) },
+        collections: { ...prev.collections, ...data.collections },
       };
     } catch (err: any) {
       if (currentId !== searchId) return;

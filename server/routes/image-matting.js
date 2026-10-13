@@ -10,6 +10,8 @@ import { removeBackground, removeBackgroundToBuffer } from '../services/aliyun-i
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/requirePermission.js';
+import { normalizeMattingResultUrl } from '../utils/matting-result-url.js';
+import { padMattingForGraphics } from '../services/matting-export.js';
 
 const router = express.Router();
 const MAX_GIF_FRAMES = 30;
@@ -115,7 +117,7 @@ async function processGifFrame(frame, index, targetWidth, targetHeight, workDir)
 }
 
 async function mapLimit(items, limit, mapper) {
-  const results = new Array(items.length);
+  const results = Array.from({ length: items.length });
   let nextIndex = 0;
 
   async function worker() {
@@ -256,6 +258,9 @@ router.get('/output/:file', asyncHandler(async (req, res) => {
 
   res.setHeader('Content-Type', 'image/gif');
   res.setHeader('Cache-Control', 'private, max-age=3600');
+  if (req.query.exportMode === 'graphics') {
+    return res.send(await padMattingForGraphics(await fsp.readFile(outputPath)));
+  }
   res.sendFile(outputPath);
 }));
 
@@ -268,25 +273,27 @@ router.get('/proxy-image', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: '缺少图片链接' });
   }
 
-  // SSRF 防护：仅允许代理阿里云 OSS 域名
-  const { isSafeUrl } = await import('../utils/security.js');
-  const check = isSafeUrl(url, { allowedDomains: ['.aliyuncs.com'], httpsOnly: true });
-  if (!check.safe) {
-    return res.status(403).json({ success: false, error: `URL 校验失败: ${check.reason}` });
+  // 阿里云可能返回 HTTP 签名链接，升级 HTTPS 后仍执行域名和协议校验。
+  let downloadUrl;
+  try {
+    downloadUrl = normalizeMattingResultUrl(url);
+  } catch (error) {
+    return res.status(403).json({ success: false, error: error.message });
   }
 
   try {
     // NodeJS 18+ 原生全局 fetch
-    const imageRes = await fetch(url);
+    const imageRes = await fetch(downloadUrl, { redirect: 'error', signal: AbortSignal.timeout(30000) });
     if (!imageRes.ok) {
       return res.status(imageRes.status).send('获取图片失败');
     }
 
     const arrayBuffer = await imageRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const source = Buffer.from(arrayBuffer);
+    const buffer = req.query.exportMode === 'graphics' ? await padMattingForGraphics(source) : source;
     
     // 原样设置 Content-Type 并返回二进制
-    res.setHeader('Content-Type', imageRes.headers.get('content-type') || 'image/png');
+    res.setHeader('Content-Type', req.query.exportMode === 'graphics' ? 'image/png' : imageRes.headers.get('content-type') || 'image/png');
     // 如果需要跨域
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(buffer);

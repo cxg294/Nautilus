@@ -2,19 +2,19 @@
   "name": "effects-generator",
   "category": "image-tools",
   "icon": "mdi:sparkles",
-  "order": 3,
+  "order": 4,
   "categoryOrder": 2,
   "locked": false,
   "i18n": {
     "zh-CN": {
       "route": "特效生成器",
-      "category": "图片工具",
-      "categoryIcon": "mdi:image-multiple"
+      "category": "素材工具",
+      "categoryIcon": "mdi:folder-multiple-image"
     },
     "en-US": {
       "route": "Effects Generator",
-      "category": "Image Tools",
-      "categoryIcon": "mdi:image-multiple"
+      "category": "Asset Tools",
+      "categoryIcon": "mdi:folder-multiple-image"
     }
   },
   "guestAccessible": true

@@ -60,6 +60,36 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'character-library',
+    path: '/character-library',
+    component: 'layout.base$view.character-library',
+    meta: {
+      title: 'character-library',
+      i18nKey: 'route.character-library',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'course-assets',
+    path: '/course-assets',
+    component: 'layout.base$view.course-assets',
+    meta: {
+      title: 'course-assets',
+      i18nKey: 'route.course-assets',
+      hideInMenu: true
+    }
+  },
+  {
+    name: 'course-structure',
+    path: '/course-structure',
+    component: 'layout.base$view.course-structure',
+    meta: {
+      title: 'course-structure',
+      i18nKey: 'route.course-structure',
+      hideInMenu: true
+    }
+  },
+  {
     name: 'effects-generator',
     path: '/effects-generator',
     component: 'layout.base$view.effects-generator',
@@ -219,12 +249,12 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
-    name: 'sb3-studio',
-    path: '/sb3-studio',
-    component: 'layout.base$view.sb3-studio',
+    name: 'sequence-player',
+    path: '/sequence-player',
+    component: 'layout.base$view.sequence-player',
     meta: {
-      title: 'sb3-studio',
-      i18nKey: 'route.sb3-studio',
+      title: 'sequence-player',
+      i18nKey: 'route.sequence-player',
       hideInMenu: true
     }
   },

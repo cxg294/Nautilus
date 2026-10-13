@@ -12,7 +12,7 @@
  * - 搜索历史标签
  * - 加载更多分页
  */
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch } from 'vue';
 import { useMessage } from 'naive-ui';
 import { useIconSearch } from './composables/use-icon-search';
 import type { IconResult } from './composables/use-icon-search';
@@ -103,12 +103,6 @@ function handleShowCopyMenu(icon: IconResult) {
   showCopyMenu.value = true;
 }
 
-/** 滚动加载更多 */
-function handleScrollBottom() {
-  if (searchState.value.hasMore && !isSearching.value) {
-    loadMore();
-  }
-}
 </script>
 
 <template>

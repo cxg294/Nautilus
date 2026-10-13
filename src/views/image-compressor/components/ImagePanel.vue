@@ -1,15 +1,12 @@
 <script setup lang="ts">
 /**
- * 图片压缩面板（重构版）
- *
- * 顶部：header + 操作栏
- * 主体：拖拽上传 / 图片网格
- * 设置：NDrawer 抽屉承载压缩参数
+ * 尺寸设置常驻，格式和质量收进高级设置；每张图片预览实际输出尺寸。
  */
 import { useI18n } from 'vue-i18n';
 import { useImageCompressor, type ImageItem } from '../composables/use-image-compressor';
 import CompareModal from './CompareModal.vue';
 import { computed, ref } from 'vue';
+import { getOutputDimensions } from '../composables/image-size';
 
 const { t } = useI18n();
 const {
@@ -38,6 +35,40 @@ const showSettings = ref(false);
 const pendingCount = computed(() => images.value.filter(img => img.status === 'pending').length);
 const compressingCount = computed(() => images.value.filter(img => img.status === 'compressing').length);
 const errorCount = computed(() => images.value.filter(img => img.status === 'error').length);
+const sizePresets = [
+  { label: '最长边 1920 px', value: '1920', width: 1920, height: 1920 },
+  { label: '1920 × 1080 · 全高清', value: '1080p', width: 1920, height: 1080 },
+  { label: '1280 × 720 · 高清', value: '720p', width: 1280, height: 720 },
+  { label: '960 × 720 · 课件素材', value: 'course', width: 960, height: 720 },
+  { label: '最长边 800 px', value: '800', width: 800, height: 800 },
+  { label: '最长边 512 px', value: '512', width: 512, height: 512 },
+  { label: '自定义', value: 'custom', width: 0, height: 0 }
+];
+const customSize = ref(false);
+const selectedPreset = computed(() => customSize.value ? 'custom' : (
+  sizePresets.find(preset => preset.width === options.value.maxWidth && preset.height === options.value.maxHeight)?.value || 'custom'
+));
+
+function selectPreset(value: string) {
+  customSize.value = value === 'custom';
+  const preset = sizePresets.find(item => item.value === value);
+  if (preset && value !== 'custom') {
+    options.value.maxWidth = preset.width;
+    options.value.maxHeight = preset.height;
+  }
+}
+
+function updateDimension(field: 'maxWidth' | 'maxHeight', value: number | null) {
+  if (value === null) return;
+  options.value[field] = value;
+  customSize.value = true;
+}
+
+function dimensionSummary(item: ImageItem) {
+  if (!item.dimensions) return '正在读取尺寸…';
+  const { width, height } = item.outputDimensions || getOutputDimensions(item.dimensions, options.value);
+  return `${item.dimensions.width} × ${item.dimensions.height} → ${width} × ${height} px`;
+}
 
 /** 处理文件上传 */
 function handleUpload(opts: { file: { file: File | null } }) {
@@ -81,33 +112,101 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
 <template>
   <div class="image-panel" :class="{ 'image-panel--empty': images.length === 0 }" @dragover.prevent @drop="handleDrop">
     <!-- 页面 Header -->
-    <div v-if="images.length > 0" class="page-header">
+    <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">
-          压缩队列
-          <NTag type="primary" size="small" round>{{ engine === 'wasm' ? 'WASM' : 'Canvas' }}</NTag>
-        </h2>
-        <div class="status-line">
-          <span>{{ images.length }} 张图片</span>
-          <NTag v-if="pendingCount" size="small" round>{{ pendingCount }} 等待中</NTag>
-          <NTag v-if="compressingCount" type="info" size="small" round>{{ compressingCount }} 压缩中</NTag>
-          <NTag v-if="doneCount" type="success" size="small" round>{{ doneCount }} 已完成</NTag>
-          <NTag v-if="errorCount" type="error" size="small" round>{{ errorCount }} 失败</NTag>
-        </div>
+        <h2 class="page-title">图片压缩与缩放</h2>
+        <NText depth="3">先选输出尺寸，再添加图片。支持批量处理。</NText>
       </div>
       <div class="header-actions">
-        <NTooltip trigger="hover" placement="bottom">
-          <template #trigger>
-            <NButton quaternary circle @click="showSettings = true">
-              <template #icon>
-                <SvgIcon icon="mdi:cog-outline" />
-              </template>
-            </NButton>
-          </template>
-          压缩设置
-        </NTooltip>
+        <NButton secondary size="small" @click="showSettings = true">
+          <template #icon><SvgIcon icon="mdi:cog-outline" /></template>
+          格式与质量
+        </NButton>
       </div>
     </div>
+
+    <section class="resize-controls" aria-label="输出尺寸设置">
+      <div class="resize-row">
+        <NText strong>输出尺寸</NText>
+        <NRadioGroup v-model:value="options.resizeMode" size="small" :disabled="isCompressing" aria-label="缩放方式">
+          <NRadioButton value="original">保持原尺寸</NRadioButton>
+          <NRadioButton value="percentage">修改尺寸（比例）</NRadioButton>
+          <NRadioButton value="fit">修改尺寸（像素）</NRadioButton>
+        </NRadioGroup>
+      </div>
+      <div v-if="options.resizeMode === 'fit'" class="resize-row">
+        <NSelect
+          class="preset-select"
+          :value="selectedPreset"
+          :options="sizePresets"
+          :disabled="isCompressing"
+          size="small"
+          aria-label="常用尺寸"
+          @update:value="selectPreset"
+        />
+        <label class="dimension-field">
+          <NText depth="3">最大宽</NText>
+          <NInputNumber
+            :value="options.maxWidth"
+            :min="1"
+            :max="8192"
+            :precision="0"
+            :show-button="false"
+            :disabled="isCompressing"
+            size="small"
+            aria-label="最大宽度"
+            @update:value="value => updateDimension('maxWidth', value)"
+          ><template #suffix>px</template></NInputNumber>
+        </label>
+        <label class="dimension-field">
+          <NText depth="3">最大高</NText>
+          <NInputNumber
+            :value="options.maxHeight"
+            :min="1"
+            :max="8192"
+            :precision="0"
+            :show-button="false"
+            :disabled="isCompressing"
+            size="small"
+            aria-label="最大高度"
+            @update:value="value => updateDimension('maxHeight', value)"
+          ><template #suffix>px</template></NInputNumber>
+        </label>
+      </div>
+      <div v-else-if="options.resizeMode === 'percentage'" class="resize-row">
+        <NButton
+          v-for="percent in [25, 50, 75]"
+          :key="percent"
+          :type="options.scalePercent === percent ? 'primary' : 'default'"
+          :secondary="options.scalePercent === percent"
+          :disabled="isCompressing"
+          :aria-pressed="options.scalePercent === percent"
+          size="small"
+          @click="options.scalePercent = percent"
+        >{{ percent }}%</NButton>
+        <label class="dimension-field">
+          <NText depth="3">缩小到</NText>
+          <NInputNumber
+            :value="options.scalePercent"
+            :min="1"
+            :max="100"
+            :precision="0"
+            :show-button="false"
+            :disabled="isCompressing"
+            size="small"
+            aria-label="缩放百分比"
+            @update:value="value => { if (value !== null) options.scalePercent = value; }"
+          ><template #suffix>%</template></NInputNumber>
+        </label>
+      </div>
+      <NText depth="3" class="resize-hint">
+        {{ options.resizeMode === 'fit'
+          ? '按原比例缩小到宽高上限以内，不裁切、不拉伸，小图不放大。'
+          : options.resizeMode === 'percentage'
+            ? '宽和高同时缩小到所选比例，每次都从原图处理。'
+            : '保留原图宽高，只调整文件格式和压缩质量。' }}
+      </NText>
+    </section>
 
     <!-- 上传区域（空状态时大展示，有图片后缩小） -->
     <div
@@ -115,6 +214,7 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
       :class="images.length === 0 ? 'upload-zone--empty' : 'upload-zone--compact'"
     >
       <NUpload
+        :disabled="isCompressing"
         :show-file-list="false"
         accept="image/*"
         :custom-request="() => {}"
@@ -127,7 +227,6 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
               <span class="dragger-icon">
                 <SvgIcon icon="mdi:image-multiple-outline" />
               </span>
-              <NText class="empty-title">图片批量压缩</NText>
               <NText style="font-size: 16px; font-weight: 500">
                 {{ t('page.imageCompressor.uploadTitle') }}
               </NText>
@@ -149,6 +248,9 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
       <div class="action-bar-left">
         <span class="action-bar-title">批量操作</span>
         <NTag size="small" round>已选择 {{ images.length }} 张</NTag>
+        <NTag v-if="pendingCount" size="small" round>{{ pendingCount }} 等待中</NTag>
+        <NTag v-if="compressingCount" type="info" size="small" round>{{ compressingCount }} 处理中</NTag>
+        <NTag v-if="errorCount" type="error" size="small" round>{{ errorCount }} 失败</NTag>
         <NTag v-if="doneCount > 0" type="success" size="small" round>
           已完成: {{ doneCount }}
         </NTag>
@@ -166,7 +268,7 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
         </template>
       </div>
       <div class="action-bar-right">
-        <NButton size="small" ghost @click="clearAll">清空列表</NButton>
+        <NButton size="small" ghost :disabled="isCompressing" @click="clearAll">清空列表</NButton>
         <NButton
           v-if="doneCount > 1"
           type="success"
@@ -183,13 +285,13 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
           type="primary"
           size="small"
           :loading="isCompressing"
-          :disabled="images.length === 0"
+          :disabled="isCompressing || pendingCount + errorCount === 0"
           @click="compressAll"
         >
           <template #icon>
               <SvgIcon icon="mdi:play-outline" />
           </template>
-          {{ t('page.imageCompressor.compressAll') }}
+          {{ pendingCount + errorCount === 0 && !isCompressing ? '全部已完成' : '开始处理' }}
         </NButton>
       </div>
     </div>
@@ -212,7 +314,7 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
             :src="img.compressedUrl || img.originalUrl"
             :alt="img.file.name"
             class="thumb"
-            :class="{ 'thumb--processing': img.status === 'compressing' || img.status === 'pending' }"
+            :class="{ 'thumb--processing': img.status === 'compressing' }"
           />
 
           <!-- 状态角标 -->
@@ -261,7 +363,7 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
 
           <!-- 右上角删除按钮 -->
           <div class="remove-btn">
-            <NButton circle size="tiny" type="error" @click.stop="removeImage(img.id)">
+            <NButton circle size="tiny" type="error" :disabled="isCompressing" aria-label="移除图片" @click.stop="removeImage(img.id)">
               <template #icon>
                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z" />
@@ -274,6 +376,8 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
         <!-- 文件名 + 大小信息 -->
         <div class="image-info">
           <NText class="file-name" :title="img.file.name">{{ img.file.name }}</NText>
+          <NText depth="3" class="dimension-summary">{{ img.status === 'done' ? '输出' : '预计' }} {{ dimensionSummary(img) }}</NText>
+          <NText v-if="img.error" type="error" class="image-error">{{ img.error }}</NText>
           <div class="size-info">
             <NText depth="3" style="font-size: 12px">{{ formatSize(img.originalSize) }}</NText>
             <template v-if="img.status === 'done'">
@@ -295,45 +399,21 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
 
     <!-- 设置抽屉 -->
     <NDrawer v-model:show="showSettings" :width="320" placement="right">
-      <NDrawerContent title="⚙️ 压缩设置" closable>
+      <NDrawerContent title="格式与质量" closable>
         <NSpace vertical :size="20">
           <!-- 压缩引擎选择 -->
           <div class="setting-item">
-            <NText class="setting-label">🔧 压缩引擎</NText>
-            <NRadioGroup v-model:value="engine" size="small">
-              <NRadioButton value="wasm">⚡ 高级 (WASM)</NRadioButton>
-              <NRadioButton value="canvas">🚀 快速 (Canvas)</NRadioButton>
+            <NText class="setting-label">处理方式</NText>
+            <NRadioGroup v-model:value="engine" size="small" :disabled="isCompressing">
+              <NRadioButton value="wasm">优先画质</NRadioButton>
+              <NRadioButton value="canvas">优先速度</NRadioButton>
             </NRadioGroup>
             <NText depth="3" style="font-size: 11px; line-height: 1.4">
-              {{ engine === 'wasm' ? 'MozJPEG / OxiPNG / WebP — 画质更好，压缩率更高' : 'Canvas API — 速度更快，体积稍大' }}
+              {{ engine === 'wasm' ? '更精细地压缩，兼顾画质与文件大小。' : '更快完成处理，文件可能稍大。' }}
             </NText>
           </div>
 
           <NDivider style="margin: 0" />
-
-          <!-- 最大宽度 -->
-          <div class="setting-item">
-            <NText class="setting-label">{{ t('page.imageCompressor.maxWidth') }}</NText>
-            <NInputNumber
-              v-model:value="options.maxWidth"
-              :min="100"
-              :max="8192"
-              :step="100"
-              size="small"
-            />
-          </div>
-
-          <!-- 最大高度 -->
-          <div class="setting-item">
-            <NText class="setting-label">{{ t('page.imageCompressor.maxHeight') }}</NText>
-            <NInputNumber
-              v-model:value="options.maxHeight"
-              :min="100"
-              :max="8192"
-              :step="100"
-              size="small"
-            />
-          </div>
 
           <!-- 图片质量 -->
           <div class="setting-item">
@@ -342,6 +422,7 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
               <NTag size="tiny" round type="primary">{{ Math.round(options.quality * 100) }}%</NTag>
             </NText>
             <NSlider
+              :disabled="isCompressing"
               v-model:value="options.quality"
               :min="0.1"
               :max="1"
@@ -349,12 +430,14 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
               :tooltip="true"
               :format-tooltip="(v: number) => `${Math.round(v * 100)}%`"
             />
+            <NText depth="3" style="font-size: 12px">主要影响 JPEG / WebP 的画质和文件大小，不改变像素尺寸。</NText>
           </div>
 
           <!-- 输出格式 -->
           <div class="setting-item">
             <NText class="setting-label">{{ t('page.imageCompressor.outputFormat') }}</NText>
             <NSelect
+              :disabled="isCompressing"
               v-model:value="options.outputFormat"
               size="small"
               :options="[
@@ -383,17 +466,56 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   overflow: hidden;
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-radius: 10px;
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.06), transparent 32%),
     linear-gradient(315deg, rgba(15, 118, 110, 0.05), transparent 38%);
 }
 
-.image-panel--empty {
-  justify-content: center;
+.resize-controls {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 12px;
+  padding: 14px 0;
+  border-block: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.resize-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.preset-select {
+  width: 225px;
+}
+
+.dimension-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dimension-field :deep(.n-input-number) {
+  width: 112px;
+}
+
+.resize-hint {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dimension-summary, .image-error {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
 }
 
 /* ---- Page Header ---- */
@@ -441,12 +563,11 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
 }
 
 .upload-zone--empty {
-  width: min(720px, 100%);
-  margin: 0 auto;
+  width: 100%;
 }
 
 .upload-zone--empty :deep(.n-upload-dragger) {
-  padding: 52px 24px;
+  padding: 36px 24px;
 }
 
 .upload-zone--compact :deep(.n-upload-dragger) {
@@ -731,6 +852,7 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
 
   .image-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    flex: none;
     overflow: visible;
   }
 
@@ -741,6 +863,29 @@ function getStatusType(status: string): 'default' | 'info' | 'success' | 'error'
 
   .action-bar-right {
     justify-content: flex-end;
+  }
+
+  .resize-row :deep(.n-radio-group) {
+    max-width: 100%;
+  }
+
+  .preset-select {
+    width: 100%;
+  }
+
+  .page-title {
+    font-size: 19px;
+  }
+}
+
+@media (max-height: 650px) {
+  .image-panel {
+    overflow-y: auto;
+  }
+
+  .image-grid {
+    flex: none;
+    overflow: visible;
   }
 }
 </style>

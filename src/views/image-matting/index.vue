@@ -4,6 +4,7 @@ import { useMessage, type UploadFileInfo } from 'naive-ui';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import JSZip from 'jszip';
+import { useStorage } from '@vueuse/core';
 import ImageCompare from './components/ImageCompare.vue';
 import { usePageTracker, useActionTracker } from '@/hooks/common/use-tracker';
 import { getToken } from '@/store/modules/auth/shared';
@@ -29,6 +30,10 @@ const selectedTaskId = ref<string>('');
 const isProcessingAll = ref(false);
 const showCompareModal = ref(false);
 const activeCompareTask = ref<MattingTask | null>(null);
+const graphicsExport = useStorage('nautilus-matting-graphics-export', false);
+const downloadingTaskId = ref('');
+
+const isGifTask = (task: MattingTask) => task.file.type === 'image/gif' || /\.gif$/i.test(task.file.name);
 
 const successCount = computed(() => tasks.value.filter(t => t.status === 'success').length);
 const gifCount = computed(() => tasks.value.filter(t => t.resultType === 'gif' || isGifTask(t)).length);
@@ -48,7 +53,6 @@ const getProxyImageUrl = (url: string) => {
   return `/api/image-matting/proxy-image?${params.toString()}`;
 };
 
-const isGifTask = (task: MattingTask) => task.file.type === 'image/gif' || /\.gif$/i.test(task.file.name);
 
 const activeTask = computed(() => tasks.value.find(task => task.id === selectedTaskId.value) || tasks.value[0] || null);
 
@@ -67,9 +71,10 @@ const getResultDisplayUrl = (url: string) => {
   return isLocalResultUrl(url) ? withAuthQuery(url) : url;
 };
 
-const getResultDownloadUrl = (url: string) => {
+const getResultDownloadUrl = (url: string, graphicsMode: boolean) => {
   if (!url) return '';
-  return isLocalResultUrl(url) ? withAuthQuery(url) : getProxyImageUrl(url);
+  const downloadUrl = isLocalResultUrl(url) ? withAuthQuery(url) : getProxyImageUrl(url);
+  return graphicsMode ? `${downloadUrl}${downloadUrl.includes('?') ? '&' : '?'}exportMode=graphics` : downloadUrl;
 };
 
 const getResultExtension = (task: MattingTask) => (task.resultType === 'gif' ? 'gif' : 'png');
@@ -229,15 +234,43 @@ function needsResizing(file: File): Promise<boolean> {
   });
 }
 
-const handleDownloadSingle = (task: MattingTask) => {
-  if (!task.resultUrl) return;
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = getResultDownloadUrl(task.resultUrl);
-  const baseName = task.file.name.replace(/\.[^/.]+$/, '');
-  a.download = `${baseName}_nobg.${getResultExtension(task)}`;
+  a.href = url;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+};
+
+const fetchExportBlob = async (task: MattingTask, graphicsMode: boolean): Promise<Blob> => {
+  const res = await axios.get(getResultDownloadUrl(task.resultUrl, graphicsMode), {
+    responseType: 'blob', headers: getAuthHeaders(), timeout: 60000
+  });
+  if (!res.data.type.startsWith('image/')) {
+    // 鉴权失败可能返回 HTTP 200 JSON，不能保存成一张损坏的图片。
+    const text = await res.data.text();
+    let detail = '下载失败，请刷新登录状态后重试';
+    try { const data = JSON.parse(text); detail = data.error || data.msg || detail; } catch { /* 非 JSON 响应 */ }
+    throw new Error(detail);
+  }
+  return res.data;
+};
+
+const handleDownloadSingle = async (task: MattingTask) => {
+  if (!task.resultUrl || downloadingTaskId.value) return;
+  downloadingTaskId.value = task.id;
+  try {
+    const blob = await fetchExportBlob(task, graphicsExport.value);
+    const baseName = task.file.name.replace(/\.[^/.]+$/, '');
+    downloadBlob(blob, `${baseName}_nobg.${getResultExtension(task)}`);
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '下载失败，请重试');
+  } finally {
+    downloadingTaskId.value = '';
+  }
 };
 
 const isDownloadingZip = ref(false);
@@ -246,6 +279,7 @@ const handleDownloadZip = async () => {
   if (successTasks.length === 0) return message.warning('暂无成功的抠图结果！');
   
   isDownloadingZip.value = true;
+  const graphicsMode = graphicsExport.value;
   message.info('正在打包下载...');
   try {
     const zip = new JSZip();
@@ -253,24 +287,15 @@ const handleDownloadZip = async () => {
     
     // Batch fetch over proxy to avoid CORS
     const fetchPromises = successTasks.map(async (task, _index) => {
-      const resultUrl = getResultDownloadUrl(task.resultUrl);
-      const res = await axios.get(resultUrl, { responseType: 'blob', headers: getAuthHeaders() });
+      const blob = await fetchExportBlob(task, graphicsMode);
       // 生成安全的文件名
       const baseName = task.file.name.replace(/\.[^/.]+$/, '');
-      folder?.file(`${baseName}_nobg.${getResultExtension(task)}`, res.data);
+      folder?.file(`${baseName}_nobg.${getResultExtension(task)}`, blob);
     });
     
     await Promise.all(fetchPromises);
     const content = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `matting_batch_${Date.now()}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // 可选: 延时回收URL
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    downloadBlob(content, `matting_batch_${Date.now()}.zip`);
     message.success('批量下载成功！');
   } catch (error) {
     console.error('ZIP Error:', error);
@@ -455,6 +480,24 @@ const openCompareModal = (task: MattingTask) => {
             </div>
 
             <div class="preview-actions">
+              <NPopover trigger="click" placement="bottom-end" :width="300">
+                <template #trigger>
+                  <NButton secondary :type="graphicsExport ? 'primary' : 'default'">
+                    <template #icon><SvgIcon icon="mdi:tune-variant" /></template>
+                    {{ graphicsExport ? '导出设置 · 图形化' : '导出设置' }}
+                  </NButton>
+                </template>
+                <div class="flex items-center justify-between gap-4">
+                  <NText strong>图形化素材模式</NText>
+                  <NSwitch v-model:value="graphicsExport" :disabled="Boolean(downloadingTaskId) || isDownloadingZip" aria-label="图形化素材模式" />
+                </div>
+                <p class="mt-3 text-sm leading-6">
+                  先按原比例缩小到 960 × 720 以内，小图不放大；再居中补透明边，让最终宽、高都是 4 的倍数。不裁切素材，补边后仍不超限。
+                </p>
+                <NText depth="3" class="text-xs">
+                  例如 1920 × 1002 → 960 × 501 → 960 × 504。关闭时保留原尺寸；设置同时适用于单张、GIF 和 ZIP 下载。
+                </NText>
+              </NPopover>
               <NButton
                 v-if="activeTask.status === 'success' && activeTask.resultType !== 'gif'"
                 secondary
@@ -463,7 +506,7 @@ const openCompareModal = (task: MattingTask) => {
                 <template #icon><SvgIcon icon="mdi:eye-outline" /></template>
                 精细对比
               </NButton>
-              <NButton v-if="activeTask.status === 'success'" type="success" @click="handleDownloadSingle(activeTask)">
+              <NButton v-if="activeTask.status === 'success'" type="success" :loading="downloadingTaskId === activeTask.id" :disabled="Boolean(downloadingTaskId) || isDownloadingZip" @click="handleDownloadSingle(activeTask)">
                 <template #icon><SvgIcon icon="mdi:download-outline" /></template>
                 下载结果
               </NButton>

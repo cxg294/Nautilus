@@ -412,7 +412,7 @@ function validateRegex(rule: RegexRule) {
   }
 
   try {
-    new RegExp(rule.regex, rule.flags || '');
+    RegExp(rule.regex, rule.flags || '');
     return { state: 'idle' as TestState, message: '可用' };
   } catch (error: any) {
     return { state: 'error' as TestState, message: error.message };

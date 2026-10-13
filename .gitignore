@@ -56,3 +56,9 @@ server/voice-lab-upload/
 server/voice-lab-output/
 *.xlsx
 server/character-gen-output/
+
+# Uploaded transcript workshop portraits
+server/sequence-player-assets/
+
+# Voice clone original recordings
+server/voice-lab-sources/

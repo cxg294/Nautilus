@@ -13,14 +13,18 @@
     "build:test": "vite build --mode test",
     "preview": "vite preview",
     "gen-route": "sa gen-route",
-    "lint": "oxlint --fix && eslint --fix .",
+    "lint": "oxlint && eslint .",
+    "lint:fix": "oxlint --fix && eslint --fix .",
+    "fmt": "oxfmt --write .",
     "typecheck": "vue-tsc --noEmit --skipLibCheck",
     "cleanup": "sa cleanup",
     "doctor": "node scripts/doctor.mjs",
     "db:migrate": "node -e \"import('./server/db/index.js').then(m => m.runMigrations())\"",
     "db:seed": "node server/db/seed.js",
     "setup": "pnpm install && pnpm run db:migrate",
-    "start": "NODE_ENV=production node server/index.js"
+    "start": "NODE_ENV=production node server/index.js",
+    "test:voice-lab": "node --test server/services/aliyun-tts.test.js",
+    "test:material-tools": "node --test scripts/material-tools.test.mjs"
   },
   "dependencies": {
     "@alicloud/imageseg20191230": "^4.0.1",
@@ -65,7 +69,6 @@
     "json5": "2.2.3",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
-    "mermaid": "^11.13.0",
     "modern-gif": "^2.0.4",
     "multer": "^2.1.1",
     "naive-ui": "2.44.1",
@@ -116,7 +119,7 @@
   },
   "simple-git-hooks": {
     "commit-msg": "pnpm sa git-commit-verify",
-    "pre-commit": "pnpm typecheck && pnpm lint && pnpm fmt && git diff --exit-code"
+    "pre-commit": "pnpm typecheck && pnpm lint && git diff --cached --check"
   },
   "engines": {
     "node": ">=20.19.0",

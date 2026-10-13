@@ -7,9 +7,10 @@
  *
  * SB3 压缩固定使用 WASM 引擎。
  */
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onScopeDispose } from 'vue';
 import imageCompression from 'browser-image-compression';
 import JSZip from 'jszip';
+import { getOutputDimensions, type ImageDimensions, type ResizeOptions } from './image-size';
 
 // === jSquash WASM 编解码器（懒加载） ===
 let jpegCodec: { decode: (buf: ArrayBuffer) => Promise<ImageData>; encode: (data: ImageData, opts?: { quality?: number }) => Promise<ArrayBuffer> } | null = null;
@@ -46,6 +47,8 @@ export interface ImageItem {
   originalSize: number;
   /** 原始预览 URL */
   originalUrl: string;
+  dimensions: ImageDimensions | null;
+  outputDimensions: ImageDimensions | null;
   /** 压缩后的 Blob */
   compressedBlob: Blob | null;
   /** 压缩后文件大小（字节） */
@@ -59,7 +62,7 @@ export interface ImageItem {
 }
 
 /** 压缩参数 */
-export interface CompressOptions {
+export interface CompressOptions extends ResizeOptions {
   /** 最大宽度（px） */
   maxWidth: number;
   /** 最大高度（px） */
@@ -73,12 +76,15 @@ export interface CompressOptions {
 let idCounter = 0;
 
 export function useImageCompressor() {
+  let disposed = false;
   // === 响应式状态 ===
   const images = ref<ImageItem[]>([]);
   const isCompressing = ref(false);
   /** 当前压缩引擎，默认 WASM */
   const engine = ref<CompressEngine>('wasm');
   const options = ref<CompressOptions>({
+    resizeMode: 'original',
+    scalePercent: 50,
     maxWidth: 1920,
     maxHeight: 1920,
     quality: 0.8,
@@ -113,10 +119,24 @@ export function useImageCompressor() {
     images.value.length > 0 && images.value.every(img => img.status === 'done')
   );
 
+  // 修改参数后旧结果不再可下载，下次始终从原图重新处理。
+  watch([options, engine], () => {
+    for (const item of images.value) {
+      if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl);
+      item.compressedBlob = null;
+      item.compressedUrl = '';
+      item.compressedSize = 0;
+      item.outputDimensions = null;
+      item.status = 'pending';
+      item.error = '';
+    }
+  }, { deep: true });
+
   // === 方法 ===
 
   /** 添加图片文件 */
   function addImages(files: File[]) {
+    if (isCompressing.value) return;
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
       const item: ImageItem = {
@@ -124,6 +144,8 @@ export function useImageCompressor() {
         file,
         originalSize: file.size,
         originalUrl: URL.createObjectURL(file),
+        dimensions: null,
+        outputDimensions: null,
         compressedBlob: null,
         compressedSize: 0,
         compressedUrl: '',
@@ -131,6 +153,16 @@ export function useImageCompressor() {
         error: ''
       };
       images.value.push(item);
+      void readImageDimensions(item.originalUrl).then(dimensions => {
+        const current = images.value.find(image => image.id === item.id);
+        if (current) current.dimensions = dimensions;
+      }).catch(() => {
+        const current = images.value.find(image => image.id === item.id);
+        if (current) {
+          current.status = 'error';
+          current.error = '无法读取图片，请检查文件格式。';
+        }
+      });
     }
   }
 
@@ -154,7 +186,8 @@ export function useImageCompressor() {
     }
 
     // Step 2: 缩放（如果需要）
-    imageData = resizeImageData(imageData, options.value.maxWidth, options.value.maxHeight);
+    item.dimensions = { width: imageData.width, height: imageData.height };
+    imageData = resizeImageData(imageData, getOutputDimensions(item.dimensions, options.value));
 
     // Step 3: 用目标格式的 WASM 编码器编码
     let outputBuffer: ArrayBuffer;
@@ -180,8 +213,12 @@ export function useImageCompressor() {
 
   /** 使用 Canvas 引擎压缩单张图片 */
   async function compressWithCanvas(item: ImageItem): Promise<Blob> {
+    const dimensions = item.dimensions || await readImageDimensions(item.originalUrl);
+    item.dimensions = dimensions;
+    const target = getOutputDimensions(dimensions, options.value);
     const opts: Parameters<typeof imageCompression>[1] = {
-      maxWidthOrHeight: Math.max(options.value.maxWidth, options.value.maxHeight),
+      maxWidthOrHeight: Math.max(target.width, target.height),
+      alwaysKeepResolution: true,
       initialQuality: options.value.quality,
       useWebWorker: true,
       maxIteration: 10
@@ -204,12 +241,24 @@ export function useImageCompressor() {
       } else {
         result = await compressWithCanvas(item);
       }
+      if (disposed) return;
 
       if (item.compressedUrl) URL.revokeObjectURL(item.compressedUrl);
 
+      const resultUrl = URL.createObjectURL(result);
+      try {
+        item.outputDimensions = await readImageDimensions(resultUrl);
+      } catch (err) {
+        URL.revokeObjectURL(resultUrl);
+        throw err;
+      }
+      if (disposed) {
+        URL.revokeObjectURL(resultUrl);
+        return;
+      }
       item.compressedBlob = result;
       item.compressedSize = result.size;
-      item.compressedUrl = URL.createObjectURL(result);
+      item.compressedUrl = resultUrl;
       item.status = 'done';
     } catch (err) {
       item.status = 'error';
@@ -220,25 +269,23 @@ export function useImageCompressor() {
 
   /** 批量压缩所有待处理的图片 */
   async function compressAll() {
+    if (isCompressing.value) return;
     isCompressing.value = true;
-
-    // WASM 引擎需要预加载编解码器
-    if (engine.value === 'wasm') {
-      await ensureWasmCodecs();
-    }
-
     const pendingItems = images.value.filter(
       img => img.status === 'pending' || img.status === 'error'
     );
 
-    // WASM 为串行（避免内存溢出），Canvas 可并行
-    const concurrency = engine.value === 'wasm' ? 1 : 3;
-    for (let i = 0; i < pendingItems.length; i += concurrency) {
-      const batch = pendingItems.slice(i, i + concurrency);
-      await Promise.all(batch.map(item => compressSingle(item)));
+    try {
+      // WASM 串行加载并编码，初始化失败也由单图错误处理接住。
+      const concurrency = engine.value === 'wasm' ? 1 : 3;
+      for (let i = 0; i < pendingItems.length; i += concurrency) {
+        if (disposed) break;
+        const batch = pendingItems.slice(i, i + concurrency);
+        await Promise.all(batch.map(item => compressSingle(item)));
+      }
+    } finally {
+      isCompressing.value = false;
     }
-
-    isCompressing.value = false;
   }
 
   /** 下载单张压缩后的图片 */
@@ -266,6 +313,7 @@ export function useImageCompressor() {
 
   /** 删除单张图片 */
   function removeImage(id: string) {
+    if (isCompressing.value) return;
     const idx = images.value.findIndex(img => img.id === id);
     if (idx === -1) return;
     const item = images.value[idx];
@@ -282,6 +330,11 @@ export function useImageCompressor() {
     }
     images.value = [];
   }
+
+  onScopeDispose(() => {
+    disposed = true;
+    clearAll();
+  });
 
   return {
     images,
@@ -306,13 +359,10 @@ export function useImageCompressor() {
 // === 工具函数 ===
 
 /** 缩放 ImageData（使用 OffscreenCanvas） */
-function resizeImageData(imageData: ImageData, maxW: number, maxH: number): ImageData {
+function resizeImageData(imageData: ImageData, target: ImageDimensions): ImageData {
   const { width, height } = imageData;
-  if (width <= maxW && height <= maxH) return imageData;
-
-  const scale = Math.min(maxW / width, maxH / height);
-  const newW = Math.round(width * scale);
-  const newH = Math.round(height * scale);
+  const { width: newW, height: newH } = target;
+  if (width === newW && height === newH) return imageData;
 
   // 用 OffscreenCanvas 进行高质量缩放
   const srcCanvas = new OffscreenCanvas(width, height);
@@ -321,9 +371,19 @@ function resizeImageData(imageData: ImageData, maxW: number, maxH: number): Imag
 
   const dstCanvas = new OffscreenCanvas(newW, newH);
   const dstCtx = dstCanvas.getContext('2d')!;
+  dstCtx.imageSmoothingQuality = 'high';
   dstCtx.drawImage(srcCanvas, 0, 0, newW, newH);
 
   return dstCtx.getImageData(0, 0, newW, newH);
+}
+
+function readImageDimensions(url: string): Promise<ImageDimensions> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error('无法读取图片尺寸'));
+    image.src = url;
+  });
 }
 
 function getExtFromMime(mime: string): string {

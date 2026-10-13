@@ -5,12 +5,9 @@
  * 提供 GIF 生成配置（帧间隔、输出宽度、画质）、
  * 生成进度、预览播放、下载等完整交互。
  */
-import { computed, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed } from 'vue';
 import type { FrameData } from '../composables/use-frame-extractor';
 import type { GifConfig, GifState } from '../composables/use-gif-maker';
-
-const { t } = useI18n();
 
 interface Props {
   /** 选中的帧列表（按时间排序） */
@@ -156,7 +153,7 @@ function updateConfig<K extends keyof GifConfig>(key: K, value: GifConfig[K]) {
       <NProgress
         type="line"
         :percentage="progress"
-        :indicator-placement="'inside'"
+        indicator-placement="inside"
         processing
       />
       <p class="progress-text">

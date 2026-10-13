@@ -224,6 +224,7 @@ const local: App.I18n.Schema = {
     }
   },
   route: {
+    'character-library': 'Character Library',
     login: 'Login',
     403: 'No Permission',
     404: 'Page Not Found',
@@ -232,6 +233,8 @@ const local: App.I18n.Schema = {
     home: 'Home',
     'base64-converter': 'Base64 Converter',
     'mid-price-course': 'Mid-price Course Dashboard',
+    'course-assets': 'Course Assets',
+    'course-structure': 'Course Structure',
     'effects-generator': 'Effects Generator',
     'icon-explorer': 'Icon Explorer',
     'image-compressor': 'Image Compressor',
@@ -242,7 +245,7 @@ const local: App.I18n.Schema = {
     'regex-workflow': 'Regex Workflow',
     'role-manager': 'Role Manager',
     'sb3-compressor': 'SB3 Compressor',
-    'sb3-studio': 'SB3 Studio',
+    'sequence-player': 'Transcript Player',
     'timestamp-converter': 'Timestamp Converter',
     'user-manager': 'User Manager',
     'voice-lab': 'Voice Lab',
@@ -302,7 +305,7 @@ const local: App.I18n.Schema = {
       announcement: {
         title: '🐚 Welcome to Nautilus Workstation',
         content:
-          'Nautilus is continuously evolving. Image Tools, SB3 Graphical, and Misc Shop modules are now available. Stay tuned for more features!'
+          'Nautilus is continuously evolving. Asset Tools, Sequence Player, and Misc Shop modules are now available. Stay tuned for more features!'
       },
       weather: {
         title: 'Weather Forecast',
@@ -364,29 +367,6 @@ const local: App.I18n.Schema = {
       prevFrame: 'Previous',
       nextFrame: 'Next',
       generateGif: 'Create GIF'
-    },
-    sb3Studio: {
-      openFile: 'Open File',
-      loadSample: 'Load Sample',
-      saveSB3: 'Export .sb3',
-      saveJSON: 'Export project.json',
-      versionDiff: 'Version Diff',
-      tabOverview: 'Overview',
-      tabAssets: 'Assets',
-      tabData: 'Variables & Broadcasts',
-      tabLogic: 'Logic Analysis',
-      emptyTitle: 'Start Analyzing SB3 Project',
-      emptyDesc: 'Upload an .sb3 file or load sample data to start',
-      stats: {
-        sprites: 'Sprites',
-        blocks: 'Blocks',
-        scripts: 'Scripts',
-        costumes: 'Costumes',
-        sounds: 'Sounds',
-        variables: 'Variables',
-        lists: 'Lists',
-        broadcasts: 'Broadcasts'
-      }
     },
     effectsGenerator: {
       pageTitle: 'Effects Generator',

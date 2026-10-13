@@ -8,13 +8,13 @@
   "i18n": {
     "zh-CN": {
       "route": "图片去背景",
-      "category": "图片工具",
-      "categoryIcon": "mdi:image-multiple"
+      "category": "素材工具",
+      "categoryIcon": "mdi:folder-multiple-image"
     },
     "en-US": {
       "route": "Remove Background",
-      "category": "Image Tools",
-      "categoryIcon": "mdi:image-multiple"
+      "category": "Asset Tools",
+      "categoryIcon": "mdi:folder-multiple-image"
     }
   },
   "guestAccessible": false

@@ -2,7 +2,7 @@ import type { CustomRoute, ElegantConstRoute } from '@elegant-router/types';
 import { generatedRoutes } from '../elegant/routes';
 import { layouts, views } from '../elegant/imports';
 import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
-import { getPluginRoutes, getPluginViews } from '../plugin-scanner';
+import { getPluginRedirectRoutes, getPluginRoutes, getPluginViews } from '../plugin-scanner';
 
 /**
  * custom routes
@@ -19,7 +19,11 @@ export function createStaticRoutes() {
 
   // 合并内置路由 + 插件路由
   const pluginRoutes = getPluginRoutes();
-  ([...customRoutes, ...generatedRoutes, ...pluginRoutes] as ElegantConstRoute[]).forEach(item => {
+  const pluginRedirectRoutes = getPluginRedirectRoutes();
+  const pluginRouteNames = new Set([...pluginRoutes, ...pluginRedirectRoutes].map(route => route.name));
+  // 工具的扁平路由改为带权限的跳转，页面只由 manifest 入口提供。
+  const builtinRoutes = generatedRoutes.filter(route => !pluginRouteNames.has(route.name));
+  ([...customRoutes, ...builtinRoutes, ...pluginRoutes, ...pluginRedirectRoutes] as ElegantConstRoute[]).forEach(item => {
     if (item.meta?.constant) {
       constantRoutes.push(item);
     } else {

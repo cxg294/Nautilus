@@ -50,22 +50,22 @@ const allShortcuts: Shortcut[] = [
     routeKey: 'image-tools_effects-generator'
   },
   {
-    key: 'sb3-studio',
-    icon: 'mdi:puzzle-outline',
-    color: '#3b82f6',
-    bgColor: 'rgba(59, 130, 246, 0.1)',
-    route: '/sb3-graphical/sb3-studio',
-    i18nKey: 'route.sb3-graphical_sb3-studio',
-    routeKey: 'sb3-graphical_sb3-studio'
-  },
-  {
     key: 'sb3-compress',
     icon: 'mdi:archive-arrow-down-outline',
     color: '#f43f5e',
     bgColor: 'rgba(244, 63, 94, 0.1)',
-    route: '/sb3-graphical/sb3-compressor',
-    i18nKey: 'route.sb3-graphical_sb3-compressor',
-    routeKey: 'sb3-graphical_sb3-compressor'
+    route: '/image-tools/sb3-compressor',
+    i18nKey: 'route.image-tools_sb3-compressor',
+    routeKey: 'image-tools_sb3-compressor'
+  },
+  {
+    key: 'voice-lab',
+    icon: 'mdi:waveform',
+    color: '#3b82f6',
+    bgColor: 'rgba(59, 130, 246, 0.1)',
+    route: '/image-tools/voice-lab',
+    i18nKey: 'route.image-tools_voice-lab',
+    routeKey: 'image-tools_voice-lab'
   },
   {
     key: 'timestamp',

@@ -24,6 +24,8 @@ interface PluginManifest {
   order: number;
   /** 分类在侧边栏中的排列顺序 */
   categoryOrder?: number;
+  /** 迁移前的地址，统一跳转到当前入口并沿用模块权限 */
+  legacyPaths?: string[];
   /** 未登录用户是否可访问 */
   guestAccessible: boolean;
   /** 是否为锁定占位工具 */
@@ -177,6 +179,31 @@ export function getPluginRoutes(): any[] {
   }
 
   return routes;
+}
+
+/** 旧分组地址和自动生成的扁平地址统一跳转，避免缺少权限的重复页面入口。 */
+export function getPluginRedirectRoutes(): any[] {
+  const categories = getCategories();
+  const reservedPaths = new Set(categories.flatMap(category => [
+    `/${category.name}`,
+    ...category.tools.map(tool => `/${category.name}/${tool.name}`)
+  ]));
+
+  return categories.flatMap(category => category.tools.flatMap(tool => {
+    const paths = [`/${tool.name}`, ...(tool.legacyPaths || [])];
+    // 模块与分类可能同名（如 course-assets），正式分类入口不能被隐藏跳转覆盖。
+    return paths.map((path, index) => ({
+      name: index === 0 ? tool.name : `${tool.name}-legacy-${index}`,
+      path,
+      redirect: { path: `/${category.name}/${tool.name}` },
+      meta: {
+        title: tool.name,
+        hideInMenu: true,
+        guestAccessible: tool.guestAccessible,
+        permissionKey: `module:${tool.name}:access`
+      }
+    })).filter(route => !reservedPaths.has(route.path));
+  }));
 }
 
 // ==================== 视图导入映射 ====================

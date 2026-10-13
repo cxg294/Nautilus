@@ -29,7 +29,7 @@ export function safePath(baseDir, ...segments) {
 export function isSafePathSegment(segment) {
   if (!segment || typeof segment !== 'string') return false;
   // 禁止 .., /, \, null bytes
-  return !/(\.\.|[/\\]|\0)/.test(segment);
+  return !/(\.\.|[/\\])/.test(segment) && !segment.includes('\0');
 }
 
 // ═══ SSRF 防护 ═══

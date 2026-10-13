@@ -19,7 +19,7 @@ const ALLOWED_PREFIXES = [
 ];
 
 export default {
-  async fetch(request, env) {
+  async fetch(request) {
     // CORS 预检
     if (request.method === 'OPTIONS') {
       return new Response(null, {

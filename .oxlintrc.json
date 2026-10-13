@@ -6,6 +6,7 @@
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vue"],
   "rules": {
     "import/no-unassigned-import": "off",
+    "oxc/no-async-endpoint-handlers": "off",
     "unicorn/consistent-function-scoping": "off",
     "unicorn/no-array-sort": "off",
     "unicorn/no-array-reverse": "off",

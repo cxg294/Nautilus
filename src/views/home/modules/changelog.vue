@@ -14,9 +14,19 @@ interface ChangelogItem {
 // TODO: 后续可改为从 Git 日志或数据库读取
 const logs: ChangelogItem[] = [
   {
+    date: '2026-09-22',
+    type: 'optimize',
+    content: '图片工具更名为素材工具，归入 SB3 压缩与语音合成，移除 SB3 积木分析及其权限'
+  },
+  {
     date: '2026-07-03',
     type: 'fix',
     content: '补齐登录令牌静默续期兜底，避免环境变量漏配导致登录过期'
+  },
+  {
+    date: '2026-07-03',
+    type: 'optimize',
+    content: '逐字稿播放器升级为项目化工作台，支持序列 JSON 与舞台、角色配置'
   },
   {
     date: '2026-07-02',

@@ -22,6 +22,9 @@ declare module "@elegant-router/types" {
     "500": "/500";
     "analytics-dashboard": "/analytics-dashboard";
     "base64-converter": "/base64-converter";
+    "character-library": "/character-library";
+    "course-assets": "/course-assets";
+    "course-structure": "/course-structure";
     "effects-generator": "/effects-generator";
     "home": "/home";
     "icon-explorer": "/icon-explorer";
@@ -37,7 +40,7 @@ declare module "@elegant-router/types" {
     "regex-workflow": "/regex-workflow";
     "role-manager": "/role-manager";
     "sb3-compressor": "/sb3-compressor";
-    "sb3-studio": "/sb3-studio";
+    "sequence-player": "/sequence-player";
     "timestamp-converter": "/timestamp-converter";
     "user-manager": "/user-manager";
     "video-frame-extractor": "/video-frame-extractor";
@@ -78,6 +81,9 @@ declare module "@elegant-router/types" {
     | "500"
     | "analytics-dashboard"
     | "base64-converter"
+    | "character-library"
+    | "course-assets"
+    | "course-structure"
     | "effects-generator"
     | "home"
     | "icon-explorer"
@@ -93,7 +99,7 @@ declare module "@elegant-router/types" {
     | "regex-workflow"
     | "role-manager"
     | "sb3-compressor"
-    | "sb3-studio"
+    | "sequence-player"
     | "timestamp-converter"
     | "user-manager"
     | "video-frame-extractor"
@@ -122,6 +128,9 @@ declare module "@elegant-router/types" {
     | "login"
     | "analytics-dashboard"
     | "base64-converter"
+    | "character-library"
+    | "course-assets"
+    | "course-structure"
     | "effects-generator"
     | "home"
     | "icon-explorer"
@@ -134,7 +143,7 @@ declare module "@elegant-router/types" {
     | "regex-workflow"
     | "role-manager"
     | "sb3-compressor"
-    | "sb3-studio"
+    | "sequence-player"
     | "timestamp-converter"
     | "user-manager"
     | "video-frame-extractor"
